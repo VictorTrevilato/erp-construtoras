@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // O Prisma já sabe que isso retorna um array de 'ycEmpresas'
