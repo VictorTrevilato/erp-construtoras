@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model ycCargos {
+  id                 BigInt               @id(map: "PK_ycCargos") @default(autoincrement())
+  sysCreatedAt       DateTime             @default(now(), map: "DF__ycCargos__sysCre__787EE5A0")
+  sysUpdatedAt       DateTime?
+  sysTenantId        BigInt
+  sysUserId          BigInt?
+  nome               String               @db.VarChar(100)
+  descricao          String?              @db.VarChar(255)
+  ativo              Boolean              @default(true, map: "DF__ycCargos__ativo__797309D9")
+  ycUsuarios         ycUsuarios?          @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycCargos_sysUserId")
+  ycEmpresas         ycEmpresas           @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycCargos_ycEmpresas")
+  ycCargosPermissoes ycCargosPermissoes[]
+  ycUsuariosEmpresas ycUsuariosEmpresas[]
+
+  @@index([sysTenantId], map: "IX_ycCargos_sysTenantId")
+}
+
+model ycCargosPermissoes {
+  id           BigInt       @id(map: "PK_ycCargosPermissoes") @default(autoincrement())
+  sysCreatedAt DateTime     @default(now(), map: "DF__ycCargosP__sysCr__7E37BEF6")
+  sysUpdatedAt DateTime?
+  sysTenantId  BigInt
+  sysUserId    BigInt?
+  cargoId      BigInt
+  permissaoId  BigInt
+  ycUsuarios   ycUsuarios?  @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycCargosPermissoes_sysUserId")
+  ycCargos     ycCargos     @relation(fields: [cargoId], references: [id], onUpdate: NoAction, map: "FK_ycCargosPermissoes_ycCargos")
+  ycEmpresas   ycEmpresas   @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycCargosPermissoes_ycEmpresas")
+  ycPermissoes ycPermissoes @relation(fields: [permissaoId], references: [id], onUpdate: NoAction, map: "FK_ycCargosPermissoes_ycPermissoes")
+
+  @@unique([cargoId, permissaoId], map: "UQ_ycCargosPermissoes_Composta")
+  @@index([sysTenantId], map: "IX_ycCargosPermissoes_sysTenantId")
+}
+
+model ycEmpresas {
+  id                           BigInt                         @id(map: "PK_ycEmpresas") @default(autoincrement())
+  sysCreatedAt                 DateTime                       @default(now(), map: "DF__ycEmpresa__sysCr__74AE54BC")
+  sysUpdatedAt                 DateTime?
+  sysUserId                    BigInt?
+  nome                         String                         @db.VarChar(255)
+  cnpj                         String                         @unique(map: "UQ_ycEmpresas_cnpj") @db.VarChar(20)
+  logo                         String?                        @db.VarChar(500)
+  corPrimaria                  String?                        @db.VarChar(7)
+  corSecundaria                String?                        @db.VarChar(7)
+  ativo                        Boolean                        @default(true, map: "DF__ycEmpresa__ativo__75A278F5")
+  ycCargos                     ycCargos[]
+  ycCargosPermissoes           ycCargosPermissoes[]
+  ycUsuarios                   ycUsuarios?                    @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEmpresas_sysUserId")
+  ycEscopos                    ycEscopos[]
+  ycUsuariosEmpresas           ycUsuariosEmpresas[]
+  ycUsuariosEmpresasEscopos    ycUsuariosEmpresasEscopos[]
+  ycUsuariosEmpresasPermissoes ycUsuariosEmpresasPermissoes[]
+}
+
+model ycEscopos {
+  id                        BigInt                      @id(map: "PK_ycEscopos") @default(autoincrement())
+  sysCreatedAt              DateTime                    @default(now(), map: "DF__ycEscopos__sysCr__03F0984C")
+  sysUpdatedAt              DateTime?
+  sysTenantId               BigInt
+  sysUserId                 BigInt?
+  idPai                     BigInt?
+  nome                      String                      @db.VarChar(255)
+  tipo                      String                      @db.VarChar(50)
+  caminho                   String                      @db.VarChar(1000)
+  ativo                     Boolean                     @default(true, map: "DF__ycEscopos__ativo__04E4BC85")
+  ycUsuarios                ycUsuarios?                 @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEscopos_sysUserId")
+  ycEmpresas                ycEmpresas                  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycEscopos_ycEmpresas")
+  ycEscopos                 ycEscopos?                  @relation("ycEscoposToycEscopos", fields: [idPai], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEscopos_ycEscopos_Pai")
+  other_ycEscopos           ycEscopos[]                 @relation("ycEscoposToycEscopos")
+  ycUsuariosEmpresasEscopos ycUsuariosEmpresasEscopos[]
+
+  @@index([idPai], map: "IX_ycEscopos_idPai")
+  @@index([sysTenantId, caminho], map: "IX_ycEscopos_sysTenantId_caminho")
+}
+
+model ycPermissoes {
+  id                           BigInt                         @id(map: "PK_ycPermissoes") @default(autoincrement())
+  sysCreatedAt                 DateTime                       @default(now(), map: "DF__ycPermiss__sysCr__70DDC3D8")
+  sysUpdatedAt                 DateTime?
+  codigo                       String                         @unique(map: "UQ_ycPermissoes_codigo") @db.VarChar(100)
+  descricao                    String                         @db.VarChar(255)
+  categoria                    String                         @db.VarChar(100)
+  ycCargosPermissoes           ycCargosPermissoes[]
+  ycUsuariosEmpresasPermissoes ycUsuariosEmpresasPermissoes[]
+}
+
+model ycUsuarios {
+  id                                                          BigInt                         @id(map: "PK_ycUsuarios") @default(autoincrement())
+  sysCreatedAt                                                DateTime                       @default(now(), map: "DF__ycUsuario__sysCr__0A9D95DB")
+  sysUpdatedAt                                                DateTime?
+  nome                                                        String                         @db.VarChar(200)
+  email                                                       String                         @unique(map: "UQ_ycUsuarios_email") @db.VarChar(200)
+  passwordHash                                                String                         @db.VarChar(500)
+  ativo                                                       Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
+  ultimoLogin                                                 DateTime?
+  ycCargos                                                    ycCargos[]
+  ycCargosPermissoes                                          ycCargosPermissoes[]
+  ycEmpresas                                                  ycEmpresas[]
+  ycEscopos                                                   ycEscopos[]
+  ycUsuariosEmpresas_ycUsuariosEmpresas_sysUserIdToycUsuarios ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
+  ycUsuariosEmpresas_ycUsuariosEmpresas_usuarioIdToycUsuarios ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
+  ycUsuariosEmpresasEscopos                                   ycUsuariosEmpresasEscopos[]
+  ycUsuariosEmpresasPermissoes                                ycUsuariosEmpresasPermissoes[]
+  ycUsuariosRefreshTokens                                     ycUsuariosRefreshTokens[]
+
+  @@index([email], map: "IX_ycUsuarios_email")
+}
+
+model ycUsuariosEmpresas {
+  id                                                  BigInt                         @id(map: "PK_ycUsuariosEmpresas") @default(autoincrement())
+  sysCreatedAt                                        DateTime                       @default(now(), map: "DF__ycUsuario__sysCr__0F624AF8")
+  sysUpdatedAt                                        DateTime?
+  sysTenantId                                         BigInt
+  sysUserId                                           BigInt?
+  usuarioId                                           BigInt
+  cargoId                                             BigInt
+  ativo                                               Boolean                        @default(true, map: "DF__ycUsuario__ativo__10566F31")
+  ycUsuarios_ycUsuariosEmpresas_sysUserIdToycUsuarios ycUsuarios?                    @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios", fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_sysUserId")
+  ycCargos                                            ycCargos                       @relation(fields: [cargoId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycCargos")
+  ycEmpresas                                          ycEmpresas                     @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycEmpresas")
+  ycUsuarios_ycUsuariosEmpresas_usuarioIdToycUsuarios ycUsuarios                     @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios", fields: [usuarioId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycUsuarios")
+  ycUsuariosEmpresasEscopos                           ycUsuariosEmpresasEscopos[]
+  ycUsuariosEmpresasPermissoes                        ycUsuariosEmpresasPermissoes[]
+
+  @@unique([usuarioId, sysTenantId], map: "UQ_ycUsuariosEmpresas_Composta")
+  @@index([cargoId], map: "IX_ycUsuariosEmpresas_cargoId")
+  @@index([sysTenantId], map: "IX_ycUsuariosEmpresas_sysTenantId")
+  @@index([usuarioId], map: "IX_ycUsuariosEmpresas_usuarioId")
+}
+
+model ycUsuariosEmpresasEscopos {
+  id                 BigInt             @id(map: "PK_ycUsuariosEmpresasEscopos") @default(autoincrement())
+  sysCreatedAt       DateTime           @default(now(), map: "DF__ycUsuario__sysCr__1DB06A4F")
+  sysUpdatedAt       DateTime?
+  sysTenantId        BigInt
+  sysUserId          BigInt?
+  usuarioEmpresaId   BigInt
+  escopoId           BigInt
+  ycUsuarios         ycUsuarios?        @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUsuariosEmpresasEscopos_sysUserId")
+  ycEmpresas         ycEmpresas         @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasEscopos_ycEmpresas")
+  ycEscopos          ycEscopos          @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasEscopos_ycEscopos")
+  ycUsuariosEmpresas ycUsuariosEmpresas @relation(fields: [usuarioEmpresaId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasEscopos_ycUsuariosEmpresas")
+
+  @@unique([usuarioEmpresaId, escopoId], map: "UQ_ycUsuariosEmpresasEscopos_Composta")
+  @@index([sysTenantId], map: "IX_ycUsuariosEmpresasEscopos_sysTenantId")
+}
+
+model ycUsuariosEmpresasPermissoes {
+  id                 BigInt             @id(map: "PK_ycUsuariosEmpresasPermissoes") @default(autoincrement())
+  sysCreatedAt       DateTime           @default(now(), map: "DF__ycUsuario__sysCr__17036CC0")
+  sysUpdatedAt       DateTime?
+  sysTenantId        BigInt
+  sysUserId          BigInt?
+  usuarioEmpresaId   BigInt
+  permissaoId        BigInt
+  permitido          Boolean
+  ycUsuarios         ycUsuarios?        @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUsuariosEmpresasPermissoes_sysUserId")
+  ycEmpresas         ycEmpresas         @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasPermissoes_ycEmpresas")
+  ycPermissoes       ycPermissoes       @relation(fields: [permissaoId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasPermissoes_ycPermissoes")
+  ycUsuariosEmpresas ycUsuariosEmpresas @relation(fields: [usuarioEmpresaId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresasPermissoes_ycUsuariosEmpresas")
+
+  @@unique([usuarioEmpresaId, permissaoId], map: "UQ_ycUsuariosEmpresasPermissoes_Composta")
+  @@index([sysTenantId], map: "IX_ycUsuariosEmpresasPermissoes_sysTenantId")
+}
+
+model ycUsuariosRefreshTokens {
+  id           BigInt     @id(map: "PK_ycUsuariosRefreshTokens") @default(autoincrement())
+  sysCreatedAt DateTime   @default(now(), map: "DF__ycUsuario__sysCr__245D67DE")
+  usuarioId    BigInt
+  token        String     @unique(map: "UQ_ycUsuariosRefreshTokens_Token") @db.VarChar(500)
+  expiraEm     DateTime
+  revogado     Boolean    @default(false, map: "DF__ycUsuario__revog__25518C17")
+  ycUsuarios   ycUsuarios @relation(fields: [usuarioId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosRefreshTokens_Usuario")
+}
