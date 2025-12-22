@@ -1,7 +1,7 @@
 import { auth, signOut } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { ShieldCheck, Building2, HardHat, ArrowRight, LogOut } from "lucide-react"
+import { ShieldCheck, Building2, HardHat, ArrowRight } from "lucide-react"
 import { selectContextAction } from "@/app/actions/select-context"
 
 // Força a página a ser dinâmica para trazer dados atualizados do banco

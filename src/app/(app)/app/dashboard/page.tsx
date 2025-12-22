@@ -1,4 +1,4 @@
-import { HardHat, DollarSign, Users, AlertCircle } from "lucide-react"
+import { HardHat, DollarSign, AlertCircle } from "lucide-react"
 
 export default function AppDashboard() {
   return (
