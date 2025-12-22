@@ -16,6 +16,7 @@ model ycCargos {
   nome               String               @db.VarChar(100)
   descricao          String?              @db.VarChar(255)
   ativo              Boolean              @default(true, map: "DF__ycCargos__ativo__797309D9")
+  interno            Boolean              @default(true, map: "DF__ycCargos__intern__2EDAF651")
   ycUsuarios         ycUsuarios?          @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycCargos_sysUserId")
   ycEmpresas         ycEmpresas           @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycCargos_ycEmpresas")
   ycCargosPermissoes ycCargosPermissoes[]
@@ -102,12 +103,13 @@ model ycUsuarios {
   passwordHash                                                String                         @db.VarChar(500)
   ativo                                                       Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
   ultimoLogin                                                 DateTime?
+  isSuperAdmin                                                Boolean                        @default(false, map: "DF__ycUsuario__isSup__2DE6D218")
   ycCargos                                                    ycCargos[]
   ycCargosPermissoes                                          ycCargosPermissoes[]
   ycEmpresas                                                  ycEmpresas[]
   ycEscopos                                                   ycEscopos[]
   ycUsuariosEmpresas_ycUsuariosEmpresas_sysUserIdToycUsuarios ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
-  ycUsuariosEmpresas_ycUsuariosEmpresas_usuarioIdToycUsuarios ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
+  usuariosEmpresas                                            ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
   ycUsuariosEmpresasEscopos                                   ycUsuariosEmpresasEscopos[]
   ycUsuariosEmpresasPermissoes                                ycUsuariosEmpresasPermissoes[]
   ycUsuariosRefreshTokens                                     ycUsuariosRefreshTokens[]
@@ -131,7 +133,7 @@ model ycUsuariosEmpresas {
   ycUsuariosEmpresasEscopos                           ycUsuariosEmpresasEscopos[]
   ycUsuariosEmpresasPermissoes                        ycUsuariosEmpresasPermissoes[]
 
-  @@unique([usuarioId, sysTenantId], map: "UQ_ycUsuariosEmpresas_Composta")
+  @@unique([usuarioId, sysTenantId, cargoId], map: "UQ_ycUsuariosEmpresas_MultiPapel")
   @@index([cargoId], map: "IX_ycUsuariosEmpresas_cargoId")
   @@index([sysTenantId], map: "IX_ycUsuariosEmpresas_sysTenantId")
   @@index([usuarioId], map: "IX_ycUsuariosEmpresas_usuarioId")

@@ -8,21 +8,33 @@ export const authConfig = {
   session: {
     strategy: "jwt",
   },
-  providers: [], // Mantém vazio aqui
+  providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
+      
+      // Rotas protegidas
       const isOnAdmin = nextUrl.pathname.startsWith("/admin")
+      const isOnApp = nextUrl.pathname.startsWith("/app") // Novo
+      const isOnPortal = nextUrl.pathname.startsWith("/portal") // Novo
+      
+      // Rotas de Autenticação
       const isOnLogin = nextUrl.pathname.startsWith("/login")
+      const isOnSelectOrg = nextUrl.pathname.startsWith("/select-org")
 
-      if (isOnAdmin) {
+      // 1. Proteção das Rotas Privadas
+      // Se tentar acessar Admin, App ou Portal sem estar logado -> Login
+      if (isOnAdmin || isOnApp || isOnPortal || isOnSelectOrg) {
         if (isLoggedIn) return true
-        return false 
+        return false // Redireciona para /login
       }
       
+      // 2. Redirecionamento de quem já está logado
+      // Se estiver no Login, mas já estiver logado -> Manda pro LOBBY (Select Org)
       if (isOnLogin) {
         if (isLoggedIn) {
-          return Response.redirect(new URL("/admin/dashboard", nextUrl))
+          // AQUI ESTAVA O ERRO: Antes mandava para /admin/dashboard
+          return Response.redirect(new URL("/select-org", nextUrl)) 
         }
         return true
       }

@@ -40,8 +40,7 @@ export async function registerFirstUser() {
 // Action de Login
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
-    // Adicionamos redirectTo para garantir
-    await signIn("credentials", formData, { redirectTo: "/admin/dashboard" })
+    await signIn("credentials", formData, { redirectTo: "/select-org" })
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
