@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/sidebar-temp"
+import { Sidebar } from "@/components/sidebar"
 import { ThemeWrapper } from "@/components/theme-wrapper"
 import { auth } from "@/auth" // Import necessário para pegar a sessão
 import { prisma } from "@/lib/prisma" // Import para consultar o banco
