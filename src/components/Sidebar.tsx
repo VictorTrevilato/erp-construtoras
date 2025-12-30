@@ -2,31 +2,32 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { serverSignOut } from "@/app/actions/auth-actions" // [Novo] Import da Action
 import { 
   LayoutDashboard, 
   Users, 
-  Settings, 
   Building2, 
   HardHat, 
   DollarSign, 
   FileText,
-  LucideIcon 
+  LucideIcon,
+  ShieldCheck,
+  LogOut // [Novo] Ícone
 } from "lucide-react"
 
-// Definindo os tipos de Menu
+// ... (Tipos e MENUS mantidos iguais) ...
 type MenuItem = {
   label: string
   href: string
   icon: LucideIcon
 }
 
-// Mapeamento dos Menus por Perfil
 const MENUS: Record<string, MenuItem[]> = {
   admin: [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { label: "Tenants", href: "/admin/tenants", icon: Building2 },
+    { label: "Empresas", href: "/admin/tenants", icon: Building2 },
     { label: "Usuários", href: "/admin/users", icon: Users },
-    { label: "Configurações", href: "/admin/settings", icon: Settings },
+    { label: "Permissões", href: "/admin/permissions", icon: ShieldCheck },
   ],
   erp: [
     { label: "Visão Geral", href: "/app/dashboard", icon: LayoutDashboard },
@@ -43,13 +44,12 @@ const MENUS: Record<string, MenuItem[]> = {
 interface SidebarProps {
   title: string
   color: string
-  profile: "admin" | "erp" | "portal" // <--- Mudança aqui: Recebemos apenas a CHAVE
+  profile: "admin" | "erp" | "portal"
+  showTenantSwitch?: boolean
 }
 
-export function Sidebar({ title, color, profile }: SidebarProps) {
+export function Sidebar({ title, color, profile, showTenantSwitch = false }: SidebarProps) {
   const pathname = usePathname()
-  
-  // Carrega o menu baseado na string do perfil
   const items = MENUS[profile] || []
 
   return (
@@ -63,7 +63,6 @@ export function Sidebar({ title, color, profile }: SidebarProps) {
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
-          
           return (
             <Link
               key={item.href}
@@ -82,10 +81,25 @@ export function Sidebar({ title, color, profile }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-4 bg-gray-50">
-        <Link href="/select-org" className="flex items-center gap-2 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          <span>← Trocar Perfil</span>
-        </Link>
+      <div className="border-t p-4 bg-gray-50 space-y-2">
+        {/* Botão Trocar Perfil (Condicional) */}
+        {showTenantSwitch && (
+          <Link 
+            href="/select-org" 
+            className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <span>← Trocar Perfil</span>
+          </Link>
+        )}
+
+        {/* Botão Sair (Sempre visível) */}
+        <button 
+          onClick={() => serverSignOut()} 
+          className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair do Sistema</span>
+        </button>
       </div>
     </div>
   )

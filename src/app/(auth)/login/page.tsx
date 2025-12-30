@@ -1,73 +1,197 @@
 "use client"
 
-import { useActionState, useState } from "react" // Atualizado para hook estável se possível, mas useActionState é do React 19
+import { useActionState, useState } from "react"
 import { authenticate, registerFirstUser } from "@/app/actions/auth-actions"
+import { Building2, Hammer, ArrowRight, CheckCircle2, Star, Quote } from "lucide-react"
 
 export default function LoginPage() {
   const [errorMessage, dispatch, isPending] = useActionState(authenticate, undefined)
   const [seedMessage, setSeedMessage] = useState("")
 
-  const handleCreateAdmin = async () => {
-    setSeedMessage("Criando...")
+  const handleCreateAdmin = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setSeedMessage("Processando...")
     const res = await registerFirstUser()
     setSeedMessage(res.message)
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-6 shadow-md">
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+      
+      {/* LADO ESQUERDO: Branding (Apenas Desktop) */}
+      <div className="hidden bg-slate-900 lg:flex flex-col justify-between p-12 text-white relative overflow-hidden">
         
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">ERP Construtoras</h2>
-          <p className="mt-2 text-sm text-gray-600">Acesso Restrito</p>
+        {/* Efeitos de Fundo (Blobs) */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-blue-900 blur-3xl opacity-30"></div>
+        
+        {/* 1. Header: Logo */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <span className="text-xl font-bold tracking-tight">ERP Construtoras</span>
         </div>
 
-        <form action={dispatch} className="mt-8 space-y-6">
-          <div className="-space-y-px rounded-md shadow-sm">
-            <div>
-              <input
-                name="email"
-                type="email"
-                required
-                className="relative block w-full rounded-t-md border-0 p-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6"
-                placeholder="Email: admin@construtora.com"
-              />
+        {/* 2. Conteúdo Principal */}
+        <div className="relative z-10 max-w-lg">
+          <h1 className="text-5xl font-bold tracking-tight mb-6 leading-tight">
+            Construindo o futuro da sua gestão.
+          </h1>
+          <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+            Unifique o controle de obras, financeiro e suprimentos em uma única plataforma projetada para escalar com a sua construtora.
+          </p>
+          
+          <ul className="space-y-4 text-slate-300 mb-12">
+            <li className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              </div>
+              <span className="font-medium">Controle financeiro e fluxo de caixa</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              </div>
+              <span className="font-medium">Gestão centralizada de múltiplas obras</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              </div>
+              <span className="font-medium">Portal do cliente com acompanhamento real</span>
+            </li>
+          </ul>
+
+          {/* NOVO: Card de Depoimento (Preenche o espaço visual) */}
+          <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
+            <div className="flex gap-1 mb-3">
+              {[1,2,3,4,5].map((_, i) => (
+                <Star key={i} className="h-4 w-4 text-amber-400 fill-amber-400" />
+              ))}
             </div>
+            <div className="relative">
+              <Quote className="absolute -top-2 -left-2 h-8 w-8 text-white/10 rotate-180" />
+              <p className="text-sm text-slate-300 italic pl-4 relative z-10">
+                {/* [CORREÇÃO] Aspas escapadas para &quot; */}
+                &quot;O ERP transformou a maneira como acompanhamos nossos custos. A transparência com os investidores aumentou drasticamente.&quot;
+              </p>
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500"></div>
+              <div>
+                <p className="text-xs font-semibold text-white">Ricardo Mendes</p>
+                <p className="text-[10px] text-slate-400">Diretor de Engenharia, Construtora Alpha</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Footer */}
+        <div className="relative z-10 text-sm text-slate-500 flex justify-between items-end">
+           <span>© {new Date().getFullYear()} VHF System. Todos os direitos reservados.</span>
+        </div>
+      </div>
+
+      {/* LADO DIREITO: Formulário (Mantido igual) */}
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="mx-auto w-full max-w-sm space-y-8">
+          
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600 mb-4">
+              <Building2 className="h-6 w-6" />
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+              Boas-vindas
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Entre com suas credenciais para acessar o painel.
+            </p>
+          </div>
+
+          <form action={dispatch} className="space-y-6">
             <div>
-              <input
-                name="password"
-                type="password"
-                required
-                className="relative block w-full rounded-b-md border-0 p-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6"
-                placeholder="Senha"
-              />
+              <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
+                E-mail Corporativo
+              </label>
+              <div className="mt-2">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3"
+                  placeholder="admin@empresa.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
+                  Senha
+                </label>
+                <div className="text-sm">
+                  <a href="#" className="font-semibold text-blue-600 hover:text-blue-500">
+                    Esqueceu a senha?
+                  </a>
+                </div>
+              </div>
+              <div className="mt-2">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-500 border border-red-200 flex justify-center text-center">
+                {errorMessage}
+              </div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="flex w-full justify-center items-center gap-2 rounded-md bg-blue-600 px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+              >
+                {isPending ? "Autenticando..." : "Entrar na Plataforma"}
+                {!isPending && <ArrowRight className="h-4 w-4" />}
+              </button>
+            </div>
+          </form>
+
+          {/* Área de Seed (Dev Only) */}
+          <div className="mt-10 pt-6 border-t border-gray-100">
+             <div className="flex flex-col items-center justify-center space-y-3">
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
+                Ambiente de Desenvolvimento
+              </span>
+              
+              <button
+                onClick={handleCreateAdmin}
+                className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-100 px-4 py-2 rounded-full hover:bg-slate-200 transition-colors"
+              >
+                <Hammer className="h-3 w-3" />
+                <span>Restaurar Super Admin</span>
+              </button>
+              
+              {seedMessage && (
+                <p className={`text-xs font-medium ${seedMessage.includes('Erro') ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {seedMessage}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="text-red-500 text-sm text-center font-medium min-h-[20px]">
-            {errorMessage && <p>{errorMessage}</p>}
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:bg-blue-300"
-            >
-              {isPending ? "Entrando..." : "Entrar"}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-6 border-t pt-4 text-center">
-          <p className="text-xs text-gray-500 mb-2">Primeiro Acesso (Desenvolvimento)</p>
-          <button
-            onClick={handleCreateAdmin}
-            className="text-xs text-blue-600 hover:underline font-bold"
-          >
-            Gerar Usuário Admin
-          </button>
-          {seedMessage && <p className="text-xs text-green-600 mt-2">{seedMessage}</p>}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import { signIn } from "@/auth"
+import { signIn, signOut } from "@/auth"
 import { AuthError } from "next-auth"
 
 // Action temporária para criar o primeiro usuário (Seed Manual)
@@ -11,29 +11,27 @@ export async function registerFirstUser() {
   const password = "admin"
   const nome = "Administrador Sistema"
 
-  // Hash da senha
   const hashedPassword = await bcrypt.hash(password, 10)
 
   try {
-    // Verifica se já existe
     const exists = await prisma.ycUsuarios.findUnique({ where: { email } })
-    if (exists) return { success: false, message: "Usuário já existe" }
+    if (exists) return { success: false, message: "Usuário já existe. Delete-o no banco se quiser recriar." }
 
-    // Cria no banco APENAS com os dados da tabela ycUsuarios
     await prisma.ycUsuarios.create({
       data: {
         nome,
         email,
         passwordHash: hashedPassword,
         ativo: true,
-        // sysTenantId removido: faremos o vínculo com empresas/cargos em outra etapa
+        isSuperAdmin: true, // [CRÍTICO] Adicione isso!
+        sysCreatedAt: new Date()
       }
     })
 
     return { success: true, message: "Usuário Admin criado com sucesso!" }
   } catch (error) {
     console.error("Erro ao registrar:", error)
-    return { success: false, message: "Erro ao criar usuário: " + String(error) }
+    return { success: false, message: "Erro ao criar usuário." }
   }
 }
 
@@ -52,4 +50,9 @@ export async function authenticate(prevState: string | undefined, formData: Form
     }
     throw error
   }
+}
+
+// Action de Logout
+export async function serverSignOut() {
+  await signOut({ redirectTo: "/login" })
 }

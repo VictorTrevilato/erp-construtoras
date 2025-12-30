@@ -1,21 +1,17 @@
-import { Sidebar } from "@/components/Sidebar"
+import { Sidebar } from "@/components/sidebar" // Verifique se o nome do arquivo está minúsculo 'sidebar'
+import { ThemeWrapper } from "@/components/theme-wrapper"
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Passamos apenas a string 'admin' */}
-      <Sidebar title="VHF System" color="bg-purple-700" profile="admin" />
-
-      {/* Ajustamos a margem esquerda (ml-64) para compensar a sidebar fixa */}
-      <main className="flex-1 ml-64 p-8">
-        <div className="mx-auto max-w-6xl">
-          {children}
-        </div>
-      </main>
-    </div>
+    <ThemeWrapper theme="theme-admin">
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar title="VHF System" color="bg-purple-700" profile="admin" showTenantSwitch={false} />
+        <main className="flex-1 ml-64 p-8">
+          <div className="min-h-screen w-full">
+            {children}
+          </div>
+        </main>
+      </div>
+    </ThemeWrapper>
   )
 }

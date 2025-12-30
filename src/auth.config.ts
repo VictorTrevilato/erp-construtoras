@@ -1,53 +1,31 @@
-// src/auth.config.ts
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig = {
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
-  session: {
-    strategy: "jwt",
-  },
-  providers: [],
+  providers: [], // Providers ficam vazios aqui (preenchidos no auth.ts)
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user
-      
-      // Rotas protegidas
-      const isOnAdmin = nextUrl.pathname.startsWith("/admin")
-      const isOnApp = nextUrl.pathname.startsWith("/app") // Novo
-      const isOnPortal = nextUrl.pathname.startsWith("/portal") // Novo
-      
-      // Rotas de Autenticação
-      const isOnLogin = nextUrl.pathname.startsWith("/login")
-      const isOnSelectOrg = nextUrl.pathname.startsWith("/select-org")
-
-      // 1. Proteção das Rotas Privadas
-      // Se tentar acessar Admin, App ou Portal sem estar logado -> Login
-      if (isOnAdmin || isOnApp || isOnPortal || isOnSelectOrg) {
-        if (isLoggedIn) return true
-        return false // Redireciona para /login
+    // 1. O JWT é gerado no login e atualizado
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        // [CORREÇÃO] Adicionamos '|| false' para garantir que nunca seja undefined
+        token.isSuperAdmin = (user as { isSuperAdmin?: boolean }).isSuperAdmin || false
       }
-      
-      // 2. Redirecionamento de quem já está logado
-      // Se estiver no Login, mas já estiver logado -> Manda pro LOBBY (Select Org)
-      if (isOnLogin) {
-        if (isLoggedIn) {
-          // AQUI ESTAVA O ERRO: Antes mandava para /admin/dashboard
-          return Response.redirect(new URL("/select-org", nextUrl)) 
-        }
-        return true
-      }
-      
-      return true
-    },
-    jwt({ token, user }) {
-      if (user) token.sub = user.id
       return token
     },
-    session({ session, token }) {
-      if (session.user && token.sub) session.user.id = token.sub
+    // 2. A Sessão é o que o Middleware e os Componentes leem
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.id as string
+        session.user.isSuperAdmin = token.isSuperAdmin as boolean
+      }
       return session
+    },
+    // 3. Authorized (Opcional, mas bom ter padrão)
+    authorized({ auth }) {
+      return !!auth?.user // Retorna true se tiver usuário
     },
   },
 } satisfies NextAuthConfig
