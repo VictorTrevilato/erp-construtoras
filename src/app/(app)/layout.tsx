@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/sidebar"
+import { Sidebar } from "@/components/sidebar-temp"
 import { ThemeWrapper } from "@/components/theme-wrapper"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"

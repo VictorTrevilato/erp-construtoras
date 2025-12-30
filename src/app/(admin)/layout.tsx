@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/sidebar" // Verifique se o nome do arquivo está minúsculo 'sidebar'
+import { Sidebar } from "@/components/sidebar-temp"
 import { ThemeWrapper } from "@/components/theme-wrapper"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
