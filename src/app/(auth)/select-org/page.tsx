@@ -6,7 +6,10 @@ import { Building2, LogOut, ArrowRight } from "lucide-react"
 export default async function SelectOrgPage() {
   const session = await auth()
 
-  if (!session?.user) {
+  // [CORREÇÃO DE SEGURANÇA]
+  // Verificamos se existe usuário E se existe o ID dele.
+  // Se o ID vier undefined (erro de cookie), forçamos logout/login para limpar.
+  if (!session?.user?.id) {
     redirect("/login")
   }
 
@@ -20,7 +23,8 @@ export default async function SelectOrgPage() {
   // Buscamos as empresas onde o usuário tem vínculo ativo
   const userLinks = await prisma.ycUsuariosEmpresas.findMany({
     where: {
-      usuarioId: BigInt(session.user.id),
+      // Agora é seguro chamar BigInt pois garantimos que o ID existe acima
+      usuarioId: BigInt(session.user.id), 
       ativo: true,
       ycEmpresas: { ativo: true } // Apenas empresas ativas
     },
