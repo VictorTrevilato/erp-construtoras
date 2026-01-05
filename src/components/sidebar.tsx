@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { serverSignOut } from "@/app/actions/auth-actions" // [Novo] Import da Action
+import { serverSignOut } from "@/app/actions/auth-actions"
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,10 +12,10 @@ import {
   FileText,
   LucideIcon,
   ShieldCheck,
-  LogOut // [Novo] Ícone
+  LogOut,
+  UserCircle // [Novo] Ícone para Minha Conta
 } from "lucide-react"
 
-// ... (Tipos e MENUS mantidos iguais) ...
 type MenuItem = {
   label: string
   href: string
@@ -51,6 +51,16 @@ interface SidebarProps {
 export function Sidebar({ title, color, profile, showTenantSwitch = false }: SidebarProps) {
   const pathname = usePathname()
   const items = MENUS[profile] || []
+
+  // [Novo] Lógica para definir o link de perfil correto baseado no contexto atual
+  const isContextAdmin = pathname?.startsWith('/admin')
+  const isContextPortal = pathname?.startsWith('/portal')
+  
+  const profileLink = isContextAdmin 
+    ? '/admin/me' 
+    : isContextPortal 
+      ? '/portal/me' 
+      : '/app/me'
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-white fixed left-0 top-0">
@@ -91,6 +101,19 @@ export function Sidebar({ title, color, profile, showTenantSwitch = false }: Sid
             <span>← Trocar Perfil</span>
           </Link>
         )}
+
+        {/* [Novo] Link Minha Conta */}
+        <Link 
+          href={profileLink}
+          className={`flex items-center gap-2 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
+             pathname === profileLink 
+               ? "text-gray-900 bg-gray-100" 
+               : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+          }`}
+        >
+          <UserCircle className="h-4 w-4" />
+          <span>Minha Conta</span>
+        </Link>
 
         {/* Botão Sair (Sempre visível) */}
         <button 
