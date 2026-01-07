@@ -29,10 +29,10 @@ export default async function PortalLayout({
           title="Área do Cliente" 
           color="bg-emerald-700" 
           profile="portal" 
-          showTenantSwitch={showSwitch} // [Novo] Lógica aplicada
+          showTenantSwitch={showSwitch}
         />
         
-        <main className="flex-1 ml-64 p-8">
+        <main className="flex-1 ml-72 p-8">
           <div className="min-h-screen w-full">
             {children}
           </div>

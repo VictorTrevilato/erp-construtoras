@@ -202,7 +202,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tenants</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Empresas</h1>
             <p className="text-muted-foreground">Gestão das empresas e construtoras do sistema.</p>
           </div>
           
