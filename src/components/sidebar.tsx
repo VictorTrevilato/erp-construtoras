@@ -62,6 +62,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
     icon: ShoppingCart,
     permission: "SUPRIMENTOS_VER",
     children: [
+      { label: "Insumos", href: "/app/suprimentos/insumos", permission: "INSUMOS_VER" },
       { label: "Compras", href: "/app/suprimentos/compras", permission: "COMPRAS_VER" },
       { label: "Medições", href: "/app/suprimentos/medicoes", permission: "MEDICOES_VER" },
       { label: "Estoques", href: "/app/suprimentos/estoques", permission: "ESTOQUES_VER" },
