@@ -111,7 +111,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Dados da Empresa", href: "/app/configuracoes/empresa", permission: "EMPRESA_VER" },
       { label: "Usuários e Acessos", href: "/app/configuracoes/usuarios", permission: "USUARIOS_VER" },
       { label: "Cargos e Permissões", href: "/app/configuracoes/cargos", permission: "CARGOS_VER" },
-      { label: "Escopos da Empresa", href: "/app/configuracoes/escopos", permission: "ESCOPOS_VER" },
+      { label: "Escopos de Trabalho", href: "/app/configuracoes/escopos", permission: "ESCOPOS_VER" },
     ]
   }
 ]
@@ -205,14 +205,25 @@ function SidebarItem({
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
-  const isActiveParent = item.children?.some(child => pathname === child.href)
+  // [CORREÇÃO] Helper para verificar se a rota é ativa (suporta sub-rotas como /novo ou /[id])
+  const isRouteActive = (href?: string) => {
+    if (!href || !pathname) return false
+    if (pathname === href) return true // Match exato
+    if (pathname.startsWith(`${href}/`)) return true // Match parcial (ex: /cargos/novo)
+    return false
+  }
+
+  // Verifica se algum filho está ativo para manter o menu pai aberto e pintado
+  const isActiveParent = item.children?.some(child => isRouteActive(child.href))
   
   useState(() => {
     if (isActiveParent) setIsOpen(true)
   })
 
   const hasChildren = item.children && item.children.length > 0
-  const isActive = pathname === item.href
+  
+  // [CORREÇÃO] Usa a nova função para o item atual
+  const isActive = isRouteActive(item.href)
   
   // Filtra filhos baseado na permissão (se necessário)
   const visibleChildren = checkPermission
@@ -242,19 +253,23 @@ function SidebarItem({
 
         {isOpen && (
           <div className="ml-9 mt-1 space-y-1 border-l pl-2">
-            {visibleChildren?.map((child, idx) => (
-              <Link
-                key={idx}
-                href={child.href || "#"}
-                className={`block rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
-                  pathname === child.href
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                }`}
-              >
-                {child.label}
-              </Link>
-            ))}
+            {visibleChildren?.map((child, idx) => {
+              // [CORREÇÃO] Verifica atividade do filho individualmente
+              const isChildActive = isRouteActive(child.href)
+              return (
+                <Link
+                  key={idx}
+                  href={child.href || "#"}
+                  className={`block rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+                    isChildActive
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  {child.label}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

@@ -103,6 +103,7 @@ export async function getUserPermissions(): Promise<string[]> {
       permissionsSet.add("ACOMPANHAMENTO_VER")
 	
     permissionsSet.add("SUPRIMENTOS_VER")
+      permissionsSet.add("INSUMOS_VER")
       permissionsSet.add("COMPRAS_VER")
       permissionsSet.add("MEDICOES_VER")
       permissionsSet.add("ESTOQUES_VER")
@@ -127,7 +128,10 @@ export async function getUserPermissions(): Promise<string[]> {
       permissionsSet.add("EMPRESA_VER")
       permissionsSet.add("USUARIOS_VER")
       permissionsSet.add("CARGOS_VER")
-	    permissionsSet.add("ESCOPOS_VER")
+      permissionsSet.add("CARGOS_CRIAR")
+      permissionsSet.add("CARGOS_EDITAR")
+      permissionsSet.add("CARGOS_EXCLUIR")
+      permissionsSet.add("ESCOPOS_VER")
     
     return Array.from(permissionsSet)
 
