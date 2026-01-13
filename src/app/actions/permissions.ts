@@ -4,6 +4,25 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 
+// Função para listar TODAS as permissões disponíveis no sistema (para checkbox de config)
+export async function getAllSystemPermissions() {
+  try {
+    const permissions = await prisma.ycPermissoes.findMany({
+      orderBy: [{ categoria: 'asc' }, { descricao: 'asc' }]
+    })
+
+    return permissions.map(p => ({
+      id: p.id.toString(),
+      codigo: p.codigo,
+      descricao: p.descricao,
+      categoria: p.categoria
+    }))
+  } catch (error) {
+    console.error("Erro ao buscar permissões do sistema:", error)
+    return []
+  }
+}
+
 /**
  * Retorna a lista de códigos de permissão do usuário logado no tenant atual.
  * Lógica: (Permissões do Cargo + Granulares Adicionadas) - Granulares Removidas.

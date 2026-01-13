@@ -665,15 +665,15 @@ export async function getTenantMaster(tenantId: string) {
       },
       orderBy: { sysCreatedAt: 'asc' },
       include: {
-        ycUsuarios_ycUsuariosEmpresas_usuarioIdToycUsuarios: true
+        ycUsuarios: true
       }
     })
 
-    if (!masterLink || !masterLink.ycUsuarios_ycUsuariosEmpresas_usuarioIdToycUsuarios) {
+    if (!masterLink || !masterLink.ycUsuarios) {
       return { success: true, data: null }
     }
 
-    const user = masterLink.ycUsuarios_ycUsuariosEmpresas_usuarioIdToycUsuarios
+    const user = masterLink.ycUsuarios
 
     return {
       success: true,

@@ -126,10 +126,10 @@ model ycUsuariosEmpresas {
   usuarioId                                           BigInt
   cargoId                                             BigInt
   ativo                                               Boolean                        @default(true, map: "DF__ycUsuario__ativo__10566F31")
-  ycUsuarios_ycUsuariosEmpresas_sysUserIdToycUsuarios ycUsuarios?                    @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios", fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_sysUserId")
+  sysUserCriador                                      ycUsuarios?                    @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios", fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_sysUserId")
   ycCargos                                            ycCargos                       @relation(fields: [cargoId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycCargos")
   ycEmpresas                                          ycEmpresas                     @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycEmpresas")
-  ycUsuarios_ycUsuariosEmpresas_usuarioIdToycUsuarios ycUsuarios                     @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios", fields: [usuarioId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycUsuarios")
+  ycUsuarios                                          ycUsuarios                     @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios", fields: [usuarioId], references: [id], onUpdate: NoAction, map: "FK_ycUsuariosEmpresas_ycUsuarios")
   ycUsuariosEmpresasEscopos                           ycUsuariosEmpresasEscopos[]
   ycUsuariosEmpresasPermissoes                        ycUsuariosEmpresasPermissoes[]
 
