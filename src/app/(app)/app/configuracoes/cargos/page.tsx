@@ -9,12 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Users } from "lucide-react"
 import Link from "next/link"
 import { RoleActions } from "./_components/role-actions"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 export default async function RolesPage() {
   const session = await auth()
@@ -25,6 +19,7 @@ export default async function RolesPage() {
     getUserPermissions()
   ])
 
+  // Lógica Estrita: Apenas exibe se tiver a permissão exata no banco.
   const canCreate = userPermissions.includes("CARGOS_CRIAR")
 
   return (
@@ -37,29 +32,14 @@ export default async function RolesPage() {
           </p>
         </div>
 
-        {canCreate ? (
+        {/* Se não tiver permissão, o botão nem aparece no DOM */}
+        {canCreate && (
           <Button asChild>
             <Link href="/app/configuracoes/cargos/novo">
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Cargo
             </Link>
           </Button>
-        ) : (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button disabled variant="outline" className="opacity-50 cursor-not-allowed">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Novo Cargo
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Você não tem permissão para criar novos cargos.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
       </div>
 
@@ -105,7 +85,6 @@ export default async function RolesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      {/* [CORREÇÃO] Removida a prop 'isInternal' que causava o erro */}
                       <RoleActions 
                         roleId={role.id.toString()} 
                         userCount={role._count.ycUsuariosEmpresas}

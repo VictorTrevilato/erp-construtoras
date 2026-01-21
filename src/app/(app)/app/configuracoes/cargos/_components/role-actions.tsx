@@ -54,14 +54,16 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
   const canEdit = can("CARGOS_EDITAR")
   const canDelete = can("CARGOS_EXCLUIR")
 
-  // Texto do Tooltip do Botão Principal
-  const actionTooltipText = canEdit ? "Editar cargo" : "Visualizar detalhes"
+  // Configuração Visual (Padronizada com Projetos)
+  const ActionIcon = canEdit ? Pencil : Eye
+  const actionLabel = canEdit ? "Editar cargo" : "Visualizar detalhes"
+  const iconColor = canEdit ? "text-blue-600" : "text-gray-500"
 
-  // Texto e Estado do Botão de Excluir
-  const isDeleteDisabled = !canDelete || userCount > 0
-  let deleteTooltipText = "Excluir cargo"
-  if (userCount > 0) deleteTooltipText = "Não é possível excluir cargos com usuários vinculados."
-  if (!canDelete) deleteTooltipText = "Você não tem permissão para excluir."
+  // Regra de Negócio para Exclusão (Travada se houver usuários)
+  const isBusinessLocked = userCount > 0
+  const deleteTooltipText = isBusinessLocked 
+    ? "Não é possível excluir cargos com usuários vinculados." 
+    : "Excluir cargo"
 
   return (
     <TooltipProvider>
@@ -72,55 +74,58 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" asChild>
               <Link href={`/app/configuracoes/cargos/${roleId}`}>
-                {canEdit ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                <ActionIcon className={`h-4 w-4 ${iconColor}`} />
               </Link>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{actionTooltipText}</p>
+            <p>{actionLabel}</p>
           </TooltipContent>
         </Tooltip>
 
-        {/* 2. Botão Excluir com Tooltip */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span tabIndex={0}> 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={canDelete && !isDeleteDisabled ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "text-gray-300"}
-                    disabled={isDeleteDisabled}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso excluirá permanentemente o cargo.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDelete}
-                      className="bg-red-600 hover:bg-red-700"
-                      disabled={isDeleting}
+        {/* 2. Botão Excluir */}
+        {/* Só renderiza se tiver permissão. Se tiver permissão mas users > 0, renderiza desabilitado. */}
+        {canDelete && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}> 
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={!isBusinessLocked ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}
+                      disabled={isBusinessLocked}
                     >
-                      {isDeleting ? "Excluindo..." : "Sim, excluir cargo"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{deleteTooltipText}</p>
-          </TooltipContent>
-        </Tooltip>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o cargo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDelete}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? "Excluindo..." : "Sim, excluir cargo"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{deleteTooltipText}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
       </div>
     </TooltipProvider>

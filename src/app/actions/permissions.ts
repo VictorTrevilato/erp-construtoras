@@ -117,6 +117,9 @@ export async function getUserPermissions(): Promise<string[]> {
 
     permissionsSet.add("ENGENHARIA_VER")
       permissionsSet.add("PROJETOS_VER")
+      permissionsSet.add("PROJETOS_CRIAR")
+      permissionsSet.add("PROJETOS_EDITAR")
+      permissionsSet.add("PROJETOS_EXCLUIR")
       permissionsSet.add("ORCAMENTOS_VER")
       permissionsSet.add("PLANEJAMENTO_VER")
       permissionsSet.add("ACOMPANHAMENTO_VER")
@@ -148,7 +151,6 @@ export async function getUserPermissions(): Promise<string[]> {
       permissionsSet.add("USUARIOS_VER")
       permissionsSet.add("CARGOS_VER")
       permissionsSet.add("CARGOS_CRIAR")
-      permissionsSet.add("CARGOS_EDITAR")
       permissionsSet.add("CARGOS_EXCLUIR")
       permissionsSet.add("ESCOPOS_VER")
     
