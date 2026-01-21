@@ -151,6 +151,7 @@ export async function getUserPermissions(): Promise<string[]> {
       permissionsSet.add("USUARIOS_VER")
       permissionsSet.add("CARGOS_VER")
       permissionsSet.add("CARGOS_CRIAR")
+      permissionsSet.add("CARGOS_EDITAR")
       permissionsSet.add("CARGOS_EXCLUIR")
       permissionsSet.add("ESCOPOS_VER")
     
