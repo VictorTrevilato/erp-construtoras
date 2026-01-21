@@ -99,3 +99,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* --- SCROLLBAR PERSONALIZADA (Global) --- */
+
+/* Para Chrome, Edge, Safari e Opera */
+::-webkit-scrollbar {
+  width: 6px;  /* Largura vertical */
+  height: 6px; /* Altura horizontal */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Fundo invisível */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0; /* Cor da barra (Cinza claro - slate-200) */
+  border-radius: 10px; /* Bordas arredondadas */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1; /* Cor ao passar o mouse (slate-300) */
+}
+
+/* Para Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
