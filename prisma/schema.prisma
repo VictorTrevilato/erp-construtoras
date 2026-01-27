@@ -53,11 +53,18 @@ model ycEmpresas {
   corPrimaria                  String?                        @db.VarChar(7)
   corSecundaria                String?                        @db.VarChar(7)
   ativo                        Boolean                        @default(true, map: "DF__ycEmpresa__ativo__75A278F5")
+  ycBlocos                     ycBlocos[]
   ycCargos                     ycCargos[]
   ycCargosPermissoes           ycCargosPermissoes[]
   ycUsuarios                   ycUsuarios?                    @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEmpresas_sysUserId")
   ycEscopos                    ycEscopos[]
+  ycFluxosPadrao               ycFluxosPadrao[]
+  ycLeads                      ycLeads[]
   ycProjetos                   ycProjetos[]
+  ycPropostas                  ycPropostas[]
+  ycPropostasCondicoes         ycPropostasCondicoes[]
+  ycTabelasPreco               ycTabelasPreco[]
+  ycUnidades                   ycUnidades[]
   ycUsuariosEmpresas           ycUsuariosEmpresas[]
   ycUsuariosEmpresasEscopos    ycUsuariosEmpresasEscopos[]
   ycUsuariosEmpresasPermissoes ycUsuariosEmpresasPermissoes[]
@@ -74,11 +81,18 @@ model ycEscopos {
   tipo                      String                      @db.VarChar(50)
   caminho                   String                      @db.VarChar(1000)
   ativo                     Boolean                     @default(true, map: "DF__ycEscopos__ativo__04E4BC85")
+  ycBlocos                  ycBlocos[]
   ycUsuarios                ycUsuarios?                 @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEscopos_sysUserId")
   ycEmpresas                ycEmpresas                  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycEscopos_ycEmpresas")
   ycEscopos                 ycEscopos?                  @relation("ycEscoposToycEscopos", fields: [idPai], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycEscopos_ycEscopos_Pai")
   other_ycEscopos           ycEscopos[]                 @relation("ycEscoposToycEscopos")
+  ycFluxosPadrao            ycFluxosPadrao[]
+  ycLeads                   ycLeads[]
   ycProjetos                ycProjetos[]
+  ycPropostas               ycPropostas[]
+  ycPropostasCondicoes      ycPropostasCondicoes[]
+  ycTabelasPreco            ycTabelasPreco[]
+  ycUnidades                ycUnidades[]
   ycUsuariosEmpresasEscopos ycUsuariosEmpresasEscopos[]
 
   @@index([idPai], map: "IX_ycEscopos_idPai")
@@ -106,11 +120,18 @@ model ycUsuarios {
   ativo                                                       Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
   ultimoLogin                                                 DateTime?
   isSuperAdmin                                                Boolean                        @default(false, map: "DF__ycUsuario__isSup__2DE6D218")
+  ycBlocos                                                    ycBlocos[]
   ycCargos                                                    ycCargos[]
   ycCargosPermissoes                                          ycCargosPermissoes[]
   ycEmpresas                                                  ycEmpresas[]
   ycEscopos                                                   ycEscopos[]
+  ycFluxosPadrao                                              ycFluxosPadrao[]
+  ycLeads                                                     ycLeads[]
   ycProjetos                                                  ycProjetos[]
+  ycPropostas                                                 ycPropostas[]
+  ycPropostasCondicoes                                        ycPropostasCondicoes[]
+  ycTabelasPreco                                              ycTabelasPreco[]
+  ycUnidades                                                  ycUnidades[]
   ycUsuariosEmpresas_ycUsuariosEmpresas_sysUserIdToycUsuarios ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
   usuariosEmpresas                                            ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
   ycUsuariosEmpresasEscopos                                   ycUsuariosEmpresasEscopos[]
@@ -188,34 +209,218 @@ model ycUsuariosRefreshTokens {
 }
 
 model ycProjetos {
-  id                   BigInt      @id(map: "PK_ycProjetos") @default(autoincrement())
-  sysCreatedAt         DateTime    @default(now(), map: "DF__ycProjeto__sysCr__3C34F16F")
+  id                   BigInt           @id(map: "PK_ycProjetos") @default(autoincrement())
+  sysCreatedAt         DateTime         @default(now(), map: "DF__ycProjeto__sysCr__3C34F16F")
   sysUpdatedAt         DateTime?
   sysTenantId          BigInt
   sysUserId            BigInt?
   escopoId             BigInt
-  nome                 String      @db.VarChar(255)
-  descricao            String?     @db.VarChar(Max)
-  tipo                 String      @db.VarChar(50)
-  status               String      @db.VarChar(50)
-  logo                 String?     @db.VarChar(500)
-  cep                  String?     @db.VarChar(8)
-  logradouro           String?     @db.VarChar(255)
-  numero               String?     @db.VarChar(50)
-  complemento          String?     @db.VarChar(100)
-  bairro               String?     @db.VarChar(100)
-  cidade               String?     @db.VarChar(100)
-  estado               String?     @db.Char(2)
-  cnpj                 String?     @db.VarChar(20)
-  registroIncorporacao String?     @db.VarChar(100)
-  matricula            String?     @db.VarChar(100)
-  areaTotal            Decimal?    @db.Decimal(18, 2)
-  ycEmpresas           ycEmpresas  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")
-  ycEscopos            ycEscopos   @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEscopos")
-  ycUsuarios           ycUsuarios? @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycProjetos_ycUsuarios")
+  nome                 String           @db.VarChar(255)
+  descricao            String?          @db.VarChar(Max)
+  tipo                 String           @db.VarChar(50)
+  status               String           @db.VarChar(50)
+  logo                 String?          @db.VarChar(500)
+  cep                  String?          @db.VarChar(8)
+  logradouro           String?          @db.VarChar(255)
+  numero               String?          @db.VarChar(50)
+  complemento          String?          @db.VarChar(100)
+  bairro               String?          @db.VarChar(100)
+  cidade               String?          @db.VarChar(100)
+  estado               String?          @db.Char(2)
+  cnpj                 String?          @db.VarChar(20)
+  registroIncorporacao String?          @db.VarChar(100)
+  matricula            String?          @db.VarChar(100)
+  areaTotal            Decimal?         @db.Decimal(18, 2)
+  ycBlocos             ycBlocos[]
+  ycLeads              ycLeads[]
+  ycEmpresas           ycEmpresas       @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")
+  ycEscopos            ycEscopos        @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEscopos")
+  ycUsuarios           ycUsuarios?      @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycProjetos_ycUsuarios")
+  ycTabelasPreco       ycTabelasPreco[]
+  ycUnidades           ycUnidades[]
 
   @@index([escopoId], map: "IX_ycProjetos_escopoId")
   @@index([status], map: "IX_ycProjetos_status")
   @@index([sysTenantId], map: "IX_ycProjetos_sysTenantId")
   @@index([tipo], map: "IX_ycProjetos_tipo")
+}
+
+model ycBlocos {
+  id           BigInt       @id(map: "PK_ycBlocos") @default(autoincrement())
+  sysCreatedAt DateTime     @default(now(), map: "DF__ycBlocos__sysCre__41EDCAC5")
+  sysUpdatedAt DateTime?
+  sysTenantId  BigInt
+  sysUserId    BigInt?
+  escopoId     BigInt
+  projetoId    BigInt
+  codigo       String       @db.VarChar(20)
+  nome         String       @db.VarChar(100)
+  ycEmpresas   ycEmpresas   @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycBlocos_ycEmpresas")
+  ycEscopos    ycEscopos    @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycBlocos_ycEscopos")
+  ycProjetos   ycProjetos   @relation(fields: [projetoId], references: [id], onUpdate: NoAction, map: "FK_ycBlocos_ycProjetos")
+  ycUsuarios   ycUsuarios?  @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycBlocos_ycUsuarios")
+  ycUnidades   ycUnidades[]
+
+  @@index([escopoId], map: "IX_ycBlocos_escopoId")
+  @@index([projetoId], map: "IX_ycBlocos_projetoId")
+  @@index([sysTenantId], map: "IX_ycBlocos_sysTenantId")
+}
+
+model ycFluxosPadrao {
+  id                     BigInt         @id(map: "PK_ycFluxosPadrao") @default(autoincrement())
+  sysCreatedAt           DateTime       @default(now(), map: "DF__ycFluxosP__sysCr__5CA1C101")
+  sysUpdatedAt           DateTime?
+  sysTenantId            BigInt
+  sysUserId              BigInt?
+  escopoId               BigInt
+  tabelaPrecoId          BigInt
+  tipo                   String         @db.VarChar(50)
+  percentual             Decimal        @db.Decimal(10, 4)
+  qtdeParcelas           Int
+  primeiroVencimentoDias Int
+  ycEmpresas             ycEmpresas     @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycFluxosPadrao_ycEmpresas")
+  ycEscopos              ycEscopos      @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycFluxosPadrao_ycEscopos")
+  ycTabelasPreco         ycTabelasPreco @relation(fields: [tabelaPrecoId], references: [id], onUpdate: NoAction, map: "FK_ycFluxosPadrao_ycTabelasPreco")
+  ycUsuarios             ycUsuarios?    @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycFluxosPadrao_ycUsuarios")
+
+  @@index([tabelaPrecoId], map: "IX_ycFluxosPadrao_tabelaPrecoId")
+}
+
+model ycLeads {
+  id           BigInt        @id(map: "PK_ycLeads") @default(autoincrement())
+  sysCreatedAt DateTime      @default(now(), map: "DF__ycLeads__sysCrea__634EBE90")
+  sysUpdatedAt DateTime?
+  sysTenantId  BigInt
+  sysUserId    BigInt?
+  escopoId     BigInt
+  projetoId    BigInt
+  nome         String        @db.VarChar(200)
+  email        String?       @db.VarChar(200)
+  telefone     String?       @db.VarChar(20)
+  origem       String?       @db.VarChar(50)
+  status       String        @db.VarChar(50)
+  ycEmpresas   ycEmpresas    @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycLeads_ycEmpresas")
+  ycEscopos    ycEscopos     @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycLeads_ycEscopos")
+  ycProjetos   ycProjetos    @relation(fields: [projetoId], references: [id], onUpdate: NoAction, map: "FK_ycLeads_ycProjetos")
+  ycUsuarios   ycUsuarios?   @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycLeads_ycUsuarios")
+  ycPropostas  ycPropostas[]
+
+  @@index([email], map: "IX_ycLeads_email")
+  @@index([projetoId], map: "IX_ycLeads_projetoId")
+  @@index([status], map: "IX_ycLeads_status")
+  @@index([sysTenantId], map: "IX_ycLeads_sysTenantId")
+}
+
+model ycPropostas {
+  id                   BigInt                 @id(map: "PK_ycPropostas") @default(autoincrement())
+  sysCreatedAt         DateTime               @default(now(), map: "DF__ycPropost__sysCr__69FBBC1F")
+  sysUpdatedAt         DateTime?
+  sysTenantId          BigInt
+  sysUserId            BigInt?
+  escopoId             BigInt
+  unidadeId            BigInt
+  leadId               BigInt
+  tabelaPrecoId        BigInt
+  valorTabelaOriginal  Decimal                @db.Decimal(18, 2)
+  valorProposta        Decimal                @db.Decimal(18, 2)
+  desconto             Decimal                @default(0, map: "DF__ycPropost__desco__6AEFE058") @db.Decimal(18, 2)
+  dataProposta         DateTime
+  validade             DateTime
+  status               String                 @db.VarChar(50)
+  ycEmpresas           ycEmpresas             @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycPropostas_ycEmpresas")
+  ycEscopos            ycEscopos              @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycPropostas_ycEscopos")
+  ycLeads              ycLeads                @relation(fields: [leadId], references: [id], onUpdate: NoAction, map: "FK_ycPropostas_ycLeads")
+  ycTabelasPreco       ycTabelasPreco         @relation(fields: [tabelaPrecoId], references: [id], onUpdate: NoAction, map: "FK_ycPropostas_ycTabelasPreco")
+  ycUnidades           ycUnidades             @relation(fields: [unidadeId], references: [id], onUpdate: NoAction, map: "FK_ycPropostas_ycUnidades")
+  ycUsuarios           ycUsuarios?            @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycPropostas_ycUsuarios")
+  ycPropostasCondicoes ycPropostasCondicoes[]
+
+  @@index([leadId], map: "IX_ycPropostas_leadId")
+  @@index([status], map: "IX_ycPropostas_status")
+  @@index([sysTenantId], map: "IX_ycPropostas_sysTenantId")
+  @@index([unidadeId], map: "IX_ycPropostas_unidadeId")
+}
+
+model ycPropostasCondicoes {
+  id             BigInt      @id(map: "PK_ycPropostasCondicoes") @default(autoincrement())
+  sysCreatedAt   DateTime    @default(now(), map: "DF__ycPropost__sysCr__73852659")
+  sysUpdatedAt   DateTime?
+  sysTenantId    BigInt
+  sysUserId      BigInt?
+  escopoId       BigInt
+  propostaId     BigInt
+  tipo           String      @db.VarChar(50)
+  dataVencimento DateTime    @db.Date
+  valorParcela   Decimal     @db.Decimal(18, 2)
+  qtdeParcelas   Int
+  valorTotal     Decimal     @db.Decimal(18, 2)
+  ycEmpresas     ycEmpresas  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycPropostasCondicoes_ycEmpresas")
+  ycEscopos      ycEscopos   @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycPropostasCondicoes_ycEscopos")
+  ycPropostas    ycPropostas @relation(fields: [propostaId], references: [id], onUpdate: NoAction, map: "FK_ycPropostasCondicoes_ycPropostas")
+  ycUsuarios     ycUsuarios? @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycPropostasCondicoes_ycUsuarios")
+
+  @@index([propostaId], map: "IX_ycPropostasCondicoes_propostaId")
+}
+
+model ycTabelasPreco {
+  id                 BigInt           @id(map: "PK_ycTabelasPreco") @default(autoincrement())
+  sysCreatedAt       DateTime         @default(now(), map: "DF__ycTabelas__sysCr__531856C7")
+  sysUpdatedAt       DateTime?
+  sysTenantId        BigInt
+  sysUserId          BigInt?
+  escopoId           BigInt
+  projetoId          BigInt
+  codigo             String           @db.VarChar(50)
+  dataRef            DateTime         @db.Date
+  taxaJuros          Decimal          @default(0, map: "DF__ycTabelas__taxaJ__540C7B00") @db.Decimal(10, 4)
+  valorMetroQuadrado Decimal          @db.Decimal(18, 2)
+  fatorAndar         Decimal          @default(0, map: "DF__ycTabelas__fator__55009F39") @db.Decimal(10, 4)
+  fatorDiretoria     Decimal          @default(0, map: "DF__ycTabelas__fator__55F4C372") @db.Decimal(10, 4)
+  ycFluxosPadrao     ycFluxosPadrao[]
+  ycPropostas        ycPropostas[]
+  ycEmpresas         ycEmpresas       @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPreco_ycEmpresas")
+  ycEscopos          ycEscopos        @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPreco_ycEscopos")
+  ycProjetos         ycProjetos       @relation(fields: [projetoId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPreco_ycProjetos")
+  ycUsuarios         ycUsuarios?      @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycTabelasPreco_ycUsuarios")
+
+  @@index([codigo], map: "IX_ycTabelasPreco_codigo")
+  @@index([projetoId], map: "IX_ycTabelasPreco_projetoId")
+  @@index([sysTenantId], map: "IX_ycTabelasPreco_sysTenantId")
+}
+
+model ycUnidades {
+  id                           BigInt        @id(map: "PK_ycUnidades") @default(autoincrement())
+  sysCreatedAt                 DateTime      @default(now(), map: "DF__ycUnidade__sysCr__498EEC8D")
+  sysUpdatedAt                 DateTime?
+  sysTenantId                  BigInt
+  sysUserId                    BigInt?
+  escopoId                     BigInt
+  blocoId                      BigInt
+  projetoId                    BigInt
+  unidade                      String        @db.VarChar(20)
+  codigo                       String        @db.VarChar(50)
+  tipo                         String        @db.VarChar(50)
+  vagas                        Int           @default(0, map: "DF__ycUnidade__vagas__4A8310C6")
+  status                       String        @default("DISPONIVEL", map: "DF__ycUnidade__statu__4B7734FF") @db.VarChar(50)
+  areaPrivativaPrincipal       Decimal?      @db.Decimal(18, 4)
+  areaOutrasPrivativas         Decimal?      @db.Decimal(18, 4)
+  areaPrivativaTotal           Decimal?      @db.Decimal(18, 4)
+  areaUsoComum                 Decimal?      @db.Decimal(18, 4)
+  areaRealTotal                Decimal?      @db.Decimal(18, 4)
+  coeficienteProporcionalidade Decimal?      @db.Decimal(18, 9)
+  fracaoIdealTerreno           Decimal?      @db.Decimal(18, 9)
+  codigoTabela                 String?       @db.VarChar(50)
+  ycPropostas                  ycPropostas[]
+  ycBlocos                     ycBlocos      @relation(fields: [blocoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycBlocos")
+  ycEmpresas                   ycEmpresas    @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycEmpresas")
+  ycEscopos                    ycEscopos     @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycEscopos")
+  ycProjetos                   ycProjetos    @relation(fields: [projetoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycProjetos")
+  ycUsuarios                   ycUsuarios?   @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUnidades_ycUsuarios")
+
+  @@unique([sysTenantId, codigo], map: "UQ_ycUnidades_SKU")
+  @@index([blocoId], map: "IX_ycUnidades_blocoId")
+  @@index([codigoTabela], map: "IX_ycUnidades_codigoTabela")
+  @@index([projetoId], map: "IX_ycUnidades_projetoId")
+  @@index([status], map: "IX_ycUnidades_status")
+  @@index([sysTenantId], map: "IX_ycUnidades_sysTenantId")
 }
