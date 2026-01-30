@@ -26,11 +26,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" className="overflow-y-scroll">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* [2] Envolver tudo com o SessionProvider */}
         <SessionProvider>
           {children}
         </SessionProvider>

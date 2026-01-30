@@ -97,7 +97,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
     permission: "COMERCIAL_VER",
     children: [
       { label: "Gestão de Unidades", href: "/app/comercial/unidades", permission: "UNIDADES_VER" },
-      { label: "Preços e Fluxos", href: "/app/comercial/precos", permission: "PRECOS_VER" },
+      { label: "Preços e Fluxos", href: "/app/comercial/tabelas", permission: "PRECOS_VER" },
       { label: "Mesa de Negociação", href: "/app/comercial/mesa", permission: "MESA_VER" },
       { label: "Propostas e Contratos", href: "/app/comercial/contratos", permission: "CONTRATOS_VER" },
       { label: "Relatórios", href: "/app/comercial/relatorios" },
