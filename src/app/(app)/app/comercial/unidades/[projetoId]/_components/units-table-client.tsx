@@ -37,6 +37,7 @@ interface Block {
 interface Unit {
   id: string
   unidade: string
+  andar: number | null
   blocoId: string
   blocoNome: string
   tipo: string
@@ -154,8 +155,9 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                 <TableHead className="w-[180px]">Bloco & Unidade</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead className="text-right">Andar</TableHead>
                 <TableHead className="text-right">Vagas</TableHead>
-                <TableHead className="text-right">Área Priv. Total</TableHead>
+                <TableHead className="text-right">Área Priv.</TableHead>
                 <TableHead className="text-right">Área Comum</TableHead>
                 <TableHead className="text-right">Fração Ideal</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -175,7 +177,9 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                     </TableCell>
 
                     <TableCell><Badge className={getStatusColor(unit.status)}>{unit.status}</Badge></TableCell>
+
                     <TableCell className="text-muted-foreground">{unit.tipo}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{unit.andar !== null ? unit.andar : "-"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{unit.vagas || "-"}</TableCell>
                     
                     <TableCell className="text-right text-muted-foreground">{unit.areaPrivativaTotal || "-"}</TableCell>

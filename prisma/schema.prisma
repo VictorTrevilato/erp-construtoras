@@ -415,6 +415,7 @@ model ycUnidades {
   coeficienteProporcionalidade Decimal?              @db.Decimal(18, 9)
   fracaoIdealTerreno           Decimal?              @db.Decimal(18, 9)
   codigoTabela                 String?               @db.VarChar(50)
+  andar                        Int                   @default(0, map: "DF__ycUnidade__andar__2CBDA3B5")
   ycPropostas                  ycPropostas[]
   ycTabelasPrecoItens          ycTabelasPrecoItens[]
   ycBlocos                     ycBlocos              @relation(fields: [blocoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycBlocos")

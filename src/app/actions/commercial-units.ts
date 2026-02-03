@@ -35,6 +35,7 @@ const blockSchema = z.object({
 const unitSchema = z.object({
   blocoId: z.string().min(1, "Selecione um bloco"),
   unidade: z.string().min(1, "Número da unidade obrigatório"),
+  andar: z.coerce.number().int("Andar deve ser um número inteiro"),
   tipo: z.string().min(1, "Tipo obrigatório"),
   vagas: z.coerce.number().min(0),
   status: z.string().optional(),
@@ -169,6 +170,7 @@ export async function getUnitsByProject(projetoId: string) {
       return {
         id: u.id.toString(),
         unidade: u.unidade,
+        andar: u.andar,
         blocoId: u.blocoId.toString(),
         blocoNome: u.ycBlocos.nome,
         tipo: u.tipo,
@@ -223,6 +225,7 @@ export async function createUnit(projetoId: string, formData: FormData) {
         blocoId: BigInt(valid.data.blocoId),
         
         unidade: valid.data.unidade,
+        andar: valid.data.andar,
         codigo: sku,
         tipo: valid.data.tipo,
         status: valid.data.status || "DISPONIVEL",
@@ -279,7 +282,8 @@ export async function updateUnit(unitId: string, formData: FormData) {
       data: {
         blocoId: BigInt(valid.data.blocoId),
         unidade: valid.data.unidade,
-        codigo: newSku, // [CORREÇÃO] Atualizando o SKU
+        andar: valid.data.andar,
+        codigo: newSku,
         tipo: valid.data.tipo,
         vagas: valid.data.vagas,
         status: valid.data.status,

@@ -20,8 +20,9 @@ interface Unit {
   id: string
   blocoId: string
   unidade: string
+  andar: number | null
   tipo: string
-  vagas: number | string // Pode vir number do banco ou string do form
+  vagas: number | string
   status: string
   codigoTabela: string
   areaPrivativaPrincipal: string
@@ -46,15 +47,16 @@ interface Props {
 const initialFormState = {
   blocoId: "",
   unidade: "",
+  andar: "",
   tipo: "",
   vagas: "0",
   status: "DISPONIVEL",
   codigoTabela: "",
   areaPrivativaPrincipal: "",
   areaOutrasPrivativas: "",
-  areaPrivativaTotal: "", // Calculado
+  areaPrivativaTotal: "",
   areaUsoComum: "",
-  areaRealTotal: "",      // Calculado
+  areaRealTotal: "",
   coeficienteProporcionalidade: "",
   fracaoIdealTerreno: ""
 }
@@ -70,6 +72,7 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
         setFormData({
           blocoId: unit.blocoId || "",
           unidade: unit.unidade || "",
+          andar: unit.andar?.toString() || "0",
           tipo: unit.tipo || "",
           vagas: unit.vagas?.toString() || "0",
           status: unit.status || "DISPONIVEL",
@@ -153,14 +156,16 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
             </TabsList>
 
             {/* ABA 1: IDENTIFICAÇÃO */}
+            {/* ABA 1: IDENTIFICAÇÃO */}
             <TabsContent value="identificacao" className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
+                 {/* Bloco e Unidade (Mantém igual) */}
                  <div className="space-y-2">
                     <Label>Bloco / Torre *</Label>
                     <Select 
                       value={formData.blocoId} 
                       onValueChange={(val) => handleChange("blocoId", val)} 
-                      disabled={readOnly || !!unit} // Bloqueia troca de bloco na edição para evitar conflitos de SKU
+                      disabled={readOnly || !!unit}
                     >
                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                        <SelectContent>
@@ -178,7 +183,9 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                     />
                  </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* [ALTERAÇÃO] Grid de 3 colunas para Tipo, Andar e Vagas */}
+              <div className="grid grid-cols-3 gap-4">
                  <div className="space-y-2">
                     <Label>Tipo *</Label>
                     <Input 
@@ -188,8 +195,21 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                       disabled={readOnly}
                     />
                  </div>
+                 
+                 {/* [NOVO] Campo Andar */}
                  <div className="space-y-2">
-                    <Label>Vagas de Garagem</Label>
+                    <Label>Andar</Label>
+                    <Input 
+                      type="number"
+                      value={formData.andar} 
+                      onChange={(e) => handleChange("andar", e.target.value)} 
+                      placeholder="0" 
+                      disabled={readOnly}
+                    />
+                 </div>
+
+                 <div className="space-y-2">
+                    <Label>Vagas</Label>
                     <Input 
                       type="number" 
                       value={formData.vagas} 
