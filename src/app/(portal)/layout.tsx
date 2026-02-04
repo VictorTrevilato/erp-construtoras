@@ -24,7 +24,7 @@ export default async function PortalLayout({
 
   return (
     <ThemeWrapper theme="theme-portal">
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex h-screen bg-gray-50">
         <Sidebar 
           title="Área do Cliente" 
           color="bg-emerald-700" 
@@ -32,7 +32,7 @@ export default async function PortalLayout({
           showTenantSwitch={showSwitch}
         />
         
-        <main className="flex-1 ml-72 p-8">
+        <main className="flex-1 ml-72 p-8 overflow-y-auto">
           <div className="min-h-screen w-full">
             {children}
           </div>

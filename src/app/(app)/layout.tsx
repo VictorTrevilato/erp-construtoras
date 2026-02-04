@@ -20,14 +20,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ThemeWrapper theme="theme-app">
       <PermissionProvider>
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex h-screen bg-gray-50">
           <Sidebar 
             title="YouCon ERP" 
             color="bg-blue-700" 
             profile="erp" 
             showTenantSwitch={showSwitch} 
           />
-          <main className="flex-1 ml-72 p-8">
+          <main className="flex-1 ml-72 p-8 overflow-y-auto">
             <div className="mx-auto max-w-6xl">
               {children}
             </div>
