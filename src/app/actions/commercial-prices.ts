@@ -11,6 +11,7 @@ interface PriceItemInput {
   valorMetroQuadrado: number
   fatorAndar: number
   fatorDiretoria: number
+  fatorCorrecao: number // [NOVO]
 }
 
 interface FlowInput {
@@ -45,11 +46,11 @@ const priceItemSchema = z.object({
   valorMetroQuadrado: z.coerce.number(),
   fatorAndar: z.coerce.number(),
   fatorDiretoria: z.coerce.number(),
+  fatorCorrecao: z.coerce.number(), // [NOVO]
 })
 
 // --- ACTIONS ---
 
-// 1. Listar Projetos (Reutiliza a lógica de Unidades para manter consistência)
 export async function getProjectsForTables() {
   const session = await auth()
   if (!session) return []
@@ -64,8 +65,8 @@ export async function getProjectsForTables() {
         _count: { 
           select: { 
             ycTabelasPreco: true,
-            ycBlocos: true,   // [NOVO]
-            ycUnidades: true  // [NOVO]
+            ycBlocos: true,
+            ycUnidades: true
           } 
         }
       },
@@ -80,15 +81,14 @@ export async function getProjectsForTables() {
       cidade: p.cidade || "",
       uf: p.estado || "",
       totalTabelas: p._count.ycTabelasPreco,
-      totalBlocos: p._count.ycBlocos,      // [NOVO]
-      totalUnidades: p._count.ycUnidades   // [NOVO]
+      totalBlocos: p._count.ycBlocos,
+      totalUnidades: p._count.ycUnidades
     }))
   } catch {
     return []
   }
 }
 
-// 2. Listar Campanhas (Tabelas) de um Projeto
 export async function getCampaigns(projetoId: string) {
   try {
     const campaigns = await prisma.ycTabelasPreco.findMany({
@@ -108,7 +108,22 @@ export async function getCampaigns(projetoId: string) {
   }
 }
 
-// 3. Criar/Atualizar Cabeçalho da Campanha
+// Helper para verificar colisão de datas
+async function checkDateOverlap(projetoId: string, start: Date, end: Date, excludeTableId?: string) {
+  const overlap = await prisma.ycTabelasPreco.findFirst({
+    where: {
+      projetoId: BigInt(projetoId),
+      id: excludeTableId ? { not: BigInt(excludeTableId) } : undefined,
+      OR: [
+        { AND: [{ vigenciaInicial: { lte: start } }, { vigenciaFinal: { gte: start } }] },
+        { AND: [{ vigenciaInicial: { lte: end } }, { vigenciaFinal: { gte: end } }] },
+        { AND: [{ vigenciaInicial: { gte: start } }, { vigenciaFinal: { lte: end } }] }
+      ]
+    }
+  })
+  return overlap
+}
+
 export async function upsertCampaign(projetoId: string, tabelaId: string | null, formData: FormData) {
   const session = await auth()
   if (!session) return { success: false, message: "Não autorizado" }
@@ -119,7 +134,20 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
 
   if (!valid.success) return { success: false, message: "Dados inválidos", errors: valid.error.flatten().fieldErrors }
 
+  const start = new Date(valid.data.vigenciaInicial)
+  const end = new Date(valid.data.vigenciaFinal)
+
+  if (start > end) return { success: false, message: "A data final deve ser posterior à inicial." }
+
   try {
+    const overlap = await checkDateOverlap(projetoId, start, end, tabelaId || undefined)
+    if (overlap) {
+      return { 
+        success: false, 
+        message: `Conflito de datas! Já existe a tabela "${overlap.nome}" vigente neste período.` 
+      }
+    }
+
     const project = await prisma.ycProjetos.findUnique({ where: { id: BigInt(projetoId) } })
     if (!project) return { success: false, message: "Projeto não encontrado" }
 
@@ -129,8 +157,8 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
         data: {
           nome: valid.data.nome,
           codigo: valid.data.codigo,
-          vigenciaInicial: new Date(valid.data.vigenciaInicial),
-          vigenciaFinal: new Date(valid.data.vigenciaFinal),
+          vigenciaInicial: start,
+          vigenciaFinal: end,
           taxaJuros: valid.data.taxaJuros,
           sysUpdatedAt: new Date()
         }
@@ -144,13 +172,9 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
           projetoId: BigInt(projetoId),
           nome: valid.data.nome,
           codigo: valid.data.codigo,
-          vigenciaInicial: new Date(valid.data.vigenciaInicial),
-          vigenciaFinal: new Date(valid.data.vigenciaFinal),
+          vigenciaInicial: start,
+          vigenciaFinal: end,
           taxaJuros: valid.data.taxaJuros
-          // [CORREÇÃO] Removidos campos que foram para a tabela de Itens
-          // valorMetroQuadrado: 0, <-- REMOVER
-          // fatorAndar: 0,         <-- REMOVER
-          // fatorDiretoria: 0      <-- REMOVER
         }
       })
     }
@@ -162,22 +186,112 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
   }
 }
 
-// 4. Buscar Dados para Grid de Preços (Unidades + Preços Existentes)
+export async function duplicateCampaign(projetoId: string, sourceTabelaId: string, formData: FormData) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado" }
+    const userId = BigInt(session.user.id)
+
+    const raw = Object.fromEntries(formData.entries())
+    const valid = campaignSchema.safeParse(raw)
+
+    if (!valid.success) return { success: false, message: "Dados inválidos para a cópia." }
+
+    const start = new Date(valid.data.vigenciaInicial)
+    const end = new Date(valid.data.vigenciaFinal)
+
+    if (start > end) return { success: false, message: "A data final deve ser posterior à inicial." }
+
+    try {
+        const original = await prisma.ycTabelasPreco.findUnique({
+            where: { id: BigInt(sourceTabelaId) }
+        })
+        if (!original) return { success: false, message: "Tabela de origem não encontrada." }
+
+        const overlap = await checkDateOverlap(projetoId, start, end)
+        if (overlap) {
+            return { 
+                success: false, 
+                message: `Conflito de datas! Já existe a tabela "${overlap.nome}" vigente neste período.` 
+            }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            const newTable = await tx.ycTabelasPreco.create({
+                data: {
+                    sysTenantId: original.sysTenantId,
+                    sysUserId: userId,
+                    escopoId: original.escopoId,
+                    projetoId: BigInt(projetoId),
+                    nome: valid.data.nome,
+                    codigo: valid.data.codigo,
+                    vigenciaInicial: start,
+                    vigenciaFinal: end,
+                    taxaJuros: valid.data.taxaJuros
+                }
+            })
+
+            const originalItems = await tx.ycTabelasPrecoItens.findMany({
+                where: { tabelaPrecoId: original.id }
+            })
+            
+            if (originalItems.length > 0) {
+                await tx.ycTabelasPrecoItens.createMany({
+                    data: originalItems.map(item => ({
+                        sysTenantId: item.sysTenantId,
+                        sysUserId: userId,
+                        escopoId: item.escopoId,
+                        tabelaPrecoId: newTable.id,
+                        unidadeId: item.unidadeId,
+                        valorMetroQuadrado: item.valorMetroQuadrado,
+                        fatorAndar: item.fatorAndar,
+                        fatorDiretoria: item.fatorDiretoria,
+                        fatorCorrecao: item.fatorCorrecao // Copia o fator de correção
+                    }))
+                })
+            }
+
+            const originalFlows = await tx.ycFluxosPadrao.findMany({
+                where: { tabelaPrecoId: original.id }
+            })
+
+            if (originalFlows.length > 0) {
+                await tx.ycFluxosPadrao.createMany({
+                    data: originalFlows.map(flow => ({
+                        sysTenantId: flow.sysTenantId,
+                        sysUserId: userId,
+                        escopoId: flow.escopoId,
+                        tabelaPrecoId: newTable.id,
+                        tipo: flow.tipo,
+                        percentual: flow.percentual,
+                        qtdeParcelas: flow.qtdeParcelas,
+                        periodicidade: flow.periodicidade,
+                        dataPrimeiroVencimento: flow.dataPrimeiroVencimento
+                    }))
+                })
+            }
+        })
+
+        revalidatePath(`/app/comercial/tabelas/${projetoId}`)
+        return { success: true, message: "Tabela duplicada com sucesso! Ajuste os preços se necessário." }
+
+    } catch (error) {
+        console.error(error)
+        return { success: false, message: "Erro ao duplicar tabela." }
+    }
+}
+
 export async function getPriceTableData(tabelaId: string, projetoId: string) {
   try {
-    // Busca todas as unidades do projeto
     const units = await prisma.ycUnidades.findMany({
       where: { projetoId: BigInt(projetoId) },
       include: { ycBlocos: { select: { nome: true } } },
-      orderBy: [{ ycBlocos: { nome: 'asc' } }, { unidade: 'asc' }] // Ordenação simples aqui, natural no front
+      orderBy: [{ ycBlocos: { nome: 'asc' } }, { unidade: 'asc' }]
     })
 
-    // Busca itens de preço já cadastrados nesta tabela
     const priceItems = await prisma.ycTabelasPrecoItens.findMany({
       where: { tabelaPrecoId: BigInt(tabelaId) }
     })
 
-    // Faz o merge
     return units.map(u => {
       const price = priceItems.find(p => p.unidadeId === u.id)
       return {
@@ -186,10 +300,11 @@ export async function getPriceTableData(tabelaId: string, projetoId: string) {
         blocoNome: u.ycBlocos.nome,
         tipologia: u.tipo,
         areaPrivativa: Number(u.areaPrivativaPrincipal || 0) + Number(u.areaOutrasPrivativas || 0),
-        // Dados editáveis (se não existir, inicia zerado)
+        areaUsoComum: Number(u.areaUsoComum || 0),
         valorMetroQuadrado: price ? Number(price.valorMetroQuadrado) : 0,
         fatorAndar: price ? Number(price.fatorAndar) : 0,
         fatorDiretoria: price ? Number(price.fatorDiretoria) : 0,
+        fatorCorrecao: price ? Number(price.fatorCorrecao) : 1, // [NOVO] Default 1
       }
     })
   } catch {
@@ -197,28 +312,21 @@ export async function getPriceTableData(tabelaId: string, projetoId: string) {
   }
 }
 
-// 5. Salvar Lote de Preços (Batch Upsert)
 export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInput[]) {
   const session = await auth()
   if (!session) return { success: false, message: "Não autorizado" }
   const userId = BigInt(session.user.id)
 
   try {
-    // Recupera dados do cabeçalho para obter IDs de sistema
     const header = await prisma.ycTabelasPreco.findUnique({ where: { id: BigInt(tabelaId) } })
     if (!header) return { success: false, message: "Tabela não encontrada" }
 
-    // Valida itens
     const validItems = []
     for (const item of items) {
       const parsed = priceItemSchema.safeParse(item)
       if (parsed.success) validItems.push(parsed.data)
     }
 
-    // Transação: Upsert um por um (Prisma não tem upsertMany nativo simples para SQL Server ainda)
-    // Mas podemos fazer delete + createMany ou usar Promise.all com upsert.
-    // Usaremos Promise.all com upsert para garantir integridade individual
-    
     await prisma.$transaction(
       validItems.map(item => 
         prisma.ycTabelasPrecoItens.upsert({
@@ -232,6 +340,7 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
             valorMetroQuadrado: item.valorMetroQuadrado,
             fatorAndar: item.fatorAndar,
             fatorDiretoria: item.fatorDiretoria,
+            fatorCorrecao: item.fatorCorrecao, // [NOVO]
             sysUpdatedAt: new Date()
           },
           create: {
@@ -242,7 +351,8 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
             unidadeId: BigInt(item.unidadeId),
             valorMetroQuadrado: item.valorMetroQuadrado,
             fatorAndar: item.fatorAndar,
-            fatorDiretoria: item.fatorDiretoria
+            fatorDiretoria: item.fatorDiretoria,
+            fatorCorrecao: item.fatorCorrecao // [NOVO]
           }
         })
       )
@@ -256,7 +366,6 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
   }
 }
 
-// 6. Gestão de Fluxos
 export async function getFlows(tabelaId: string) {
   try {
     const flows = await prisma.ycFluxosPadrao.findMany({
@@ -285,8 +394,6 @@ export async function saveFlows(tabelaId: string, flows: FlowInput[]) {
     const header = await prisma.ycTabelasPreco.findUnique({ where: { id: BigInt(tabelaId) } })
     if (!header) return { success: false, message: "Tabela não encontrada" }
 
-    // Estratégia: Limpar fluxos anteriores e recriar (Full Replacement)
-    // Isso evita complexidade de diff no frontend
     await prisma.$transaction([
       prisma.ycFluxosPadrao.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } }),
       prisma.ycFluxosPadrao.createMany({
@@ -312,21 +419,18 @@ export async function saveFlows(tabelaId: string, flows: FlowInput[]) {
   }
 }
 
-// 7. Excluir Campanha
 export async function deleteCampaign(tabelaId: string) {
   const session = await auth()
   if (!session) return { success: false, message: "Não autorizado" }
 
   try {
-    // Verifica dependências antes (ex: se tem propostas vinculadas)
-    // Por enquanto, deletamos em cascata os itens e fluxos
     await prisma.$transaction(async (tx) => {
       await tx.ycTabelasPrecoItens.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } })
       await tx.ycFluxosPadrao.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } })
       await tx.ycTabelasPreco.delete({ where: { id: BigInt(tabelaId) } })
     })
 
-    revalidatePath("/app/comercial/tabelas") // Revalida a lista
+    revalidatePath("/app/comercial/tabelas")
     return { success: true, message: "Tabela excluída com sucesso." }
   } catch (error) {
     console.error(error)

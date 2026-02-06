@@ -37,11 +37,17 @@ const unitSchema = z.object({
   unidade: z.string().min(1, "Número da unidade obrigatório"),
   andar: z.coerce.number().int("Andar deve ser um número inteiro"),
   tipo: z.string().min(1, "Tipo obrigatório"),
-  vagas: z.coerce.number().min(0),
-  status: z.string().optional(),
-  codigoTabela: z.string().optional(),
   
-  // Áreas e Frações
+  statusComercial: z.enum(['DISPONIVEL', 'RESERVADO', 'EM_ANALISE', 'VENDIDO']),
+  statusInterno: z.string().min(1, "Status interno é obrigatório"),
+  
+  qtdeVagas: z.coerce.number().int().min(0),
+  tipoVaga: z.enum(['FIXA', 'ROTATIVA', 'NENHUMA']).optional(),
+  
+  tipoDeposito: z.string().optional(),
+  // Aceita string ou number para passar pelo parse depois
+  areaDeposito: z.any().optional(),
+
   areaPrivativaPrincipal: z.any().optional(),
   areaOutrasPrivativas: z.any().optional(),
   areaPrivativaTotal: z.any().optional(),
@@ -65,7 +71,7 @@ export async function getCommercialProjects() {
       where: { sysTenantId: BigInt(tenantIdStr) },
       include: {
         _count: { select: { ycBlocos: true, ycUnidades: true } },
-        ycUnidades: { select: { vagas: true } }
+        ycUnidades: { select: { qtdeVagas: true } }
       },
       orderBy: { nome: 'asc' }
     })
@@ -79,9 +85,10 @@ export async function getCommercialProjects() {
       uf: p.estado || "",
       totalBlocos: p._count.ycBlocos,
       totalUnidades: p._count.ycUnidades,
-      totalVagas: p.ycUnidades.reduce((acc, curr) => acc + curr.vagas, 0)
+      totalVagas: p.ycUnidades.reduce((acc: number, curr) => acc + (curr.qtdeVagas || 0), 0)
     }))
-  } catch { // [CORREÇÃO] Removido o '(error)' que causava o erro
+  } catch (error) { 
+    console.error("Erro ao buscar projetos:", error)
     return []
   }
 }
@@ -161,7 +168,6 @@ export async function getUnitsByProject(projetoId: string) {
     })
 
     const mappedUnits = units.map(u => {
-      // Tipagem explícita para remover o 'any'
       const fmt = (val: string | number | null | undefined | object, decimals: number) => {
          if (val === null || val === undefined) return ""
          return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -174,9 +180,14 @@ export async function getUnitsByProject(projetoId: string) {
         blocoId: u.blocoId.toString(),
         blocoNome: u.ycBlocos.nome,
         tipo: u.tipo,
-        status: u.status,
-        vagas: u.vagas,
-        codigoTabela: u.codigoTabela || "",
+        
+        statusComercial: u.statusComercial, 
+        statusInterno: u.statusInterno,
+        qtdeVagas: u.qtdeVagas,
+        tipoVaga: u.tipoVaga,
+        tipoDeposito: u.tipoDeposito,
+        // [ATUALIZAÇÃO] Formatando para 4 casas decimais conforme solicitado
+        areaDeposito: fmt(u.areaDeposito, 4),
         
         areaPrivativaPrincipal: fmt(u.areaPrivativaPrincipal, 4),
         areaOutrasPrivativas: fmt(u.areaOutrasPrivativas, 4),
@@ -205,7 +216,11 @@ export async function createUnit(projetoId: string, formData: FormData) {
 
   const raw = Object.fromEntries(formData.entries())
   const valid = unitSchema.safeParse(raw)
-  if (!valid.success) return { success: false, message: "Verifique os campos obrigatórios" }
+  
+  if (!valid.success) {
+      console.error(valid.error.flatten())
+      return { success: false, message: "Verifique os campos obrigatórios" }
+  }
 
   try {
     const project = await prisma.ycProjetos.findUnique({ where: { id: BigInt(projetoId) } })
@@ -213,7 +228,6 @@ export async function createUnit(projetoId: string, formData: FormData) {
     
     if (!project || !bloco) return { success: false, message: "Dados de vínculo inválidos" }
 
-    // SKU Inicial
     const sku = `${project.id}-${bloco.codigo}-${valid.data.unidade}`
 
     await prisma.ycUnidades.create({
@@ -228,9 +242,13 @@ export async function createUnit(projetoId: string, formData: FormData) {
         andar: valid.data.andar,
         codigo: sku,
         tipo: valid.data.tipo,
-        status: valid.data.status || "DISPONIVEL",
-        vagas: valid.data.vagas,
-        codigoTabela: valid.data.codigoTabela || null,
+
+        statusComercial: valid.data.statusComercial,
+        statusInterno: valid.data.statusInterno,
+        qtdeVagas: valid.data.qtdeVagas,
+        tipoVaga: valid.data.tipoVaga || 'NENHUMA',
+        tipoDeposito: valid.data.tipoDeposito || 'NENHUM',
+        areaDeposito: parseDecimal(raw.areaDeposito) || 0,
 
         areaPrivativaPrincipal: parseDecimal(raw.areaPrivativaPrincipal),
         areaOutrasPrivativas: parseDecimal(raw.areaOutrasPrivativas),
@@ -259,13 +277,11 @@ export async function updateUnit(unitId: string, formData: FormData) {
   if (!valid.success) return { success: false, message: "Dados inválidos" }
 
   try {
-    // 1. Buscamos a unidade atual para saber o projetoId
     const existingUnit = await prisma.ycUnidades.findUnique({
         where: { id: BigInt(unitId) },
         select: { projetoId: true }
     })
     
-    // 2. Buscamos o novo bloco selecionado para pegar o código dele
     const targetBlock = await prisma.ycBlocos.findUnique({
         where: { id: BigInt(valid.data.blocoId) }
     })
@@ -274,8 +290,10 @@ export async function updateUnit(unitId: string, formData: FormData) {
         return { success: false, message: "Erro ao recalcular SKU (Bloco ou Projeto inválido)." }
     }
 
-    // 3. Recalculamos o SKU com os dados novos
     const newSku = `${existingUnit.projetoId}-${targetBlock.codigo}-${valid.data.unidade}`
+
+    // [DEBUG] Garantir que o valor está sendo parseado
+    const areaDepositoDecimal = parseDecimal(raw.areaDeposito)
 
     await prisma.ycUnidades.update({
       where: { id: BigInt(unitId) },
@@ -285,9 +303,15 @@ export async function updateUnit(unitId: string, formData: FormData) {
         andar: valid.data.andar,
         codigo: newSku,
         tipo: valid.data.tipo,
-        vagas: valid.data.vagas,
-        status: valid.data.status,
-        codigoTabela: valid.data.codigoTabela || null,
+        
+        statusComercial: valid.data.statusComercial,
+        statusInterno: valid.data.statusInterno,
+        qtdeVagas: valid.data.qtdeVagas,
+        tipoVaga: valid.data.tipoVaga,
+        
+        // [CORREÇÃO] Atualizando Depósito
+        tipoDeposito: valid.data.tipoDeposito,
+        areaDeposito: areaDepositoDecimal,
         
         areaPrivativaPrincipal: parseDecimal(raw.areaPrivativaPrincipal),
         areaOutrasPrivativas: parseDecimal(raw.areaOutrasPrivativas),
@@ -304,7 +328,7 @@ export async function updateUnit(unitId: string, formData: FormData) {
     revalidatePath(`/app/comercial/unidades`)
     return { success: true, message: "Unidade atualizada!" }
   } catch (err) {
-    console.error(err)
+    console.error("Erro no updateUnit:", err)
     return { success: false, message: "Erro ao atualizar unidade." }
   }
 }

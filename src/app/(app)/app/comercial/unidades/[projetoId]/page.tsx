@@ -35,9 +35,10 @@ export default async function ProjectStockPage({ params }: Props) {
   }
 
   // 2. Cálculos de Resumo (Stats)
+  // [ATUALIZAÇÃO] Usando statusComercial em vez de status antigo
   const totalUnits = units.length
-  const availableUnits = units.filter(u => u.status === 'DISPONIVEL').length
-  const soldUnits = units.filter(u => u.status === 'VENDIDO').length
+  const availableUnits = units.filter(u => u.statusComercial === 'DISPONIVEL').length
+  const soldUnits = units.filter(u => u.statusComercial === 'VENDIDO').length
 
   return (
     <div className="space-y-6">

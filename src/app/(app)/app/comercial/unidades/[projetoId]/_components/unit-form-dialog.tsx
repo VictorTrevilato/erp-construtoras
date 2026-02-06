@@ -22,9 +22,16 @@ interface Unit {
   unidade: string
   andar: number | null
   tipo: string
-  vagas: number | string
-  status: string
-  codigoTabela: string
+  
+  statusComercial: string
+  statusInterno: string
+  qtdeVagas: number
+  
+  tipoVaga: string | null
+  tipoDeposito: string | null
+  
+  areaDeposito: string | number
+  
   areaPrivativaPrincipal: string
   areaOutrasPrivativas: string
   areaPrivativaTotal: string
@@ -36,22 +43,26 @@ interface Unit {
 
 interface Props {
   projetoId: string
-  unit: Unit | null     // [CORREÇÃO] Tipagem correta
-  blocks: Block[]       // [CORREÇÃO] Tipagem correta
+  unit: Unit | null    
+  blocks: Block[]      
   isOpen: boolean
   onClose: () => void
   readOnly?: boolean
 }
 
-// Estado inicial vazio
 const initialFormState = {
   blocoId: "",
   unidade: "",
   andar: "",
   tipo: "",
-  vagas: "0",
-  status: "DISPONIVEL",
-  codigoTabela: "",
+  
+  qtdeVagas: "0",
+  tipoVaga: "NENHUMA",
+  statusComercial: "DISPONIVEL",
+  statusInterno: "DISPONIVEL",
+  tipoDeposito: "NENHUM",
+  areaDeposito: "0",
+
   areaPrivativaPrincipal: "",
   areaOutrasPrivativas: "",
   areaPrivativaTotal: "",
@@ -65,7 +76,6 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
   const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState(initialFormState)
 
-  // Carregar dados ao abrir
   useEffect(() => {
     if (isOpen) {
       if (unit) {
@@ -74,9 +84,14 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
           unidade: unit.unidade || "",
           andar: unit.andar?.toString() || "0",
           tipo: unit.tipo || "",
-          vagas: unit.vagas?.toString() || "0",
-          status: unit.status || "DISPONIVEL",
-          codigoTabela: unit.codigoTabela || "",
+          
+          qtdeVagas: unit.qtdeVagas?.toString() || "0",
+          tipoVaga: unit.tipoVaga || "NENHUMA",
+          statusComercial: unit.statusComercial || "DISPONIVEL",
+          statusInterno: unit.statusInterno || "DISPONIVEL",
+          tipoDeposito: unit.tipoDeposito || "NENHUM",
+          areaDeposito: unit.areaDeposito?.toString().replace(',', '.') || "0",
+
           areaPrivativaPrincipal: unit.areaPrivativaPrincipal || "",
           areaOutrasPrivativas: unit.areaOutrasPrivativas || "",
           areaPrivativaTotal: unit.areaPrivativaTotal || "",
@@ -91,9 +106,8 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
     }
   }, [isOpen, unit])
 
-  // Cálculo Automático de Áreas
   useEffect(() => {
-    if (readOnly) return // Não calcula no modo leitura para manter o que veio do banco
+    if (readOnly) return 
 
     const privPrinc = parseFloat(formData.areaPrivativaPrincipal?.replace(',', '.') || "0")
     const privOutras = parseFloat(formData.areaOutrasPrivativas?.replace(',', '.') || "0")
@@ -104,8 +118,8 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
 
     setFormData(prev => ({
       ...prev,
-      areaPrivativaTotal: totalPriv > 0 ? totalPriv.toFixed(2).replace('.', ',') : prev.areaPrivativaTotal,
-      areaRealTotal: totalReal > 0 ? totalReal.toFixed(2).replace('.', ',') : prev.areaRealTotal
+      areaPrivativaTotal: totalPriv > 0 ? totalPriv.toFixed(4).replace('.', ',') : prev.areaPrivativaTotal,
+      areaRealTotal: totalReal > 0 ? totalReal.toFixed(4).replace('.', ',') : prev.areaRealTotal
     }))
   }, [formData.areaPrivativaPrincipal, formData.areaOutrasPrivativas, formData.areaUsoComum, readOnly])
 
@@ -114,7 +128,6 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
   }
 
   const handleSubmit = async () => {
-    // Construção manual do FormData para garantir que campos ocultos nas abas sejam enviados
     const payload = new FormData()
     Object.entries(formData).forEach(([key, value]) => {
       payload.append(key, value)
@@ -139,7 +152,7 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {readOnly ? `Detalhes da Unidade ${formData.unidade}` : (unit ? `Editar Unidade ${unit.unidade}` : "Nova Unidade")}
@@ -148,18 +161,16 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
 
         <div className="mt-2">
           <Tabs defaultValue="identificacao" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="identificacao">Básico</TabsTrigger>
-              <TabsTrigger value="areas">Áreas</TabsTrigger>
-              <TabsTrigger value="fracoes">Frações</TabsTrigger>
               <TabsTrigger value="comercial">Comercial</TabsTrigger>
+              <TabsTrigger value="areas">Áreas</TabsTrigger>
+              <TabsTrigger value="atributos">Atributos</TabsTrigger>
+              <TabsTrigger value="fracoes">Frações</TabsTrigger>
             </TabsList>
 
-            {/* ABA 1: IDENTIFICAÇÃO */}
-            {/* ABA 1: IDENTIFICAÇÃO */}
             <TabsContent value="identificacao" className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                 {/* Bloco e Unidade (Mantém igual) */}
                  <div className="space-y-2">
                     <Label>Bloco / Torre *</Label>
                     <Select 
@@ -184,8 +195,7 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                  </div>
               </div>
 
-              {/* [ALTERAÇÃO] Grid de 3 colunas para Tipo, Andar e Vagas */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
                     <Label>Tipo *</Label>
                     <Input 
@@ -195,8 +205,6 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                       disabled={readOnly}
                     />
                  </div>
-                 
-                 {/* [NOVO] Campo Andar */}
                  <div className="space-y-2">
                     <Label>Andar</Label>
                     <Input 
@@ -207,20 +215,52 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                       disabled={readOnly}
                     />
                  </div>
-
-                 <div className="space-y-2">
-                    <Label>Vagas</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.vagas} 
-                      onChange={(e) => handleChange("vagas", e.target.value)} 
-                      disabled={readOnly}
-                    />
-                 </div>
               </div>
             </TabsContent>
 
-            {/* ABA 2: ÁREAS TÉCNICAS */}
+            <TabsContent value="comercial" className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Status Comercial</Label>
+                        <Select 
+                          value={formData.statusComercial} 
+                          onValueChange={(val) => handleChange("statusComercial", val)}
+                          disabled={readOnly}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="DISPONIVEL">Disponível</SelectItem>
+                                <SelectItem value="RESERVADO">Reservado</SelectItem>
+                                <SelectItem value="EM_ANALISE">Em Análise</SelectItem>
+                                <SelectItem value="VENDIDO">Vendido</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Status Interno</Label>
+                        <Select 
+                          value={formData.statusInterno} 
+                          onValueChange={(val) => handleChange("statusInterno", val)}
+                          disabled={readOnly}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="DISPONIVEL">Disponível</SelectItem>
+                                <SelectItem value="PERMUTA">Permuta</SelectItem>
+                                <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
+                                <SelectItem value="JURIDICO">Jurídico</SelectItem>
+                                <SelectItem value="CAUCAO">Caução</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </TabsContent>
+
             <TabsContent value="areas" className="space-y-4 py-4">
                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -245,7 +285,7 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                      <Label className="font-bold text-blue-600">Privativa Total</Label>
                      <Input 
                         value={formData.areaPrivativaTotal} 
-                        readOnly // Calculado
+                        readOnly 
                         className="bg-slate-50 font-medium"
                      />
                   </div>
@@ -262,14 +302,81 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                      <Label className="font-bold text-blue-600">Área Real Total</Label>
                      <Input 
                         value={formData.areaRealTotal} 
-                        readOnly // Calculado
+                        readOnly 
                         className="bg-slate-50 font-medium"
                      />
                   </div>
                </div>
             </TabsContent>
+            
+            <TabsContent value="atributos" className="space-y-4 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4 border p-4 rounded-md">
+                        <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-2">Garagem</h4>
+                        
+                        <div className="space-y-2">
+                            <Label>Tipo de Vaga</Label>
+                            <Select 
+                              value={formData.tipoVaga} 
+                              onValueChange={(val) => handleChange("tipoVaga", val)}
+                              disabled={readOnly}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NENHUMA">Nenhuma</SelectItem>
+                                    <SelectItem value="FIXA">Fixa / Determinada</SelectItem>
+                                    <SelectItem value="ROTATIVA">Rotativa / Indeterminada</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-            {/* ABA 3: FRAÇÕES */}
+                        <div className="space-y-2">
+                            <Label>Qtde Vagas</Label>
+                            <Input 
+                              type="number" 
+                              value={formData.qtdeVagas} 
+                              onChange={(e) => handleChange("qtdeVagas", e.target.value)} 
+                              disabled={readOnly}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 border p-4 rounded-md">
+                        <h4 className="font-medium text-sm text-muted-foreground flex items-center gap-2">Depósito / Hobby Box</h4>
+                        
+                        <div className="space-y-2">
+                            <Label>Tipo Depósito</Label>
+                            <Select 
+                              value={formData.tipoDeposito} 
+                              onValueChange={(val) => handleChange("tipoDeposito", val)}
+                              disabled={readOnly}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NENHUM">Nenhum</SelectItem>
+                                    <SelectItem value="PRIVATIVO">Privativo (Na vaga)</SelectItem>
+                                    <SelectItem value="ANDAR">No Andar</SelectItem>
+                                    <SelectItem value="SUBSOLO">No Subsolo (Área Comum)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Área Depósito (m²)</Label>
+                            <Input 
+                              type="number" 
+                              // [CORREÇÃO CRÍTICA] Adicionado step para permitir decimais
+                              step="0.0001"
+                              value={formData.areaDeposito} 
+                              onChange={(e) => handleChange("areaDeposito", e.target.value)} 
+                              placeholder="0,00"
+                              disabled={readOnly}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </TabsContent>
+
             <TabsContent value="fracoes" className="space-y-4 py-4">
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -291,40 +398,6 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                      />
                   </div>
                </div>
-            </TabsContent>
-
-            {/* ABA 4: COMERCIAL */}
-            <TabsContent value="comercial" className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Status</Label>
-                        <Select 
-                          value={formData.status} 
-                          onValueChange={(val) => handleChange("status", val)}
-                          disabled={readOnly}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="DISPONIVEL">Disponível</SelectItem>
-                                <SelectItem value="RESERVADO">Reservado</SelectItem>
-                                <SelectItem value="VENDIDO">Vendido</SelectItem>
-                                <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
-                                <SelectItem value="PERMUTA">Permuta</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Cód. Tabela (SKU Comercial)</Label>
-                        <Input 
-                          value={formData.codigoTabela} 
-                          onChange={(e) => handleChange("codigoTabela", e.target.value)} 
-                          placeholder="Link com Tabela de Preço" 
-                          disabled={readOnly}
-                        />
-                    </div>
-                </div>
             </TabsContent>
 
             <DialogFooter className="mt-6">

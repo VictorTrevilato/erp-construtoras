@@ -77,7 +77,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
     } = useNegotiation()
 
     const selectedUnit = units.find(u => u.id === selectedUnitId)
-    const availableUnits = units.filter(u => u.status === 'DISPONIVEL')
+    // [CORREÇÃO] Filtrando pelo novo campo statusComercial
+    const availableUnits = units.filter(u => u.statusComercial === 'DISPONIVEL')
 
     // Ordenação
     const sortedUnits = useMemo(() => {
@@ -92,6 +93,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
     useEffect(() => {
         if (!selectedUnit) return
 
+        // O valorTabela aqui já inclui o fatorCorrecao (calculado no server action getSalesMirrorData)
         setTargetPrice(selectedUnit.valorTabela)
         
         calculateStandardFlow(selectedUnit.id, selectedUnit.valorTabela).then(data => {
@@ -132,7 +134,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
         setConditions(conditions.filter(c => c.id !== id))
     }
 
-    // [CORREÇÃO] Tipagem do 'field' e 'value'
     const updateCondition = (id: string, field: keyof CustomCondition, value: string | number) => {
         setConditions(conditions.map(c => c.id === id ? { ...c, [field]: value } : c))
     }
@@ -143,7 +144,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
         if (selectedUnit) {
             setTargetPrice(selectedUnit.valorTabela)
         }
-        //toast.info("Proposta limpa. Começando do zero.")
     }
 
     const handleResetToStandard = () => {
@@ -162,7 +162,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                 vencimento: new Date(flow.primeiroVencimento).toISOString().split('T')[0]
             }))
             setConditions(initialConditions)
-            //toast.success("Condições restauradas para o padrão da tabela.")
         })
     }
 
@@ -274,7 +273,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <Label>Origem</Label>
                                     <Select value={lead.origem} onValueChange={v => updateLead('origem', v)}>
                                         <SelectTrigger className="h-10">
-                                            {/* Aqui mudamos o placeholder do Select */}
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>

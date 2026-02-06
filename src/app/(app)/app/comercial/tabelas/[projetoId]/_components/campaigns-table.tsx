@@ -5,11 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-// [ADICIONADO] Calculator no import
-import { Search, Edit2, Plus, Trash2, ArrowRight, Calendar as CalendarIcon, Loader2, Calculator } from "lucide-react"
-import { upsertCampaign, deleteCampaign } from "@/app/actions/commercial-prices"
+import { Search, Edit2, Plus, Trash2, ArrowRight, Calendar as CalendarIcon, Loader2, Calculator, Copy } from "lucide-react"
+import { upsertCampaign, duplicateCampaign, deleteCampaign } from "@/app/actions/commercial-prices"
 import { toast } from "sonner"
-// ... (outros imports mantidos: Dialog, Label, Tooltip, AlertDialog, Link, useRouter) ...
 import {
   Dialog,
   DialogContent,
@@ -52,13 +50,16 @@ interface Props {
 }
 
 export function CampaignsTable({ campaigns, projetoId }: Props) {
-  // ... (Hooks de estado, router e lógica de filtro mantidos iguais) ...
   const router = useRouter()
   const [filterText, setFilterText] = useState("")
   const [filterDateStart, setFilterDateStart] = useState("")
   const [filterDateEnd, setFilterDateEnd] = useState("")
+  
+  // Controle de Modal
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
+  const [isDuplicating, setIsDuplicating] = useState(false) // [NOVO] Flag para modo duplicação
+  
   const [isPending, setIsPending] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -71,21 +72,38 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     return matchesText && matchesDate
   })
 
-  // ... (Handlers: handleCreate, handleEdit, handleSubmit, confirmDelete mantidos iguais) ...
   const handleCreate = () => {
     setEditingCampaign(null)
+    setIsDuplicating(false)
     setIsDialogOpen(true)
   }
 
   const handleEdit = (campaign: Campaign) => {
     setEditingCampaign(campaign)
+    setIsDuplicating(false)
+    setIsDialogOpen(true)
+  }
+
+  // [NOVO] Ação de Duplicação
+  const handleDuplicate = (campaign: Campaign) => {
+    setEditingCampaign(campaign)
+    setIsDuplicating(true) // Ativa modo duplicação
     setIsDialogOpen(true)
   }
 
   const handleSubmit = async (formData: FormData) => {
     setIsPending(true)
-    const tabelaId = editingCampaign ? editingCampaign.id : null
-    const res = await upsertCampaign(projetoId, tabelaId, formData)
+    let res;
+
+    if (isDuplicating && editingCampaign) {
+        // Modo Duplicação: Chama a action específica
+        res = await duplicateCampaign(projetoId, editingCampaign.id, formData)
+    } else {
+        // Modo Criar/Editar: Chama o upsert padrão
+        const tabelaId = editingCampaign ? editingCampaign.id : null
+        res = await upsertCampaign(projetoId, tabelaId, formData)
+    }
+
     if (res.success) {
       toast.success(res.message)
       setIsDialogOpen(false)
@@ -108,13 +126,11 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     setDeleteId(null)
   }
 
-  // [CORREÇÃO] Formatador de data ajustado para UTC (Bug Fix anterior)
   const fmtDate = (d: Date) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
   const fmtDateInput = (d: Date) => d.toISOString().split('T')[0]
 
   return (
     <TooltipProvider>
-      {/* [ALTERAÇÃO] Barra de Topo com Botões alinhados */}
       <div className="flex justify-between items-center mb-4">
         <Button variant="outline" size="sm" className="gap-2" disabled>
              <Calculator className="w-4 h-4" /> Simulador de Venda
@@ -126,7 +142,6 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
       </div>
 
       <Card>
-        {/* ... (Conteúdo da Tabela e Filtros mantidos iguais) ... */}
         <CardContent className="p-0">
           <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-gray-50/50 items-end">
             <div className="flex-1 relative w-full">
@@ -189,6 +204,16 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                              <TooltipContent>Acessar Configurações</TooltipContent>
                            </Tooltip>
 
+                           {/* [NOVO] Botão Duplicar */}
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button variant="ghost" size="icon" onClick={() => handleDuplicate(c)}>
+                                  <Copy className="h-4 w-4 text-amber-600" />
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent>Duplicar Tabela</TooltipContent>
+                           </Tooltip>
+
                            <Tooltip>
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
@@ -216,18 +241,27 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Modal Criar/Editar (Mantido igual) */}
+      {/* Modal Criar/Editar/Duplicar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{editingCampaign ? "Editar Tabela" : "Nova Tabela de Preço"}</DialogTitle>
+                <DialogTitle>
+                    {isDuplicating 
+                        ? "Duplicar Tabela" 
+                        : (editingCampaign ? "Editar Tabela" : "Nova Tabela de Preço")
+                    }
+                </DialogTitle>
             </DialogHeader>
             <form action={handleSubmit} className="space-y-4 py-2">
                 <div className="grid gap-2">
                     <Label>Nome da Campanha</Label>
                     <Input 
                         name="nome" 
-                        defaultValue={editingCampaign?.nome} 
+                        defaultValue={
+                            isDuplicating && editingCampaign 
+                            ? `${editingCampaign.nome} (Cópia)` 
+                            : editingCampaign?.nome
+                        } 
                         placeholder="Ex: Tabela Lançamento Torre A" 
                         required 
                     />
@@ -237,7 +271,11 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                         <Label>Código (SKU)</Label>
                         <Input 
                             name="codigo" 
-                            defaultValue={editingCampaign?.codigo} 
+                            defaultValue={
+                                isDuplicating && editingCampaign 
+                                ? `${editingCampaign.codigo}-COPY` 
+                                : editingCampaign?.codigo
+                            } 
                             placeholder="Ex: TAB-LANC-01" 
                             required 
                         />
@@ -263,7 +301,12 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                         <Input 
                             name="vigenciaInicial" 
                             type="date" 
-                            defaultValue={editingCampaign ? fmtDateInput(editingCampaign.vigenciaInicial) : ""} 
+                            // Na duplicação, limpamos as datas para forçar o usuário a escolher um período válido (sem colisão)
+                            defaultValue={
+                                isDuplicating 
+                                ? "" 
+                                : (editingCampaign ? fmtDateInput(editingCampaign.vigenciaInicial) : "")
+                            } 
                             required 
                         />
                     </div>
@@ -272,7 +315,11 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                         <Input 
                             name="vigenciaFinal" 
                             type="date" 
-                            defaultValue={editingCampaign ? fmtDateInput(editingCampaign.vigenciaFinal) : ""} 
+                            defaultValue={
+                                isDuplicating 
+                                ? "" 
+                                : (editingCampaign ? fmtDateInput(editingCampaign.vigenciaFinal) : "")
+                            } 
                             required 
                         />
                     </div>
@@ -282,14 +329,14 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                     <Button type="submit" disabled={isPending}>
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Salvar Tabela
+                        {isDuplicating ? "Duplicar Tabela" : "Salvar Tabela"}
                     </Button>
                 </DialogFooter>
             </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Exclusão (Mantido igual) */}
+      {/* Modal Exclusão */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

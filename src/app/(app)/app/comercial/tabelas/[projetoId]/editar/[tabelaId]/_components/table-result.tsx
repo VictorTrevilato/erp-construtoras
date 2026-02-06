@@ -13,6 +13,7 @@ type PriceRow = {
     valorMetroQuadrado: number
     fatorAndar: number
     fatorDiretoria: number
+    fatorCorrecao: number
 }
 
 type Flow = {
@@ -28,7 +29,6 @@ const fmtDecimal = (val: number, digits = 2) => val.toLocaleString('pt-BR', { mi
 
 export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows: Flow[] }) {
     
-    // Se não tiver fluxo cadastrado, avisa o usuário
     if (!flows || flows.length === 0) {
         return (
             <Alert>
@@ -49,16 +49,16 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                         <TableRow className="hover:bg-transparent">
                             {/* === BLOCO 1: PRODUTO & PREÇO === */}
                             
-                            {/* Unidade (Sticky Left) */}
-                            <TableHead className="w-16 font-bold text-gray-900 sticky left-0 z-30 bg-white border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm">
+                            {/* Unidade + Bloco Unificado (Sticky Left) */}
+                            <TableHead className="w-24 font-bold text-gray-900 sticky left-0 z-30 bg-white border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm">
                                 Unidade
                             </TableHead>
                             
-                            <TableHead className="w-24 text-sm text-gray-700 bg-white border-y h-12">Bloco</TableHead>
                             <TableHead className="w-24 text-right text-sm text-gray-700 bg-white border-y h-12">Área</TableHead>
-                            
-                            {/* Colunas de Cálculo (Ajustadas) */}
                             <TableHead className="text-right text-sm w-28 text-gray-700 bg-white border-y h-12">Valor m²</TableHead>
+                            
+                            {/* Colunas de Fatores */}
+                            <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Corr.</TableHead>
                             <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Andar</TableHead>
                             <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Dir</TableHead>
                             
@@ -77,7 +77,6 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                                 const isLast = idx === flows.length - 1
                                 const roundedClass = isFirst ? "rounded-l-lg border-l" : isLast ? "rounded-r-lg border-r" : ""
                                 
-                                // Reduzido min-w para 100px para economizar espaço
                                 return (
                                     <TableHead 
                                         key={idx} 
@@ -98,28 +97,34 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                         {priceData.map((row) => {
                             // Cálculos Matemáticos
                             const valBase = row.areaPrivativa * (row.valorMetroQuadrado || 0)
-                            const valReal = valBase * (row.fatorAndar === 0 ? 1 : row.fatorAndar)
-                            const valFinal = valReal * (row.fatorDiretoria === 0 ? 1 : row.fatorDiretoria)
+                            const valFinal = valBase * (row.fatorCorrecao === 0 ? 1 : row.fatorCorrecao) * (row.fatorAndar === 0 ? 1 : row.fatorAndar) * (row.fatorDiretoria === 0 ? 1 : row.fatorDiretoria)
 
                             return (
                                 <TableRow key={row.unidadeId} className="group hover:bg-transparent">
                                     {/* === BLOCO 1 === */}
                                     
-                                    <TableCell className="font-bold border-y border-l sticky left-0 z-10 bg-white group-hover:bg-slate-50 text-sm py-3 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                        {row.unidade}
+                                    {/* Célula Unificada Sticky (Bloco em cima, Unidade em baixo) */}
+                                    <TableCell className="border-y border-l sticky left-0 z-10 bg-white group-hover:bg-slate-50 py-3 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-muted-foreground">{row.blocoNome}</span>
+                                            <span className="font-bold text-sm text-gray-900">{row.unidade}</span>
+                                        </div>
                                     </TableCell>
                                     
-                                    <TableCell className="text-muted-foreground text-sm border-y bg-white group-hover:bg-slate-50">
-                                        {row.blocoNome}
-                                    </TableCell>
                                     <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
                                         {fmtDecimal(row.areaPrivativa)}
                                     </TableCell>
                                     
-                                    {/* Dados de Cálculo (Corrigido ordem dos Fatores) */}
+                                    {/* Dados de Cálculo */}
                                     <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
                                         {fmtDecimal(row.valorMetroQuadrado)}
                                     </TableCell>
+                                    
+                                    {/* Correção (8 casas) */}
+                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                        {fmtDecimal(row.fatorCorrecao, 8)}
+                                    </TableCell>
+
                                     <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
                                         {fmtDecimal(row.fatorAndar, 4)}
                                     </TableCell>
@@ -167,7 +172,6 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                     </TableBody>
                 </Table>
             </div>
-            {/* Footer removido conforme solicitado */}
         </div>
     )
 }

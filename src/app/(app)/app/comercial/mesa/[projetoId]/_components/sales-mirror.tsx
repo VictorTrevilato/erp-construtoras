@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Building2, CheckCircle2, AlertCircle, Ban, LockKeyhole, Layers, RefreshCw } from "lucide-react"
+import { Building2, CheckCircle2, AlertCircle, Ban, Layers, RefreshCw, Clock } from "lucide-react"
 import { useNegotiation } from "./negotiation-context"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
@@ -30,13 +30,13 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
   const floorUnits = units.filter(u => u.andar !== null)
   const specialUnits = units.filter(u => u.andar === null)
 
-  // 2. Estatísticas Globais
+  // 2. Estatísticas Globais (Baseadas no Status Comercial)
   const stats = {
       total: units.length,
-      disponivel: units.filter(u => u.status === 'DISPONIVEL').length,
-      reservado: units.filter(u => u.status === 'RESERVADO').length,
-      vendido: units.filter(u => u.status === 'VENDIDO').length,
-      bloqueado: units.filter(u => ['BLOQUEADO', 'PERMUTA'].includes(u.status)).length
+      disponivel: units.filter(u => u.statusComercial === 'DISPONIVEL').length,
+      reservado: units.filter(u => u.statusComercial === 'RESERVADO').length,
+      emAnalise: units.filter(u => u.statusComercial === 'EM_ANALISE').length,
+      vendido: units.filter(u => u.statusComercial === 'VENDIDO').length
   }
 
   // 3. Agrupamento por Bloco
@@ -50,25 +50,35 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
       a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
   )
 
-  // 4. Estilos Visuais
+  // 4. Estilos Visuais (Cores atualizadas)
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'DISPONIVEL': 
-        return 'bg-emerald-50 ring-1 ring-emerald-200 text-emerald-900 hover:bg-emerald-100 hover:ring-emerald-400 hover:shadow-md'
+        return 'bg-emerald-50 ring-1 ring-emerald-200 text-emerald-900 hover:bg-emerald-100 hover:ring-emerald-400 hover:shadow-md cursor-pointer'
       case 'RESERVADO': 
         return 'bg-amber-50 ring-1 ring-amber-200 text-amber-800 cursor-not-allowed opacity-90'
+      case 'EM_ANALISE': 
+        return 'bg-blue-50 ring-1 ring-blue-200 text-blue-800 cursor-not-allowed opacity-90'
       case 'VENDIDO': 
         return 'bg-rose-50 ring-1 ring-rose-200 text-rose-800 cursor-not-allowed opacity-60 grayscale-[0.5]'
-      case 'BLOQUEADO': 
-      case 'PERMUTA':
-        return 'bg-slate-50 ring-1 ring-slate-200 text-slate-500 cursor-not-allowed'
       default: 
         return 'bg-gray-50 text-gray-400'
     }
   }
 
+  // Helper para formatar labels (Ex: EM_ANALISE -> Em Análise)
+  const formatStatusLabel = (status: string) => {
+      const map: Record<string, string> = {
+          'DISPONIVEL': 'Disponível',
+          'RESERVADO': 'Reservado',
+          'VENDIDO': 'Vendido',
+          'EM_ANALISE': 'Em Análise'
+      }
+      return map[status] || status
+  }
+
   const handleUnitClick = (unit: NegotiationUnit) => {
-    if (unit.status !== 'DISPONIVEL') return
+    if (unit.statusComercial !== 'DISPONIVEL') return
     setSelectedUnitId(unit.id)
     setActiveTab("negociacao")
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -108,18 +118,18 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                     <p className="text-xl font-bold text-amber-700">{stats.reservado}</p>
                 </div>
             </Card>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-blue-500 shadow-sm">
+                <div className="p-2 bg-blue-100 rounded-full"><Clock className="w-4 h-4 text-blue-600"/></div>
+                <div>
+                    <p className="text-[10px] uppercase font-bold text-blue-600">Em Análise</p>
+                    <p className="text-xl font-bold text-blue-700">{stats.emAnalise}</p>
+                </div>
+            </Card>
             <Card className="p-3 flex items-center gap-3 border-l-4 border-l-rose-500 shadow-sm">
                 <div className="p-2 bg-rose-100 rounded-full"><Ban className="w-4 h-4 text-rose-600"/></div>
                 <div>
                     <p className="text-[10px] uppercase font-bold text-rose-600">Vendidas</p>
                     <p className="text-xl font-bold text-rose-700">{stats.vendido}</p>
-                </div>
-            </Card>
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-gray-400 shadow-sm">
-                <div className="p-2 bg-gray-100 rounded-full"><LockKeyhole className="w-4 h-4 text-gray-500"/></div>
-                <div>
-                    <p className="text-[10px] uppercase font-bold text-gray-500">Bloqueadas</p>
-                    <p className="text-xl font-bold text-gray-700">{stats.bloqueado}</p>
                 </div>
             </Card>
         </div>
@@ -143,7 +153,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                 <Badge variant="secondary" className="text-xs">{blockUnits.length} unidades</Badge>
                             </div>
 
-                            {/* [NOVO] Botão de Refresh apenas no primeiro bloco para limpar o layout */}
+                            {/* Botão de Refresh apenas no primeiro bloco para limpar o layout */}
                             {index === 0 && (
                                 <Button 
                                     variant="ghost" 
@@ -182,8 +192,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                                                     onClick={() => handleUnitClick(unit)}
                                                                     className={cn(
                                                                         "w-28 h-20 flex flex-col items-center justify-center rounded-lg transition-all select-none relative",
-                                                                        getStatusStyle(unit.status),
-                                                                        unit.status === 'DISPONIVEL' ? 'cursor-pointer' : ''
+                                                                        getStatusStyle(unit.statusComercial)
                                                                     )}
                                                                 >
                                                                     <span className="font-bold text-xl tracking-tight leading-none mb-1">
@@ -193,7 +202,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                                                         {unit.areaPrivativa} m²
                                                                     </span>
                                                                     
-                                                                    {unit.status !== 'DISPONIVEL' && (
+                                                                    {unit.statusComercial !== 'DISPONIVEL' && (
                                                                         <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-current opacity-50" />
                                                                     )}
                                                                 </div>
@@ -201,7 +210,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                                             <TooltipContent className="text-xs bg-slate-900 text-white border-none">
                                                                 <p className="font-bold mb-1">Unidade {unit.unidade}</p>
                                                                 <p>Valor: {unit.valorTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                                                                <p>Situação: {unit.status}</p>
+                                                                <p>Situação: {formatStatusLabel(unit.statusComercial)}</p>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
@@ -241,12 +250,12 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                             onClick={() => handleUnitClick(unit)}
                             className={cn(
                                 "w-36 h-24 flex flex-col items-center justify-center rounded-lg transition-all cursor-pointer shadow-sm",
-                                getStatusStyle(unit.status)
+                                getStatusStyle(unit.statusComercial)
                             )}
                         >
                             <span className="font-bold text-lg">{unit.unidade}</span>
                             <span className="text-xs mt-1">{unit.areaPrivativa} m²</span>
-                            <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-white/50">{unit.status}</Badge>
+                            <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-white/50">{formatStatusLabel(unit.statusComercial)}</Badge>
                         </div>
                     ))}
                 </div>

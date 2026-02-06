@@ -19,14 +19,26 @@ type Flow = {
 const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDecimal = (val: number, digits = 2) => val.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })
 
+// Cores atualizadas
 const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DISPONIVEL': return 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200'
+      case 'DISPONIVEL': return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200'
       case 'VENDIDO': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200'
-      case 'RESERVADO': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200'
-      case 'BLOQUEADO': return 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200'
+      case 'RESERVADO': return 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200'
+      case 'EM_ANALISE': return 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200'
       default: return 'bg-slate-100 text-slate-800 border-slate-200'
     }
+}
+
+// [CORREÇÃO] Labels em MAIÚSCULO para padronização
+const formatStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+        'DISPONIVEL': 'DISPONÍVEL',
+        'RESERVADO': 'RESERVADO',
+        'VENDIDO': 'VENDIDO',
+        'EM_ANALISE': 'EM ANÁLISE'
+    }
+    return map[status] || status
 }
 
 export function PriceListView({ units, flows }: { units: NegotiationUnit[], flows: Flow[] }) {
@@ -117,8 +129,9 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                     </TableCell>
                                     
                                     <TableCell className="border-y bg-white group-hover:bg-slate-50 text-center">
-                                        <Badge variant="outline" className={getStatusColor(unit.status)}>
-                                            {unit.status}
+                                        <Badge variant="outline" className={getStatusColor(unit.statusComercial)}>
+                                            {/* [USO] Função atualizada com maiúsculas */}
+                                            {formatStatusLabel(unit.statusComercial)}
                                         </Badge>
                                     </TableCell>
                                     

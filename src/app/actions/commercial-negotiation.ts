@@ -13,7 +13,9 @@ export type NegotiationUnit = {
   blocoNome: string
   areaPrivativa: number
   areaUsoComum: number
-  status: string
+  // [CORREÇÃO] Atualizado para refletir o novo schema
+  statusComercial: string
+  statusInterno: string
   valorTabela: number
   tabelaId: string | null
 }
@@ -28,7 +30,6 @@ export type StandardFlow = {
   primeiroVencimento: Date
 }
 
-// [NOVO] Tipos para o SaveProposal
 export type ProposalConditionInput = {
     tipo: string
     periodicidade: string
@@ -53,37 +54,44 @@ export async function getProjectsForNegotiation() {
   const tenantIdStr = cookieStore.get("tenant-id")?.value
   if (!tenantIdStr) return []
 
-  const projects = await prisma.ycProjetos.findMany({
-    where: { 
-      sysTenantId: BigInt(tenantIdStr),
-      ycUnidades: { some: {} } 
-    },
-    include: {
-      _count: { 
-        select: { 
-          ycUnidades: true,
-          ycBlocos: true 
-        } 
+  try {
+    const projects = await prisma.ycProjetos.findMany({
+      where: { 
+        sysTenantId: BigInt(tenantIdStr),
+        // Apenas projetos que tenham unidades cadastradas
+        ycUnidades: { some: {} } 
       },
-      ycUnidades: {
-        where: { status: 'DISPONIVEL' },
-        select: { id: true }
-      }
-    },
-    orderBy: { nome: 'asc' }
-  })
+      include: {
+        _count: { 
+          select: { 
+            ycUnidades: true,
+            ycBlocos: true 
+          } 
+        },
+        // [CORREÇÃO] Contagem baseada no novo campo statusComercial
+        ycUnidades: {
+          where: { statusComercial: 'DISPONIVEL' },
+          select: { id: true }
+        }
+      },
+      orderBy: { nome: 'asc' }
+    })
 
-  return projects.map(p => ({
-    id: p.id.toString(),
-    nome: p.nome,
-    tipo: p.tipo,
-    status: p.status,
-    cidade: p.cidade || "",
-    uf: p.estado || "",
-    totalBlocos: p._count.ycBlocos,
-    totalUnidades: p._count.ycUnidades,
-    totalDisponiveis: p.ycUnidades.length
-  }))
+    return projects.map(p => ({
+      id: p.id.toString(),
+      nome: p.nome,
+      tipo: p.tipo,
+      status: p.status,
+      cidade: p.cidade || "",
+      uf: p.estado || "",
+      totalBlocos: p._count.ycBlocos,
+      totalUnidades: p._count.ycUnidades,
+      totalDisponiveis: p.ycUnidades.length
+    }))
+  } catch (error) {
+    console.error("Erro ao buscar projetos para mesa:", error)
+    return []
+  }
 }
 
 // --- 2. DADOS DO CABEÇALHO ---
@@ -124,39 +132,49 @@ export async function getNegotiationHeader(projetoId: string) {
 
 // --- 3. ESPELHO DE VENDAS ---
 export async function getSalesMirrorData(projetoId: string) {
-  const units = await prisma.ycUnidades.findMany({
-    where: { projetoId: BigInt(projetoId) },
-    include: {
-      ycBlocos: { select: { nome: true } },
-      ycTabelasPrecoItens: {
-        include: { ycTabelasPreco: true }
+  try {
+    const units = await prisma.ycUnidades.findMany({
+      where: { projetoId: BigInt(projetoId) },
+      include: {
+        ycBlocos: { select: { nome: true } },
+        ycTabelasPrecoItens: {
+          include: { ycTabelasPreco: true }
+        }
+      },
+      orderBy: { andar: 'desc' }
+    })
+
+    return units.map(u => {
+      // Pega o primeiro item de preço (idealmente filtrar pela tabela vigente também, mas assume-se logica de negocio)
+      const priceItem = u.ycTabelasPrecoItens[0]
+      
+      let valorFinal = 0
+      if (priceItem) {
+        const base = Number(u.areaPrivativaTotal || u.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
+        // [ATUALIZAÇÃO] Incluindo fatorCorrecao no cálculo
+        const comFatorCorrecao = base * Number(priceItem.fatorCorrecao || 1)
+        const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
+        valorFinal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
       }
-    },
-    orderBy: { andar: 'desc' }
-  })
 
-  return units.map(u => {
-    const priceItem = u.ycTabelasPrecoItens[0]
-    
-    let valorFinal = 0
-    if (priceItem) {
-      const base = Number(u.areaPrivativaTotal || u.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
-      const comFatorAndar = base * Number(priceItem.fatorAndar || 1)
-      valorFinal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
-    }
-
-    return {
-      id: u.id.toString(),
-      unidade: u.unidade,
-      andar: u.andar,
-      blocoNome: u.ycBlocos.nome,
-      areaPrivativa: Number(u.areaPrivativaTotal || 0),
-      areaUsoComum: Number(u.areaUsoComum || 0),
-      status: u.status,
-      valorTabela: valorFinal,
-      tabelaId: priceItem?.tabelaPrecoId.toString() || null
-    } as NegotiationUnit
-  })
+      return {
+        id: u.id.toString(),
+        unidade: u.unidade,
+        andar: u.andar,
+        blocoNome: u.ycBlocos.nome,
+        areaPrivativa: Number(u.areaPrivativaTotal || 0),
+        areaUsoComum: Number(u.areaUsoComum || 0),
+        // [CORREÇÃO] Novos campos de status
+        statusComercial: u.statusComercial,
+        statusInterno: u.statusInterno,
+        valorTabela: valorFinal,
+        tabelaId: priceItem?.tabelaPrecoId.toString() || null
+      } as NegotiationUnit
+    })
+  } catch (error) {
+    console.error("Erro ao buscar espelho de vendas:", error)
+    return []
+  }
 }
 
 // --- 4. FLUXOS DA TABELA VIGENTE ---
@@ -206,6 +224,7 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
     const totalCondicao = valorFechamento * (Number(f.percentual) / 100)
     const valorParcela = totalCondicao / f.qtdeParcelas
     
+    // Mapeamento simples de periodicidade para texto
     const periodMap: Record<number, string> = { 0: 'Única', 1: 'Mensal', 12: 'Anual' } 
 
     return {
@@ -240,12 +259,14 @@ export async function saveProposal(data: ProposalPayload) {
     const priceItem = contextUnit.ycTabelasPrecoItens[0]
     if (!priceItem) return { success: false, message: "Unidade sem tabela de preço vinculada" }
 
+    // Recalcula valor tabela original para registro histórico (snapshot)
     const base = Number(contextUnit.areaPrivativaTotal || contextUnit.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
-    const comFatorAndar = base * Number(priceItem.fatorAndar || 1)
+    const comFatorCorrecao = base * Number(priceItem.fatorCorrecao || 1)
+    const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
     const valorTabelaOriginal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
 
     const validade = new Date()
-    validade.setDate(validade.getDate() + 2)
+    validade.setDate(validade.getDate() + 2) // Validade padrão de 2 dias
 
     const result = await prisma.$transaction(async (tx) => {
       // --- A. LEADS ---
@@ -327,9 +348,10 @@ export async function saveProposal(data: ProposalPayload) {
       }
 
       // --- D. ATUALIZAR UNIDADE ---
+      // [CORREÇÃO] Atualizando statusComercial em vez de status
       await tx.ycUnidades.update({
         where: { id: BigInt(unidadeId) },
-        data: { status: "RESERVADO" }
+        data: { statusComercial: "RESERVADO" }
       })
 
       return newProposal

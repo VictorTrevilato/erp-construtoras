@@ -405,8 +405,6 @@ model ycUnidades {
   unidade                      String                @db.VarChar(20)
   codigo                       String                @db.VarChar(50)
   tipo                         String                @db.VarChar(50)
-  vagas                        Int                   @default(0, map: "DF__ycUnidade__vagas__4A8310C6")
-  status                       String                @default("DISPONIVEL", map: "DF__ycUnidade__statu__4B7734FF") @db.VarChar(50)
   areaPrivativaPrincipal       Decimal?              @db.Decimal(18, 4)
   areaOutrasPrivativas         Decimal?              @db.Decimal(18, 4)
   areaPrivativaTotal           Decimal?              @db.Decimal(18, 4)
@@ -414,8 +412,13 @@ model ycUnidades {
   areaRealTotal                Decimal?              @db.Decimal(18, 4)
   coeficienteProporcionalidade Decimal?              @db.Decimal(18, 9)
   fracaoIdealTerreno           Decimal?              @db.Decimal(18, 9)
-  codigoTabela                 String?               @db.VarChar(50)
   andar                        Int                   @default(0, map: "DF__ycUnidade__andar__2CBDA3B5")
+  statusComercial              String                @default("DISPONIVEL", map: "DF__ycUnidade__statu__2DB1C7EE") @db.VarChar(50)
+  statusInterno                String                @default("DISPONIVEL", map: "DF__ycUnidade__statu__2EA5EC27") @db.VarChar(50)
+  qtdeVagas                    Int                   @default(0, map: "DF__ycUnidade__qtdeV__2F9A1060")
+  tipoVaga                     String?               @default("NENHUMA", map: "DF__ycUnidade__tipoV__308E3499") @db.VarChar(50)
+  tipoDeposito                 String?               @default("NENHUM", map: "DF__ycUnidade__tipoD__318258D2") @db.VarChar(50)
+  areaDeposito                 Decimal?              @default(0, map: "DF__ycUnidade__areaD__32767D0B") @db.Decimal(18, 4)
   ycPropostas                  ycPropostas[]
   ycTabelasPrecoItens          ycTabelasPrecoItens[]
   ycBlocos                     ycBlocos              @relation(fields: [blocoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycBlocos")
@@ -426,10 +429,10 @@ model ycUnidades {
 
   @@unique([sysTenantId, codigo], map: "UQ_ycUnidades_SKU")
   @@index([blocoId], map: "IX_ycUnidades_blocoId")
-  @@index([codigoTabela], map: "IX_ycUnidades_codigoTabela")
   @@index([projetoId], map: "IX_ycUnidades_projetoId")
-  @@index([status], map: "IX_ycUnidades_status")
   @@index([sysTenantId], map: "IX_ycUnidades_sysTenantId")
+  @@index([statusComercial], map: "IX_ycUnidades_statusComercial")
+  @@index([statusInterno], map: "IX_ycUnidades_statusInterno")
 }
 
 model ycTabelasPrecoItens {
@@ -444,6 +447,7 @@ model ycTabelasPrecoItens {
   valorMetroQuadrado Decimal        @db.Decimal(18, 2)
   fatorAndar         Decimal        @default(0, map: "DF__ycTabelas__fator__1209AD79") @db.Decimal(10, 4)
   fatorDiretoria     Decimal        @default(0, map: "DF__ycTabelas__fator__12FDD1B2") @db.Decimal(10, 4)
+  fatorCorrecao      Decimal        @default(1.0000, map: "DF__ycTabelas__fator__336AA144") @db.Decimal(10, 8)
   ycEmpresas         ycEmpresas     @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPrecoItens_ycEmpresas")
   ycEscopos          ycEscopos      @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPrecoItens_ycEscopos")
   ycTabelasPreco     ycTabelasPreco @relation(fields: [tabelaPrecoId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPrecoItens_ycTabelasPreco")

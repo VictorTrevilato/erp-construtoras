@@ -41,9 +41,16 @@ interface Unit {
   blocoId: string
   blocoNome: string
   tipo: string
-  status: string
-  vagas: number
-  codigoTabela: string
+  
+  statusComercial: string
+  statusInterno: string
+  qtdeVagas: number
+  
+  tipoVaga: string | null
+  tipoDeposito: string | null
+  
+  areaDeposito: string | number
+  
   areaPrivativaPrincipal: string
   areaOutrasPrivativas: string
   areaPrivativaTotal: string
@@ -58,9 +65,20 @@ const getStatusColor = (status: string) => {
       case 'DISPONIVEL': return 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200'
       case 'VENDIDO': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200'
       case 'RESERVADO': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200'
-      case 'BLOQUEADO': return 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200'
+      case 'EM_ANALISE': return 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200'
       default: return 'bg-slate-100 text-slate-800 border-slate-200'
     }
+}
+
+const formatStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+        'DISPONIVEL': 'DISPONÍVEL',
+        'RESERVADO': 'RESERVADO',
+        'VENDIDO': 'VENDIDO',
+        'EM_ANALISE': 'EM ANÁLISE',
+        'BLOQUEADO': 'BLOQUEADO'
+    }
+    return map[status] || status
 }
 
 export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], blocks: Block[], projetoId: string }) {
@@ -68,12 +86,9 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
   const [filterBlock, setFilterBlock] = useState("ALL")
   const [filterStatus, setFilterStatus] = useState("ALL")
   
-  // Controle do Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
   const [isReadOnly, setIsReadOnly] = useState(false)
-
-  // Controle de Deleção
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const handleCreate = () => {
@@ -105,7 +120,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
   const filteredUnits = units.filter(unit => {
     const matchesText = unit.unidade.toLowerCase().includes(filterText.toLowerCase())
     const matchesBlock = filterBlock === "ALL" || unit.blocoId === filterBlock
-    const matchesStatus = filterStatus === "ALL" || unit.status === filterStatus
+    const matchesStatus = filterStatus === "ALL" || unit.statusComercial === filterStatus
     return matchesText && matchesBlock && matchesStatus
   })
 
@@ -120,7 +135,6 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
 
       <Card>
         <CardContent className="p-0">
-          {/* Barra de Filtros */}
           <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-gray-50/50">
             <div className="flex-1 relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -139,11 +153,12 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Status Comercial" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos Status</SelectItem>
                 <SelectItem value="DISPONIVEL">Disponível</SelectItem>
                 <SelectItem value="RESERVADO">Reservado</SelectItem>
+                <SelectItem value="EM_ANALISE">Em Análise</SelectItem>
                 <SelectItem value="VENDIDO">Vendido</SelectItem>
               </SelectContent>
             </Select>
@@ -152,20 +167,21 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-[180px]">Bloco & Unidade</TableHead>
+                {/* [ATUALIZAÇÃO] Removido width fixo */}
+                <TableHead>Unidade</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Andar</TableHead>
-                <TableHead className="text-right">Vagas</TableHead>
+                {/* [ATUALIZAÇÃO] Vagas saiu, Área Priv, Comum e Total entraram na ordem */}
                 <TableHead className="text-right">Área Priv.</TableHead>
-                <TableHead className="text-right">Área Comum</TableHead>
+                <TableHead className="text-right">Área Com.</TableHead>
+                <TableHead className="text-right">Área Total</TableHead>
                 <TableHead className="text-right">Fração Ideal</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUnits.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado.</TableCell></TableRow>
               ) : (
                 filteredUnits.map((unit) => (
                   <TableRow key={unit.id} className="hover:bg-slate-50">
@@ -173,17 +189,25 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                        <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground">{unit.blocoNome}</span>
                           <span className="font-bold text-base text-gray-800">{unit.unidade}</span>
+                          {unit.statusInterno !== 'DISPONIVEL' && (
+                             <span className="text-[10px] text-amber-600 font-medium">{unit.statusInterno}</span>
+                          )}
                        </div>
                     </TableCell>
 
-                    <TableCell><Badge className={getStatusColor(unit.status)}>{unit.status}</Badge></TableCell>
+                    <TableCell>
+                        <Badge className={getStatusColor(unit.statusComercial)}>
+                            {formatStatusLabel(unit.statusComercial)}
+                        </Badge>
+                    </TableCell>
 
                     <TableCell className="text-muted-foreground">{unit.tipo}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{unit.andar !== null ? unit.andar : "-"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{unit.vagas || "-"}</TableCell>
                     
+                    {/* [ATUALIZAÇÃO] Colunas de Área reordenadas e Área Total inclusa */}
                     <TableCell className="text-right text-muted-foreground">{unit.areaPrivativaTotal || "-"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{unit.areaUsoComum || "-"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{unit.areaRealTotal || "-"}</TableCell>
+                    
                     <TableCell className="text-right text-muted-foreground">{unit.fracaoIdealTerreno || "-"}</TableCell>
 
                     <TableCell className="text-right">
@@ -224,7 +248,6 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
         </CardContent>
       </Card>
 
-      {/* Modal de Formulário / Detalhes */}
       <UnitFormDialog 
         projetoId={projetoId}
         unit={editingUnit} 
@@ -234,7 +257,6 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
         readOnly={isReadOnly}
       />
 
-      {/* Modal de Confirmação de Exclusão */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
