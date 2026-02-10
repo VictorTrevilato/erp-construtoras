@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+// [NOVO] Importação do componente de análise
+import { ProposalAnalysis } from "./proposal-analysis"
 
 // --- TIPOS ---
 type CustomCondition = {
@@ -77,7 +79,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
     } = useNegotiation()
 
     const selectedUnit = units.find(u => u.id === selectedUnitId)
-    // [CORREÇÃO] Filtrando pelo novo campo statusComercial
     const availableUnits = units.filter(u => u.statusComercial === 'DISPONIVEL')
 
     // Ordenação
@@ -93,7 +94,6 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
     useEffect(() => {
         if (!selectedUnit) return
 
-        // O valorTabela aqui já inclui o fatorCorrecao (calculado no server action getSalesMirrorData)
         setTargetPrice(selectedUnit.valorTabela)
         
         calculateStandardFlow(selectedUnit.id, selectedUnit.valorTabela).then(data => {
@@ -370,9 +370,9 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-4 bg-slate-50/50 min-h-[400px]">
+                    <CardContent className="p-4 bg-slate-50/50">
                         {/* Grid de 3 Colunas (Buckets) */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                             {ALLOWED_TYPES.map((type) => {
                                 const typeConditions = conditions.filter(c => c.tipo === type)
                                 
@@ -447,6 +447,16 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                 )
                             })}
                         </div>
+
+                        {/* [NOVO] COMPONENTE DE ANÁLISE VPL */}
+                        {selectedUnit && (
+                            <ProposalAnalysis 
+                                standardFlow={standardFlow} 
+                                proposalConditions={conditions} 
+                                unitArea={selectedUnit.areaPrivativa}
+                            />
+                        )}
+
                     </CardContent>
                     
                     <div className="p-4 border-t bg-white flex justify-end gap-3">

@@ -1,57 +1,54 @@
-import { Protect } from "@/components/protect"
-import { Button } from "@/components/ui/button" // Supondo que você já tenha o shadcn button
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trash2, PlusCircle, Lock } from "lucide-react"
+import { auth } from "@/auth"
+import { MarketingHero } from "./_components/marketing-hero"
+import { CompanyWall } from "./_components/company-wall"
+import { ProjectSpotlight } from "./_components/project-spotlight"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await auth()
+  const userName = session?.user?.name?.split(" ")[0] || "Colaborador"
+
+  // Data atual formatada (Ex: Terça-feira, 10 de Fevereiro)
+  const today = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date())
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard ERP</h1>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Card de Teste de Permissões */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Teste de Permissões (Visual)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-500">
-              Os botões abaixo só aparecem se o seu usuário tiver as permissões exatas no banco de dados.
-            </p>
+      {/* 1. Header Simples e Pessoal */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Olá, {userName}
+        </h1>
+        <p className="text-slate-500 capitalize text-sm">
+          {today}
+        </p>
+      </div>
 
-            {/* TESTE 1: Botão que deve APARECER (Simulando uma permissão comum) */}
-            {/* Vamos tentar usar uma string que talvez já exista ou vamos criar um "falso positivo" depois */}
-            <div className="p-4 border rounded-md bg-green-50">
-              <h3 className="font-semibold mb-2">Área de Criação</h3>
-              <Protect permission="OBRAS_CRIAR" fallback={<span className="text-xs text-red-500">Você não pode criar obras.</span>}>
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Nova Obra (Requer: OBRAS_CRIAR)
-                </Button>
-              </Protect>
-            </div>
+      {/* 2. Banner de Marketing (O destaque visual) */}
+      <MarketingHero />
 
-            {/* TESTE 2: Botão que deve SUMIR (Permissão Crítica) */}
-            <div className="p-4 border rounded-md bg-red-50">
-              <h3 className="font-semibold mb-2">Zona de Perigo</h3>
-              <Protect 
-                permission="FINANCEIRO_EXCLUIR_TUDO" 
-                fallback={
-                  <div className="flex items-center text-gray-400 gap-2">
-                    <Lock className="h-4 w-4" />
-                    <span>Botão oculto por falta de permissão.</span>
-                  </div>
-                }
-              >
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Deletar Todo o Financeiro
-                </Button>
-              </Protect>
-            </div>
+      <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
+        {/* Lado Esquerdo (Maior): Projetos */}
+        <div className="lg:col-span-2 space-y-8">
+          <ProjectSpotlight />
+          
+          {/* Seção Extra: Links Rápidos Genéricos */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             {['Portal do Colaborador', 'Suporte TI', 'Reservas de Sala', 'Documentos'].map((item) => (
+                <div key={item} className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm text-center text-sm font-medium text-slate-600 hover:text-blue-600 hover:border-blue-200 cursor-pointer transition-colors">
+                  {item}
+                </div>
+             ))}
+          </div>
+        </div>
 
-          </CardContent>
-        </Card>
+        {/* Lado Direito (Menor): Mural de Avisos */}
+        <div className="lg:col-span-1">
+          <CompanyWall />
+        </div>
       </div>
     </div>
   )

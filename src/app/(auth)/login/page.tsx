@@ -1,31 +1,26 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import { authenticate, registerFirstUser } from "@/app/actions/auth-actions"
-import { Building2, Hammer, ArrowRight, CheckCircle2, Star, Quote } from "lucide-react"
+import { authenticate } from "@/app/actions/auth-actions"
+import { Building2, ArrowRight, CheckCircle2, Star, Quote, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const [errorMessage, dispatch, isPending] = useActionState(authenticate, undefined)
-  const [seedMessage, setSeedMessage] = useState("")
-
-  const handleCreateAdmin = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    setSeedMessage("Processando...")
-    const res = await registerFirstUser()
-    setSeedMessage(res.message)
-  }
+  
+  // Estado para controlar a visibilidade da senha
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       
-      {/* LADO ESQUERDO: Branding (Apenas Desktop) */}
+      {/* LADO ESQUERDO: Branding */}
       <div className="hidden bg-slate-900 lg:flex flex-col justify-between p-12 text-white relative overflow-hidden">
         
-        {/* Efeitos de Fundo (Blobs) */}
+        {/* Efeitos de Fundo */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-blue-900 blur-3xl opacity-30"></div>
         
-        {/* 1. Header: Logo */}
+        {/* Header */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
             <Building2 className="h-6 w-6" />
@@ -33,7 +28,7 @@ export default function LoginPage() {
           <span className="text-xl font-bold tracking-tight">ERP Construtoras</span>
         </div>
 
-        {/* 2. Conteúdo Principal */}
+        {/* Conteúdo */}
         <div className="relative z-10 max-w-lg">
           <h1 className="text-5xl font-bold tracking-tight mb-6 leading-tight">
             Construindo o futuro da sua gestão.
@@ -63,7 +58,6 @@ export default function LoginPage() {
             </li>
           </ul>
 
-          {/* NOVO: Card de Depoimento (Preenche o espaço visual) */}
           <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
             <div className="flex gap-1 mb-3">
               {[1,2,3,4,5].map((_, i) => (
@@ -73,7 +67,6 @@ export default function LoginPage() {
             <div className="relative">
               <Quote className="absolute -top-2 -left-2 h-8 w-8 text-white/10 rotate-180" />
               <p className="text-sm text-slate-300 italic pl-4 relative z-10">
-                {/* [CORREÇÃO] Aspas escapadas para &quot; */}
                 &quot;O ERP transformou a maneira como acompanhamos nossos custos. A transparência com os investidores aumentou drasticamente.&quot;
               </p>
             </div>
@@ -87,13 +80,13 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* 3. Footer */}
+        {/* Footer */}
         <div className="relative z-10 text-sm text-slate-500 flex justify-between items-end">
            <span>© {new Date().getFullYear()} VHF System. Todos os direitos reservados.</span>
         </div>
       </div>
 
-      {/* LADO DIREITO: Formulário (Mantido igual) */}
+      {/* LADO DIREITO: Formulário */}
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="mx-auto w-full max-w-sm space-y-8">
           
@@ -112,7 +105,7 @@ export default function LoginPage() {
           <form action={dispatch} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
-                E-mail Corporativo
+                E-mail
               </label>
               <div className="mt-2">
                 <input
@@ -138,16 +131,30 @@ export default function LoginPage() {
                   </a>
                 </div>
               </div>
-              <div className="mt-2">
+              <div className="relative mt-2">
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  // Alterna entre text e password baseado no estado
+                  type={showPassword ? "text" : "password"} 
                   autoComplete="current-password"
                   required
-                  className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3"
+                  // Adicionado pr-10 para o texto não ficar por baixo do ícone
+                  className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -168,30 +175,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
-          {/* Área de Seed (Dev Only) */}
-          <div className="mt-10 pt-6 border-t border-gray-100">
-             <div className="flex flex-col items-center justify-center space-y-3">
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-                Ambiente de Desenvolvimento
-              </span>
-              
-              <button
-                onClick={handleCreateAdmin}
-                className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-100 px-4 py-2 rounded-full hover:bg-slate-200 transition-colors"
-              >
-                <Hammer className="h-3 w-3" />
-                <span>Restaurar Super Admin</span>
-              </button>
-              
-              {seedMessage && (
-                <p className={`text-xs font-medium ${seedMessage.includes('Erro') ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {seedMessage}
-                </p>
-              )}
-            </div>
-          </div>
-
         </div>
       </div>
     </div>

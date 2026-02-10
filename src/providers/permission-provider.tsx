@@ -1,8 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { getUserPermissions } from "@/app/actions/permissions" 
-import { useSession } from "next-auth/react" // [IMPORTANTE] Importar isso
+import { useSession } from "next-auth/react"
 
 type PermissionContextType = {
   permissions: string[]
@@ -16,43 +15,32 @@ const PermissionContext = createContext<PermissionContextType>({
   can: () => false,
 })
 
-export function PermissionProvider({ children }: { children: React.ReactNode }) {
-  const { status } = useSession() // [IMPORTANTE] Observar o status da sessão
-  const [permissions, setPermissions] = useState<string[]>([])
+export function PermissionProvider({ 
+  children, 
+  initialPermissions = [] 
+}: { 
+  children: React.ReactNode
+  initialPermissions?: string[] 
+}) {
+  const { status } = useSession()
   
-  // O loading começa true, mas vamos controlá-lo baseado na sessão
-  const [isLoading, setIsLoading] = useState(true)
+  const [permissions, setPermissions] = useState<string[]>(initialPermissions)
+  const [isLoading, setIsLoading] = useState(initialPermissions.length === 0)
 
   useEffect(() => {
-    // 1. Se a sessão ainda está carregando, não faz nada (mantém isLoading true)
-    if (status === "loading") return
-
-    // 2. Se não estiver autenticado, paramos o loading e limpamos permissões
-    if (status === "unauthenticated") {
+    if (initialPermissions.length > 0) {
+      setPermissions(initialPermissions)
+      setIsLoading(false)
+    } else if (status === "unauthenticated") {
       setPermissions([])
       setIsLoading(false)
-      return
+    } else if (status === "authenticated" && initialPermissions.length === 0) {
+      // Se autenticado mas sem dados, assume que não tem permissão ou falhou
+      setIsLoading(false)
     }
-
-    // 3. Só buscamos se estiver 'authenticated'
-    const loadPermissions = async () => {
-      try {
-        const perms = await getUserPermissions()
-        setPermissions(perms)
-      } catch (error) {
-        console.error("Erro ao carregar permissões:", error)
-        setPermissions([]) // Garante array vazio em caso de erro
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadPermissions()
-  }, [status]) // [IMPORTANTE] Dispara novamente quando o status muda de 'loading' para 'authenticated'
+  }, [initialPermissions, status])
 
   const can = (code: string) => {
-    // Aqui podes adicionar lógica de SuperAdmin se o token JWT tiver essa flag
-    // Ex: if (session?.user?.isSuperAdmin) return true
     return permissions.includes(code)
   }
 
