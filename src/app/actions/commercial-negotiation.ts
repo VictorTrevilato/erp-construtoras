@@ -13,7 +13,6 @@ export type NegotiationUnit = {
   blocoNome: string
   areaPrivativa: number
   areaUsoComum: number
-  // [CORREÇÃO] Atualizado para refletir o novo schema
   statusComercial: string
   statusInterno: string
   valorTabela: number
@@ -58,7 +57,6 @@ export async function getProjectsForNegotiation() {
     const projects = await prisma.ycProjetos.findMany({
       where: { 
         sysTenantId: BigInt(tenantIdStr),
-        // Apenas projetos que tenham unidades cadastradas
         ycUnidades: { some: {} } 
       },
       include: {
@@ -68,7 +66,6 @@ export async function getProjectsForNegotiation() {
             ycBlocos: true 
           } 
         },
-        // [CORREÇÃO] Contagem baseada no novo campo statusComercial
         ycUnidades: {
           where: { statusComercial: 'DISPONIVEL' },
           select: { id: true }
@@ -94,7 +91,7 @@ export async function getProjectsForNegotiation() {
   }
 }
 
-// --- 2. DADOS DO CABEÇALHO ---
+// --- 2. DADOS DO CABEÇALHO (TAG DA TABELA) ---
 export async function getNegotiationHeader(projetoId: string) {
   try {
     const project = await prisma.ycProjetos.findUnique({
@@ -110,12 +107,15 @@ export async function getNegotiationHeader(projetoId: string) {
     if (!project) return null
 
     const now = new Date()
+    
+    // [CORREÇÃO] Busca ESTRITA: Deve ter começado antes de agora E terminar depois de agora
     const activeTable = await prisma.ycTabelasPreco.findFirst({
       where: { 
         projetoId: BigInt(projetoId),
-        vigenciaFinal: { gte: now }
+        vigenciaInicial: { lte: now }, // Começou no passado ou hoje
+        vigenciaFinal: { gte: now }    // Termina no futuro ou hoje
       },
-      orderBy: { sysCreatedAt: 'desc' },
+      orderBy: { sysCreatedAt: 'desc' }, // Desempate: Se houver 2 vigentes (erro de cadastro), pega a mais recente
       select: { codigo: true, id: true }
     })
 
@@ -130,28 +130,37 @@ export async function getNegotiationHeader(projetoId: string) {
   }
 }
 
-// --- 3. ESPELHO DE VENDAS ---
+// --- 3. ESPELHO DE VENDAS (PREÇOS) ---
 export async function getSalesMirrorData(projetoId: string) {
   try {
+    const now = new Date()
+
     const units = await prisma.ycUnidades.findMany({
       where: { projetoId: BigInt(projetoId) },
       include: {
         ycBlocos: { select: { nome: true } },
+        // [CORREÇÃO] Filtrar o item de preço da tabela VIGENTE
         ycTabelasPrecoItens: {
-          include: { ycTabelasPreco: true }
+          where: {
+            ycTabelasPreco: {
+                vigenciaInicial: { lte: now },
+                vigenciaFinal: { gte: now }
+            }
+          },
+          include: { ycTabelasPreco: true },
+          take: 1 // Garante que pega apenas 1 se houver duplicidade por erro
         }
       },
       orderBy: { andar: 'desc' }
     })
 
     return units.map(u => {
-      // Pega o primeiro item de preço (idealmente filtrar pela tabela vigente também, mas assume-se logica de negocio)
+      // Como filtramos no include, o array deve ter 0 ou 1 item correto
       const priceItem = u.ycTabelasPrecoItens[0]
       
       let valorFinal = 0
       if (priceItem) {
         const base = Number(u.areaPrivativaTotal || u.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
-        // [ATUALIZAÇÃO] Incluindo fatorCorrecao no cálculo
         const comFatorCorrecao = base * Number(priceItem.fatorCorrecao || 1)
         const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
         valorFinal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
@@ -164,7 +173,6 @@ export async function getSalesMirrorData(projetoId: string) {
         blocoNome: u.ycBlocos.nome,
         areaPrivativa: Number(u.areaPrivativaTotal || 0),
         areaUsoComum: Number(u.areaUsoComum || 0),
-        // [CORREÇÃO] Novos campos de status
         statusComercial: u.statusComercial,
         statusInterno: u.statusInterno,
         valorTabela: valorFinal,
@@ -180,9 +188,12 @@ export async function getSalesMirrorData(projetoId: string) {
 // --- 4. FLUXOS DA TABELA VIGENTE ---
 export async function getProjectActiveFlows(projetoId: string) {
     const now = new Date()
+    
+    // [CORREÇÃO] Mesma lógica estrita do Header
     const activeTable = await prisma.ycTabelasPreco.findFirst({
         where: { 
             projetoId: BigInt(projetoId),
+            vigenciaInicial: { lte: now },
             vigenciaFinal: { gte: now }
         },
         orderBy: { sysCreatedAt: 'desc' },
@@ -206,9 +217,24 @@ export async function getProjectActiveFlows(projetoId: string) {
 
 // --- 5. CALCULAR FLUXO PADRÃO ---
 export async function calculateStandardFlow(unidadeId: string, valorFechamento: number) {
+  const now = new Date()
+
+  // Busca a unidade e tenta achar a tabela vigente vinculada a ela
   const unit = await prisma.ycUnidades.findUnique({
     where: { id: BigInt(unidadeId) },
-    include: { ycTabelasPrecoItens: { select: { tabelaPrecoId: true } } }
+    include: { 
+        // [CORREÇÃO] Filtro temporal para garantir que usamos a tabela certa
+        ycTabelasPrecoItens: { 
+            where: {
+                ycTabelasPreco: {
+                    vigenciaInicial: { lte: now },
+                    vigenciaFinal: { gte: now }
+                }
+            },
+            select: { tabelaPrecoId: true },
+            take: 1
+        } 
+    }
   })
 
   if (!unit || unit.ycTabelasPrecoItens.length === 0) return []
@@ -224,7 +250,6 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
     const totalCondicao = valorFechamento * (Number(f.percentual) / 100)
     const valorParcela = totalCondicao / f.qtdeParcelas
     
-    // Mapeamento simples de periodicidade para texto
     const periodMap: Record<number, string> = { 0: 'Única', 1: 'Mensal', 12: 'Anual' } 
 
     return {
@@ -245,28 +270,38 @@ export async function saveProposal(data: ProposalPayload) {
   if (!session) return { success: false, message: "Não autorizado" }
 
   const { lead, unidadeId, valorProposta, condicoes } = data
+  const now = new Date()
 
   try {
     const contextUnit = await prisma.ycUnidades.findUnique({
         where: { id: BigInt(unidadeId) },
         include: {
-            ycTabelasPrecoItens: true
+            // [CORREÇÃO] Busca tabela vigente para snapshop
+            ycTabelasPrecoItens: {
+                where: {
+                    ycTabelasPreco: {
+                        vigenciaInicial: { lte: now },
+                        vigenciaFinal: { gte: now }
+                    }
+                },
+                take: 1
+            }
         }
     })
     
     if (!contextUnit) return { success: false, message: "Unidade inválida" }
 
     const priceItem = contextUnit.ycTabelasPrecoItens[0]
-    if (!priceItem) return { success: false, message: "Unidade sem tabela de preço vinculada" }
+    if (!priceItem) return { success: false, message: "Unidade sem tabela de preço vigente vinculada" }
 
-    // Recalcula valor tabela original para registro histórico (snapshot)
+    // Recalcula valor tabela original
     const base = Number(contextUnit.areaPrivativaTotal || contextUnit.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
     const comFatorCorrecao = base * Number(priceItem.fatorCorrecao || 1)
     const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
     const valorTabelaOriginal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
 
     const validade = new Date()
-    validade.setDate(validade.getDate() + 2) // Validade padrão de 2 dias
+    validade.setDate(validade.getDate() + 2) 
 
     const result = await prisma.$transaction(async (tx) => {
       // --- A. LEADS ---
@@ -348,7 +383,6 @@ export async function saveProposal(data: ProposalPayload) {
       }
 
       // --- D. ATUALIZAR UNIDADE ---
-      // [CORREÇÃO] Atualizando statusComercial em vez de status
       await tx.ycUnidades.update({
         where: { id: BigInt(unidadeId) },
         data: { statusComercial: "RESERVADO" }

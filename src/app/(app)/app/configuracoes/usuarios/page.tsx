@@ -51,7 +51,7 @@ export default async function UsersPage() {
         <CardHeader>
           <CardTitle>Equipe Cadastrada</CardTitle>
           <CardDescription>
-            Usuários ativos neste ambiente (Tenant).
+            Usuários ativos neste ambiente.
           </CardDescription>
         </CardHeader>
         <CardContent>

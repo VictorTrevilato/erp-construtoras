@@ -109,6 +109,7 @@ export async function getUserPermissions(): Promise<string[]> {
     })
 
     // 7. Retorna array limpo de strings
+    /**
     permissionsSet.add("OBRAS_CRIAR")
 
     permissionsSet.add("CADASTROS_VER")
@@ -154,6 +155,7 @@ export async function getUserPermissions(): Promise<string[]> {
       permissionsSet.add("CARGOS_EDITAR")
       permissionsSet.add("CARGOS_EXCLUIR")
       permissionsSet.add("ESCOPOS_VER")
+    **/
     
     return Array.from(permissionsSet)
 

@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <PermissionProvider>
         <div className="flex h-screen bg-gray-50">
           <Sidebar 
-            title="YouCon ERP" 
+            title="YouCon" 
             color="bg-blue-700" 
             profile="erp" 
             showTenantSwitch={showSwitch} 

@@ -361,7 +361,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                 <span className={cn("text-xs font-bold uppercase px-2 py-1 rounded", 
                                     isClosed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                                 )}>
-                                    {isClosed ? "FECHADO" : isPositive ? "A COMPLETAR" : "EXCEDENTE"}
+                                    {isClosed ? "OK" : isPositive ? "A COMPLETAR" : "EXCEDENTE"}
                                 </span>
                                 <span className={cn("font-bold text-lg", isClosed ? "text-green-600" : "text-red-600")}>
                                     {fmtCurrency(Math.abs(remaining))}

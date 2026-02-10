@@ -55,6 +55,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Orçamentos", href: "/app/engenharia/orcamentos", permission: "ORCAMENTOS_VER" },
       { label: "Planejamentos", href: "/app/engenharia/planejamento", permission: "PLANEJAMENTO_VER" },
       { label: "Acompanhamentos", href: "/app/engenharia/acompanhamento", permission: "ACOMPANHAMENTO_VER" },
+      { label: "Relatórios", href: "/app/engenharia/relatorios", permission: "RELATORIOS_ENGENHARIA" },
     ]
   },
   {
@@ -66,7 +67,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Compras", href: "/app/suprimentos/compras", permission: "COMPRAS_VER" },
       { label: "Medições", href: "/app/suprimentos/medicoes", permission: "MEDICOES_VER" },
       { label: "Estoques", href: "/app/suprimentos/estoques", permission: "ESTOQUES_VER" },
-      { label: "Relatórios", href: "/app/suprimentos/relatorios" },
+      { label: "Relatórios", href: "/app/suprimentos/relatorios", permission: "RELATORIOS_SUPRIMENTOS" },
     ]
   },
   {
@@ -77,7 +78,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Contas a Receber", href: "/app/financeiro/receber", permission: "CONTAS_RECEBER_VER" },
       { label: "Contas a Pagar", href: "/app/financeiro/pagar", permission: "CONTAS_PAGAR_VER" },
       { label: "Caixa e Bancos", href: "/app/financeiro/caixa", permission: "CAIXA_BANCOS_VER" },
-      { label: "Relatórios", href: "/app/financeiro/relatorios" },
+      { label: "Relatórios", href: "/app/financeiro/relatorios", permission: "RELATORIOS_FINANCEIRO" },
     ]
   },
   {
@@ -88,7 +89,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Dashboard Fiscal", href: "/app/contabilidade/dashboard", permission: "FISCAL_VER" },
       { label: "Custo Orçado e Incorrido", href: "/app/contabilidade/custos", permission: "CUSTOS_VER" },
       { label: "Acomp. de Correção", href: "/app/contabilidade/correcao", permission: "CORRECAO_VER" },
-      { label: "Relatórios", href: "/app/contabilidade/relatorios" },
+      { label: "Relatórios", href: "/app/contabilidade/relatorios", permission: "RELATORIOS_CONTABILIDADE" },
     ]
   },
   {
@@ -100,7 +101,7 @@ const ERP_MENU_ITEMS: MenuItem[] = [
       { label: "Preços e Fluxos", href: "/app/comercial/tabelas", permission: "PRECOS_VER" },
       { label: "Mesa de Negociação", href: "/app/comercial/mesa", permission: "MESA_VER" },
       { label: "Propostas e Contratos", href: "/app/comercial/contratos", permission: "CONTRATOS_VER" },
-      { label: "Relatórios", href: "/app/comercial/relatorios" },
+      { label: "Relatórios", href: "/app/comercial/relatorios", permission: "RELATORIOS_COMERCIAL" },
     ]
   },
   {
