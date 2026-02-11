@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 
 // Schema de Validação
@@ -58,11 +58,8 @@ function parseDecimal(value: string | undefined | null): number | null {
 
 // --- CONSULTAS ---
 
-export async function getProjects() {
-  const session = await auth()
-  if (!session) return []
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+export async function getProjects() {  
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
   try {
@@ -132,10 +129,7 @@ export async function getProjectById(id: string) {
 }
 
 export async function getAvailableScopes() {
-  const session = await auth()
-  if (!session) return []
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
   try {
@@ -177,9 +171,8 @@ export async function saveProject(
   const session = await auth()
   if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
-  if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Tenant não definido. Faça login novamente." }
   
   const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)

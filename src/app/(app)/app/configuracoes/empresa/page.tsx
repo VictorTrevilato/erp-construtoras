@@ -1,35 +1,15 @@
-// src/app/(app)/app/configuracoes/empresa/page.tsx
-
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { TenantForm } from "./_components/tenant-form"
+// Importamos a nova action
+import { getTenantSettings } from "@/app/actions/tenant-settings"
 
 export default async function CompanySettingsPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/login")
+  // Busca os dados via Server Action (que já valida sessão e tenant internamente)
+  const company = await getTenantSettings()
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
-
-  if (!tenantIdStr) {
-    redirect("/select-org")
-  }
-
-  const company = await prisma.ycEmpresas.findUnique({
-    where: { id: BigInt(tenantIdStr) },
-    select: {
-      nome: true,
-      cnpj: true, // <--- ADICIONADO AQUI
-      corPrimaria: true,
-      corSecundaria: true,
-      logo: true
-    }
-  })
-
+  // Se não retornou nada, significa que não tem usuário ou não tem tenant selecionado
   if (!company) {
-    return <div>Empresa não encontrada.</div>
+    redirect("/select-org")
   }
 
   return (

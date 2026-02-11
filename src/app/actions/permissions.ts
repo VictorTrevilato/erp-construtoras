@@ -2,45 +2,21 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 
 export async function getUserPermissions(): Promise<string[]> {
   const session = await auth()
-  
   if (!session?.user?.id) return []
 
-  const cookieStore = await cookies() 
-  let tenantIdStr = cookieStore.get("tenant-id")?.value
-  const userId = BigInt(session.user.id)
-
-  // 1. FALLBACK OBRIGATÓRIO (Já que o cookie não é setado no login para evitar crash)
-  if (!tenantIdStr) {
-    try {
-        const userCompanies = await prisma.ycUsuariosEmpresas.findMany({
-            where: {
-                usuarioId: userId,
-                ativo: true,
-                ycEmpresas: { ativo: true }
-            },
-            take: 2,
-            select: { sysTenantId: true }
-        })
-
-        if (userCompanies.length === 1) {
-            tenantIdStr = userCompanies[0].sysTenantId.toString()
-        } else {
-            // Se tiver múltiplas empresas e sem cookie, retorna vazio (sidebar limpa)
-            return []
-        }
-    } catch {
-        return []
-    }
-  }
-
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
+
+  const userId = BigInt(session.user.id)
 
   try {
     const tenantId = BigInt(tenantIdStr)
+
+    // Verifica se o vínculo do usuário com esta empresa ainda está ativo
     const usuarioEmpresa = await prisma.ycUsuariosEmpresas.findFirst({
       where: { usuarioId: userId, sysTenantId: tenantId, ativo: true },
       select: { id: true, cargoId: true }
@@ -48,6 +24,7 @@ export async function getUserPermissions(): Promise<string[]> {
 
     if (!usuarioEmpresa) return []
 
+    // Busca Permissões (Cargo + Granulares) em paralelo
     const [permissoesCargo, permissoesGranulares] = await Promise.all([
         prisma.ycCargosPermissoes.findMany({
             where: { cargoId: usuarioEmpresa.cargoId },
@@ -61,14 +38,21 @@ export async function getUserPermissions(): Promise<string[]> {
 
     const permissionsSet = new Set<string>()
 
+    // 1. Adiciona permissões do Cargo
     permissoesCargo.forEach(item => {
       if (item.ycPermissoes?.codigo) permissionsSet.add(item.ycPermissoes.codigo)
     })
 
+    // 2. Aplica permissões Granulares (Adiciona ou Remove)
     permissoesGranulares.forEach(item => {
       if (!item.ycPermissoes?.codigo) return
-      if (item.permitido) permissionsSet.add(item.ycPermissoes.codigo)
-      else permissionsSet.delete(item.ycPermissoes.codigo)
+      
+      if (item.permitido) {
+        permissionsSet.add(item.ycPermissoes.codigo)
+      } else {
+        // Se a granular diz "negado", remove mesmo que o cargo tenha
+        permissionsSet.delete(item.ycPermissoes.codigo)
+      }
     })
     
     return Array.from(permissionsSet)
@@ -79,6 +63,7 @@ export async function getUserPermissions(): Promise<string[]> {
   }
 }
 
+// Mantida para uso nas telas de administração de cargos
 export async function getAllSystemPermissions() {
   try {
     const permissions = await prisma.ycPermissoes.findMany({

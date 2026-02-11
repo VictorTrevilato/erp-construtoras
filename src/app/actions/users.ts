@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
@@ -49,8 +49,7 @@ export async function getUsers() {
   const session = await auth()
   if (!session) return []
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
   try {
@@ -109,8 +108,7 @@ export async function saveUser(
   const session = await auth()
   if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
 
   const tenantId = BigInt(tenantIdStr)
@@ -119,7 +117,6 @@ export async function saveUser(
   const rawEscopos = formData.getAll("escopos") as string[]
   
   // Captura permissões granulares do form
-  // Elas virão como "perm_IDDAOPERMISSAO" = "ALLOW" | "DENY"
   const rawPermissions: { id: string, action: boolean }[] = []
   
   for (const [key, value] of formData.entries()) {

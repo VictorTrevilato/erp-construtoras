@@ -1,7 +1,9 @@
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  // Layout específico de public (ex: fundo cinza, centralizado)
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    // [CORREÇÃO] h-screen + overflow-y-auto:
+    // Isso cria uma "janela de rolagem" independente para a área pública,
+    // ignorando o 'overflow: hidden' que o layout raiz usa para o Dashboard.
+    <div className="h-screen w-full overflow-y-auto bg-white font-sans antialiased">
       {children}
     </div>
   )

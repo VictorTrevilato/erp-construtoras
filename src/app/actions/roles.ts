@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
@@ -28,8 +28,7 @@ export async function getRoles() {
   const session = await auth()
   if (!session) return []
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
   try {
@@ -63,8 +62,7 @@ export async function saveRole(
   // [CORREÇÃO] Garantir que temos o ID do usuário
   if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
   
   const tenantId = BigInt(tenantIdStr)
@@ -183,5 +181,40 @@ export async function deleteRole(roleId: string) {
   } catch (error) {
     console.error("Erro ao excluir cargo:", error)
     return { success: false, message: "Erro ao excluir cargo." }
+  }
+}
+
+// --- NOVO: BUSCAR POR ID ---
+export async function getRoleById(roleId: string) {
+  const session = await auth()
+  if (!session) return null
+
+  // Usando o helper centralizado
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return null
+
+  try {
+    const role = await prisma.ycCargos.findUnique({
+      where: { 
+        id: BigInt(roleId),
+        sysTenantId: BigInt(tenantIdStr) // Garante segurança multitenant
+      },
+      include: {
+        ycCargosPermissoes: true
+      }
+    })
+
+    if (!role) return null
+
+    return {
+      id: role.id.toString(),
+      nome: role.nome,
+      descricao: role.descricao,
+      // Mapeia apenas os IDs das permissões para o formulário
+      permissoesAtuais: role.ycCargosPermissoes.map(cp => cp.permissaoId.toString())
+    }
+  } catch (error) {
+    console.error("Erro ao buscar cargo por ID:", error)
+    return null
   }
 }

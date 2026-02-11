@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 
 // Schema de Validação
@@ -28,8 +28,7 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
   if (!session) return { success: false, message: "Não autorizado." }
 
   // 1. Identificar o Tenant Atual
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
 
   if (!tenantIdStr) return { success: false, message: "Nenhuma organização selecionada." }
 
@@ -68,5 +67,33 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
   } catch (error) {
     console.error("Erro ao atualizar empresa:", error)
     return { success: false, message: "Erro interno ao salvar dados." }
+  }
+}
+
+// --- NOVO: BUSCAR DADOS DA EMPRESA ---
+export async function getTenantSettings() {
+  const session = await auth()
+  if (!session) return null
+
+  // Usando helper centralizado
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return null
+
+  try {
+    const company = await prisma.ycEmpresas.findUnique({
+      where: { id: BigInt(tenantIdStr) },
+      select: {
+        nome: true,
+        cnpj: true,
+        corPrimaria: true,
+        corSecundaria: true,
+        logo: true
+      }
+    })
+    
+    return company
+  } catch (error) {
+    console.error("Erro ao buscar configurações da empresa:", error)
+    return null
   }
 }

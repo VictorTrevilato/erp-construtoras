@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 
 // --- TYPES ---
 export type NegotiationUnit = {
@@ -49,8 +49,7 @@ export async function getProjectsForNegotiation() {
   const session = await auth()
   if (!session) return []
   
-  const cookieStore = await cookies()
-  const tenantIdStr = cookieStore.get("tenant-id")?.value
+  const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
   try {

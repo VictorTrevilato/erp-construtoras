@@ -78,7 +78,6 @@ export async function updateProfile(prevState: SettingsState, formData: FormData
         nome,
         passwordHash,
         sysUpdatedAt: new Date()
-        // avatarUrl: ... (Futuro: Integração com Upload)
       }
     })
 

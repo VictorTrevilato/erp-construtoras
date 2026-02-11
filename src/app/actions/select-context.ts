@@ -4,10 +4,13 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 export async function selectContextAction(tenantId: string, url: string) {
-  // Define o cookie do tenant para as próximas requisições (dura 1 dia)
-  // Obs: Converta para string se o ID for BigInt ou number
-  (await cookies()).set("tenantId", tenantId.toString(), { path: "/", maxAge: 86400 })
+  const cookieStore = await cookies()
+  cookieStore.set("tenant-id", tenantId.toString(), { 
+    path: "/", 
+    maxAge: 60 * 60 * 24 * 30, // 30 dias
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production"
+  })
 
-  // Redireciona para o destino (ERP ou Portal)
   redirect(url)
 }

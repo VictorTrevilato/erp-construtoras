@@ -37,7 +37,12 @@ export async function authenticate(prevState: string | undefined, formData: Form
     const activeTenants = user.usuariosEmpresas
     if (activeTenants.length === 1) {
       const tenantId = activeTenants[0].sysTenantId.toString()
-      cookieStore.set("tenant-id", tenantId)
+      cookieStore.set("tenant-id", tenantId, {
+        maxAge: 60 * 60 * 24 * 30, // 30 dias em segundos
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production"
+      })
       destinationUrl = "/app/dashboard"
     }
 
