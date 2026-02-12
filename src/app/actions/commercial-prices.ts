@@ -60,7 +60,7 @@ export async function getProjectsForTables() {
 
   try {
     const projects = await prisma.ycProjetos.findMany({
-      where: { sysTenantId: BigInt(tenantIdStr) },
+      where: { sysTenantId: BigInt(tenantIdStr), ycUnidades: { some: {} } },
       include: {
         _count: { 
           select: { 
