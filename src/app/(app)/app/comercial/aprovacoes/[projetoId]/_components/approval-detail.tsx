@@ -37,9 +37,9 @@ const formatHistoryAction = (action: string) => {
 const formatHistoryLabel = (text: string | null) => {
     if(!text) return ""
     const map: Record<string, string> = {
-        'MARGEM_BAIXA': 'Margem Baixa',
-        'FLUXO_RUIM': 'Fluxo Ruim',
-        'DOCUMENTACAO': 'Documentação Pendente',
+        'MARGEM_BAIXA': 'Margem Abaixo do Permitido',
+        'FLUXO_RUIM': 'Fluxo Financeiro Inadequado',
+        'DOCUMENTACAO': 'Problemas Documentais',
         'OUTRO': 'Outros Motivos'
     }
     return map[text] || text
