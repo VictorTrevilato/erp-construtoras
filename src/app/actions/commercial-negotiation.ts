@@ -107,14 +107,13 @@ export async function getNegotiationHeader(projetoId: string) {
 
     const now = new Date()
     
-    // [CORREÇÃO] Busca ESTRITA: Deve ter começado antes de agora E terminar depois de agora
     const activeTable = await prisma.ycTabelasPreco.findFirst({
       where: { 
         projetoId: BigInt(projetoId),
-        vigenciaInicial: { lte: now }, // Começou no passado ou hoje
-        vigenciaFinal: { gte: now }    // Termina no futuro ou hoje
+        vigenciaInicial: { lte: now },
+        vigenciaFinal: { gte: now }   
       },
-      orderBy: { sysCreatedAt: 'desc' }, // Desempate: Se houver 2 vigentes (erro de cadastro), pega a mais recente
+      orderBy: { sysCreatedAt: 'desc' }, 
       select: { codigo: true, id: true }
     })
 
@@ -138,7 +137,6 @@ export async function getSalesMirrorData(projetoId: string) {
       where: { projetoId: BigInt(projetoId) },
       include: {
         ycBlocos: { select: { nome: true } },
-        // [CORREÇÃO] Filtrar o item de preço da tabela VIGENTE
         ycTabelasPrecoItens: {
           where: {
             ycTabelasPreco: {
@@ -147,14 +145,13 @@ export async function getSalesMirrorData(projetoId: string) {
             }
           },
           include: { ycTabelasPreco: true },
-          take: 1 // Garante que pega apenas 1 se houver duplicidade por erro
+          take: 1 
         }
       },
       orderBy: { andar: 'desc' }
     })
 
     return units.map(u => {
-      // Como filtramos no include, o array deve ter 0 ou 1 item correto
       const priceItem = u.ycTabelasPrecoItens[0]
       
       let valorFinal = 0
@@ -188,7 +185,6 @@ export async function getSalesMirrorData(projetoId: string) {
 export async function getProjectActiveFlows(projetoId: string) {
     const now = new Date()
     
-    // [CORREÇÃO] Mesma lógica estrita do Header
     const activeTable = await prisma.ycTabelasPreco.findFirst({
         where: { 
             projetoId: BigInt(projetoId),
@@ -218,11 +214,9 @@ export async function getProjectActiveFlows(projetoId: string) {
 export async function calculateStandardFlow(unidadeId: string, valorFechamento: number) {
   const now = new Date()
 
-  // Busca a unidade e tenta achar a tabela vigente vinculada a ela
   const unit = await prisma.ycUnidades.findUnique({
     where: { id: BigInt(unidadeId) },
     include: { 
-        // [CORREÇÃO] Filtro temporal para garantir que usamos a tabela certa
         ycTabelasPrecoItens: { 
             where: {
                 ycTabelasPreco: {
@@ -245,9 +239,16 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
     orderBy: { dataPrimeiroVencimento: 'asc' }
   })
 
-  return fluxosPadrao.map(f => {
+  let sumReal = 0
+
+  // 1. Gera o fluxo calculando o valor de cada parcela com precisão de 2 casas (Moeda)
+  const result = fluxosPadrao.map(f => {
     const totalCondicao = valorFechamento * (Number(f.percentual) / 100)
-    const valorParcela = totalCondicao / f.qtdeParcelas
+    // Arredonda a parcela para 2 casas, simulando o que o sistema financeiro faz
+    const valorParcela = Number((totalCondicao / f.qtdeParcelas).toFixed(2))
+    const valorTotalReal = valorParcela * f.qtdeParcelas
+    
+    sumReal += valorTotalReal
     
     const periodMap: Record<number, string> = { 0: 'Única', 1: 'Mensal', 12: 'Anual' } 
 
@@ -256,11 +257,29 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
       periodicidade: periodMap[f.periodicidade] || 'Outros',
       qtdeParcelas: f.qtdeParcelas,
       valorParcela: valorParcela,
-      valorTotal: totalCondicao,
+      valorTotal: valorTotalReal,
       percentual: Number(f.percentual),
       primeiroVencimento: f.dataPrimeiroVencimento
     } as StandardFlow
   })
+
+  // 2. OPÇÃO B: Absorvendo a divergência de centavos na Entrada
+  const diff = Number((valorFechamento - sumReal).toFixed(2))
+
+  if (Math.abs(diff) > 0 && result.length > 0) {
+      // Procura a parcela de ENTRADA (desde que seja parcela única para não quebrar a divisão)
+      let target = result.find(f => f.tipo === 'ENTRADA' && f.qtdeParcelas === 1)
+      if (!target) target = result.find(f => f.qtdeParcelas === 1)
+      if (!target) target = result[0]
+
+      // Ajusta o centavo na parcela alvo
+      if (target.qtdeParcelas === 1) {
+          target.valorParcela = Number((target.valorParcela + diff).toFixed(2))
+          target.valorTotal = target.valorParcela
+      }
+  }
+
+  return result
 }
 
 // --- 6. SALVAR PROPOSTA ---
@@ -275,13 +294,16 @@ export async function saveProposal(data: ProposalPayload) {
     const contextUnit = await prisma.ycUnidades.findUnique({
         where: { id: BigInt(unidadeId) },
         include: {
-            // [CORREÇÃO] Busca tabela vigente para snapshop
+            ycProjetos: true, // Necessário para herança da comissão
             ycTabelasPrecoItens: {
                 where: {
                     ycTabelasPreco: {
                         vigenciaInicial: { lte: now },
                         vigenciaFinal: { gte: now }
                     }
+                },
+                include: {
+                    ycTabelasPreco: true // Necessário para herança da comissão
                 },
                 take: 1
             }
@@ -299,8 +321,15 @@ export async function saveProposal(data: ProposalPayload) {
     const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
     const valorTabelaOriginal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
 
+    // --- CÁLCULO DE COMISSÃO (Regra de Herança) ---
+    // 1. Tabela de Preços > 2. Projeto > 3. Fallback (4%)
+    const percTabela = priceItem.ycTabelasPreco.percComissaoPadrao
+    const percProjeto = contextUnit.ycProjetos.percComissaoPadrao
+    const percComissaoFinal = Number(percTabela ?? percProjeto ?? 4.0)
+    const valorComissaoTotal = valorProposta * (percComissaoFinal / 100)
+
     const validade = new Date()
-    validade.setDate(validade.getDate() + 2) 
+    validade.setDate(validade.getDate() + 7)
 
     const result = await prisma.$transaction(async (tx) => {
       // --- A. LEADS ---
@@ -357,28 +386,125 @@ export async function saveProposal(data: ProposalPayload) {
           valorProposta: valorProposta,             
           desconto: valorTabelaOriginal - valorProposta, 
           
+          percComissaoTotal: percComissaoFinal,
+          valorComissaoTotal: valorComissaoTotal,
+
           dataProposta: new Date(),
           validade: validade,
-          status: "EM_ANALISE"
+          status: "RASCUNHO" // <-- Nasce como Rascunho
         }
       })
 
-      // --- C. CONDIÇÕES ---
+      // --- C. CONDIÇÕES & PARCELAS ---
       if (condicoes && condicoes.length > 0) {
-        await tx.ycPropostasCondicoes.createMany({
-          data: condicoes.map((c) => ({
-            sysTenantId: contextUnit.sysTenantId,
-            sysUserId: BigInt(session.user.id),
-            escopoId: contextUnit.escopoId,
-            propostaId: newProposal.id,
-            
-            tipo: c.tipo,
-            dataVencimento: new Date(c.vencimento), 
-            valorParcela: Number(c.valorParcela),
-            qtdeParcelas: Number(c.qtdeParcelas),
-            valorTotal: Number(c.valorParcela) * Number(c.qtdeParcelas)
-          }))
+        
+        type ParcelaTemp = {
+            _indexCondicaoOrigem: number
+            sysTenantId: bigint
+            sysUserId: bigint
+            escopoId: bigint
+            propostaId: bigint
+            tipo: string
+            parcela: number
+            vencimento: Date
+            valor: number
+        }
+
+        const todasParcelasTemp: ParcelaTemp[] = []
+        let indexGeral = 1
+
+        const periodMap: Record<string, number> = {
+            'MENSAL': 1, 'BIMESTRAL': 2, 'TRIMESTRAL': 3,
+            'SEMESTRAL': 6, 'INTERMEDIARIAS': 6, 'ANUAL': 12
+        }
+
+        const mapTipo: Record<string, string> = {
+            'ENTRADA': 'E', 'MENSAL': 'M', 'INTERMEDIARIAS': 'I',
+            'ANUAL': 'A', 'CHAVES': 'C', 'FINANCIAMENTO': 'F'
+        }
+
+        // 1. Expande o Fluxo Fino (Com um rastreador de qual condição gerou ela)
+        condicoes.forEach((c, indexCondicao) => {
+            const numMeses = periodMap[c.periodicidade?.toUpperCase()] || 1
+            const baseDate = new Date(c.vencimento + "T12:00:00Z")
+            const tipoParcela = mapTipo[c.tipo.toUpperCase()] || 'O'
+
+            for (let i = 0; i < Number(c.qtdeParcelas); i++) {
+                const venc = new Date(baseDate)
+                venc.setMonth(venc.getMonth() + (i * numMeses))
+
+                todasParcelasTemp.push({
+                    _indexCondicaoOrigem: indexCondicao, // Rastreador temporário
+                    sysTenantId: contextUnit.sysTenantId,
+                    sysUserId: BigInt(session.user.id),
+                    escopoId: contextUnit.escopoId,
+                    propostaId: newProposal.id,
+                    tipo: tipoParcela,
+                    parcela: indexGeral++,
+                    vencimento: venc,
+                    valor: Number(c.valorParcela)
+                })
+            }
         })
+
+        // 2. Verifica e Ajusta a Divergência de Centavos na Parcela de Entrada
+        const somaParcelas = todasParcelasTemp.reduce((acc, p) => acc + p.valor, 0)
+        const diff = valorProposta - somaParcelas
+
+        if (Math.abs(diff) > 0.001 && todasParcelasTemp.length > 0) {
+            // Acha a Entrada ('E'). Se não tiver (muito raro), pega a primeira parcela de todas.
+            let targetIndex = todasParcelasTemp.findIndex(p => p.tipo === 'E')
+            if (targetIndex === -1) targetIndex = 0
+
+            // Se diff é positivo (faltou dinheiro), soma. Se for negativo (passou do valor), subtrai.
+            todasParcelasTemp[targetIndex].valor = Number((todasParcelasTemp[targetIndex].valor + diff).toFixed(2))
+        }
+
+        // 3. Monta as Condições Corrigidas lendo das parcelas que já foram ajustadas
+        const condicoesParaSalvar = condicoes.map((c, idx) => {
+            const parcelasDestaCondicao = todasParcelasTemp.filter(p => p._indexCondicaoOrigem === idx)
+            const valorTotalCorrigido = parcelasDestaCondicao.reduce((acc, p) => acc + p.valor, 0)
+            const valorParcelaBase = parcelasDestaCondicao.length > 0 ? parcelasDestaCondicao[0].valor : Number(c.valorParcela)
+
+            return {
+                sysTenantId: contextUnit.sysTenantId,
+                sysUserId: BigInt(session.user.id),
+                escopoId: contextUnit.escopoId,
+                propostaId: newProposal.id,
+                tipo: c.tipo,
+                dataVencimento: new Date(c.vencimento + "T12:00:00Z"), 
+                valorParcela: valorParcelaBase, // Reflete a correção caso a entrada tenha mudado
+                qtdeParcelas: Number(c.qtdeParcelas),
+                valorTotal: Number(valorTotalCorrigido.toFixed(2)) // O Valor Total agora é matematicamente exato
+            }
+        })
+
+        // 4. Limpa o rastreador e Ordena Cronologicamente
+        const parcelasParaSalvar = todasParcelasTemp
+            .map(p => ({
+                sysTenantId: p.sysTenantId,
+                sysUserId: p.sysUserId,
+                escopoId: p.escopoId,
+                propostaId: p.propostaId,
+                tipo: p.tipo,
+                parcela: p.parcela,
+                vencimento: p.vencimento,
+                valor: p.valor
+            }))
+            .sort((a, b) => {
+                const dateA = new Date(a.vencimento).getTime()
+                const dateB = new Date(b.vencimento).getTime()
+                if (dateA !== dateB) return dateA - dateB
+                // Desempate por Tipo (Ordem alfabética: A ganha de M)
+                return a.tipo.localeCompare(b.tipo)
+            })
+
+        // Reconstrói a numeração após ordenar
+        parcelasParaSalvar.forEach((p, idx) => { p.parcela = idx + 1 })
+
+        // 5. Salva no banco de dados com amarração perfeita!
+        await tx.ycPropostasCondicoes.createMany({ data: condicoesParaSalvar })
+        await tx.ycPropostasParcelas.createMany({ data: parcelasParaSalvar })
       }
 
       // --- D. ATUALIZAR UNIDADE ---

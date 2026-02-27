@@ -30,7 +30,7 @@ const getStatusColor = (status: string) => {
     }
 }
 
-// [CORREÇÃO] Labels em MAIÚSCULO para padronização
+// Labels em MAIÚSCULO para padronização
 const formatStatusLabel = (status: string) => {
     const map: Record<string, string> = {
         'DISPONIVEL': 'DISPONÍVEL',
@@ -116,6 +116,38 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                         {filteredAndSorted.map((unit) => {
                             const valFinal = unit.valorTabela
 
+                            // --- INÍCIO DA LÓGICA DE CORREÇÃO DE CENTAVOS ---
+                            let sumReal = 0
+                            
+                            // 1. Calcula as parcelas da forma exata que o banco de dados vai receber
+                            const correctedFlows = flows.map(f => {
+                                const totalCondicao = valFinal * (Number(f.percentual) / 100)
+                                const valorParcela = Number((totalCondicao / f.qtdeParcelas).toFixed(2))
+                                const valorTotalReal = valorParcela * f.qtdeParcelas
+                                
+                                sumReal += valorTotalReal
+                                
+                                return {
+                                    ...f,
+                                    valorParcela,
+                                    valorTotalReal
+                                }
+                            })
+
+                            // 2. Verifica a diferença e aplica na Entrada
+                            const diff = Number((valFinal - sumReal).toFixed(2))
+                            if (Math.abs(diff) > 0 && correctedFlows.length > 0) {
+                                let target = correctedFlows.find(f => f.tipo.toUpperCase() === 'ENTRADA' && f.qtdeParcelas === 1)
+                                if (!target) target = correctedFlows.find(f => f.qtdeParcelas === 1)
+                                if (!target) target = correctedFlows[0]
+
+                                if (target.qtdeParcelas === 1) {
+                                    target.valorParcela = Number((target.valorParcela + diff).toFixed(2))
+                                    target.valorTotalReal = target.valorParcela
+                                }
+                            }
+                            // --- FIM DA LÓGICA DE CORREÇÃO ---
+
                             return (
                                 <TableRow key={unit.id} className="group hover:bg-transparent">
                                     {/* === BLOCO 1 === */}
@@ -130,7 +162,6 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                     
                                     <TableCell className="border-y bg-white group-hover:bg-slate-50 text-center">
                                         <Badge variant="outline" className={getStatusColor(unit.statusComercial)}>
-                                            {/* [USO] Função atualizada com maiúsculas */}
                                             {formatStatusLabel(unit.statusComercial)}
                                         </Badge>
                                     </TableCell>
@@ -149,13 +180,10 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                     {/* === DIVISÓRIA (RIO) === */}
                                     <TableCell className="bg-transparent border-none"></TableCell>
 
-                                    {/* === BLOCO 2 === */}
-                                    {flows.map((flow, idx) => {
-                                        const valorTotalCondicao = valFinal * (Number(flow.percentual) / 100)
-                                        const valorParcela = valorTotalCondicao / flow.qtdeParcelas
-                                        
+                                    {/* === BLOCO 2 (RENDERIZANDO COM OS DADOS CORRIGIDOS) === */}
+                                    {correctedFlows.map((flow, idx) => {
                                         const isFirst = idx === 0
-                                        const isLast = idx === flows.length - 1
+                                        const isLast = idx === correctedFlows.length - 1
                                         const roundedClass = isFirst ? "rounded-l-md border-l" : isLast ? "rounded-r-md border-r" : ""
 
                                         return (
@@ -166,11 +194,11 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                                 {valFinal > 0 ? (
                                                     <div className="flex flex-col gap-0.5">
                                                         <span className="font-normal text-gray-700">
-                                                            {fmtCurrency(valorParcela)}
+                                                            {fmtCurrency(flow.valorParcela)}
                                                         </span>
                                                         {flow.qtdeParcelas > 1 && (
                                                             <span className="text-[10px] text-muted-foreground">
-                                                                Total: {fmtCurrency(valorTotalCondicao)}
+                                                                Total: {fmtCurrency(flow.valorTotalReal)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -188,7 +216,7 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
             </div>
             
             <div className="text-center text-xs text-muted-foreground pt-2">
-                * Valores simulados baseados na tabela vigente.
+                * Valores simulados baseados na tabela vigente com ajuste automático de arredondamentos.
             </div>
         </div>
     )

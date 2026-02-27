@@ -127,41 +127,41 @@ model ycPermissoes {
 }
 
 model ycUsuarios {
-  id                                                          BigInt                         @id(map: "PK_ycUsuarios") @default(autoincrement())
-  sysCreatedAt                                                DateTime                       @default(now(), map: "DF__ycUsuario__sysCr__0A9D95DB")
-  sysUpdatedAt                                                DateTime?
-  nome                                                        String                         @db.VarChar(200)
-  email                                                       String                         @unique(map: "UQ_ycUsuarios_email") @db.VarChar(200)
-  passwordHash                                                String                         @db.VarChar(500)
-  ativo                                                       Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
-  ultimoLogin                                                 DateTime?
-  isSuperAdmin                                                Boolean                        @default(false, map: "DF__ycUsuario__isSup__2DE6D218")
-  ycBlocos                                                    ycBlocos[]
-  ycCargos                                                    ycCargos[]
-  ycCargosPermissoes                                          ycCargosPermissoes[]
-  ycEmpresas                                                  ycEmpresas[]
-  ycEntidades                                                 ycEntidades[]
-  ycEscopos                                                   ycEscopos[]
-  ycFluxosPadrao                                              ycFluxosPadrao[]
-  ycLeads                                                     ycLeads[]
-  ycPessoasFisicas                                            ycPessoasFisicas[]
-  ycPessoasJuridicas                                          ycPessoasJuridicas[]
-  ycProjetos                                                  ycProjetos[]
-  propostasDecididas                                          ycPropostas[]                  @relation("ycPropostas_usuarioDecisaoIdToycUsuarios")
-  ycPropostas                                                 ycPropostas[]
-  ycPropostasComissoes                                        ycPropostasComissoes[]
-  ycPropostasCondicoes                                        ycPropostasCondicoes[]
-  ycPropostasHistorico                                        ycPropostasHistorico[]
-  ycPropostasParcelas                                         ycPropostasParcelas[]
-  ycPropostasPartes                                           ycPropostasPartes[]
-  ycTabelasPreco                                              ycTabelasPreco[]
-  ycTabelasPrecoItens                                         ycTabelasPrecoItens[]
-  ycUnidades                                                  ycUnidades[]
-  ycUsuariosEmpresasCriadas                                   ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
-  usuariosEmpresas                                            ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
-  ycUsuariosEmpresasEscopos                                   ycUsuariosEmpresasEscopos[]
-  ycUsuariosEmpresasPermissoes                                ycUsuariosEmpresasPermissoes[]
-  ycUsuariosRefreshTokens                                     ycUsuariosRefreshTokens[]
+  id                           BigInt                         @id(map: "PK_ycUsuarios") @default(autoincrement())
+  sysCreatedAt                 DateTime                       @default(now(), map: "DF__ycUsuario__sysCr__0A9D95DB")
+  sysUpdatedAt                 DateTime?
+  nome                         String                         @db.VarChar(200)
+  email                        String                         @unique(map: "UQ_ycUsuarios_email") @db.VarChar(200)
+  passwordHash                 String                         @db.VarChar(500)
+  ativo                        Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
+  ultimoLogin                  DateTime?
+  isSuperAdmin                 Boolean                        @default(false, map: "DF__ycUsuario__isSup__2DE6D218")
+  ycBlocos                     ycBlocos[]
+  ycCargos                     ycCargos[]
+  ycCargosPermissoes           ycCargosPermissoes[]
+  ycEmpresas                   ycEmpresas[]
+  ycEntidades                  ycEntidades[]
+  ycEscopos                    ycEscopos[]
+  ycFluxosPadrao               ycFluxosPadrao[]
+  ycLeads                      ycLeads[]
+  ycPessoasFisicas             ycPessoasFisicas[]
+  ycPessoasJuridicas           ycPessoasJuridicas[]
+  ycProjetos                   ycProjetos[]
+  propostasDecididas           ycPropostas[]                  @relation("ycPropostas_usuarioDecisaoIdToycUsuarios")
+  ycPropostas                  ycPropostas[]
+  ycPropostasComissoes         ycPropostasComissoes[]
+  ycPropostasCondicoes         ycPropostasCondicoes[]
+  ycPropostasHistorico         ycPropostasHistorico[]
+  ycPropostasParcelas          ycPropostasParcelas[]
+  ycPropostasPartes            ycPropostasPartes[]
+  ycTabelasPreco               ycTabelasPreco[]
+  ycTabelasPrecoItens          ycTabelasPrecoItens[]
+  ycUnidades                   ycUnidades[]
+  ycUsuariosEmpresasCriadas    ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
+  usuariosEmpresas             ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
+  ycUsuariosEmpresasEscopos    ycUsuariosEmpresasEscopos[]
+  ycUsuariosEmpresasPermissoes ycUsuariosEmpresasPermissoes[]
+  ycUsuariosRefreshTokens      ycUsuariosRefreshTokens[]
 
   @@index([email], map: "IX_ycUsuarios_email")
 }
@@ -256,6 +256,7 @@ model ycProjetos {
   registroIncorporacao String?          @db.VarChar(100)
   matricula            String?          @db.VarChar(100)
   areaTotal            Decimal?         @db.Decimal(18, 2)
+  percComissaoPadrao   Decimal          @default(4.0000, map: "DF__ycProjeto__percC__79FD19BE") @db.Decimal(10, 4)
   ycBlocos             ycBlocos[]
   ycLeads              ycLeads[]
   ycEmpresas           ycEmpresas       @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")
@@ -414,6 +415,7 @@ model ycTabelasPreco {
   vigenciaInicial     DateTime              @db.Date
   vigenciaFinal       DateTime              @db.Date
   taxaJuros           Decimal               @default(0, map: "DF__ycTabelas__taxaJ__09746778") @db.Decimal(10, 4)
+  percComissaoPadrao  Decimal               @default(4.0000, map: "DF__ycTabelas__percC__7AF13DF7") @db.Decimal(10, 4)
   ycFluxosPadrao      ycFluxosPadrao[]
   ycPropostas         ycPropostas[]
   ycEmpresas          ycEmpresas            @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycTabelasPreco_ycEmpresas")

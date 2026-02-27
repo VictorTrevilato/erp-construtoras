@@ -443,6 +443,21 @@ export async function saveProposalConditions(
             }
         }
 
+        // --- ORDENAÇÃO CRONOLÓGICA DAS PARCELAS ---
+        parcelasParaInserir.sort((a, b) => {
+            const dateA = a.vencimento.getTime()
+            const dateB = b.vencimento.getTime()
+            if (dateA !== dateB) return dateA - dateB
+            // Desempate por Tipo (Entrada ganha de Mensal, etc)
+            const typeWeight: Record<string, number> = { 'E': 1, 'M': 2, 'I': 3, 'A': 4, 'C': 5, 'F': 6, 'O': 7 }
+            return (typeWeight[a.tipo] || 99) - (typeWeight[b.tipo] || 99)
+        })
+
+        // Reconstrói a numeração sequencial após ordenar
+        parcelasParaInserir.forEach((p, idx) => {
+            p.parcela = idx + 1
+        })
+
         await prisma.$transaction(async (tx) => {
             await tx.ycPropostas.update({
                 where: { id: pId },
@@ -511,8 +526,8 @@ export async function getProposalInstallments(propostaId: string): Promise<Propo
     try {
         const parcelas = await prisma.ycPropostasParcelas.findMany({
             where: { propostaId: BigInt(propostaId) },
-            // Ordena pelo fluxo temporal da esteira
-            orderBy: [{ tipo: 'asc' }, { vencimento: 'asc' }]
+            // Agora sim a tabela vai respeitar o número da parcela gerado pelo sistema!
+            orderBy: { parcela: 'asc' }
         })
 
         return parcelas.map(p => ({
@@ -597,6 +612,7 @@ export async function saveProposalInstallments(
         })
 
         const condicoesParaInserir = Object.values(agrupamento)
+        
 
         // --- TRANSAÇÃO ATÔMICA ---
         await prisma.$transaction(async (tx) => {
@@ -618,15 +634,23 @@ export async function saveProposalInstallments(
             await tx.ycPropostasParcelas.deleteMany({ where: { propostaId: pId } })
             await tx.ycPropostasCondicoes.deleteMany({ where: { propostaId: pId } })
 
-            // 3. Insere a nova grade de Parcelas
+            // 3. Insere a nova grade de Parcelas (Ordenada)
+            const parcelasOrdenadas = [...parcelas].sort((a, b) => {
+                const dateA = new Date(a.vencimento).getTime()
+                const dateB = new Date(b.vencimento).getTime()
+                if (dateA !== dateB) return dateA - dateB
+                const typeWeight: Record<string, number> = { 'E': 1, 'M': 2, 'I': 3, 'A': 4, 'C': 5, 'F': 6, 'O': 7 }
+                return (typeWeight[a.tipo] || 99) - (typeWeight[b.tipo] || 99)
+            })
+
             await tx.ycPropostasParcelas.createMany({
-                data: parcelas.map((p, index) => ({
+                data: parcelasOrdenadas.map((p, index) => ({
                     sysTenantId: tenantId,
                     sysUserId: userId,
                     escopoId: proposta.escopoId,
                     propostaId: pId,
                     tipo: p.tipo,
-                    parcela: index + 1, // Sequência lógica reconstruída
+                    parcela: index + 1, // Sequência lógica reconstruída perfeitamente
                     vencimento: new Date(p.vencimento),
                     valor: p.valor
                 }))
