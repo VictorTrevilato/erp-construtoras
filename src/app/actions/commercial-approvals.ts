@@ -29,6 +29,7 @@ export type ApprovalProjectSummary = {
 // Tipagem para o Detalhe (Mantida igual)
 export type ApprovalDetail = {
   id: string
+  projetoId: string
   status: string
   valorProposta: number
   valorTabelaOriginal: number
@@ -184,6 +185,7 @@ export async function getProposals(projetoId: string): Promise<ApprovalDetail[]>
 
     return proposals.map(p => ({
       id: p.id.toString(),
+      projetoId: projetoId,
       status: p.status,
       valorProposta: Number(p.valorProposta),
       valorTabelaOriginal: Number(p.valorTabelaOriginal),

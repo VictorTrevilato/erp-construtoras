@@ -5,12 +5,13 @@ import { useApproval } from "./approval-context"
 import { approveProposal, rejectProposal } from "@/app/actions/commercial-approvals"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator" // <--- ADICIONADO AQUI
-import { CheckCircle2, XCircle, User, FileText, History, AlertTriangle, Building2, Briefcase, Ruler } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { CheckCircle2, XCircle, User, FileText, History, AlertTriangle, Building2, Briefcase, Ruler, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 // Importação do componente de cálculo
@@ -237,6 +238,18 @@ export function ApprovalDetail() {
                         </>
                     )}
                 </Button>
+                <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-9 w-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 border-slate-200 shadow-sm shrink-0" asChild>
+                                <a href={`/app/comercial/propostas/${selectedProposal.projetoId}/editar/${selectedProposal.id}`} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="w-4 h-4" />
+                                </a>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ver detalhes</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
         </div>
       </div>

@@ -1020,3 +1020,49 @@ export async function lockProposalForSignature(propostaId: string, tipoDoc: stri
         return { success: false, message: "Erro interno ao emitir documento." }
     }
 }
+
+// --- 15. SUBMETER PROPOSTA PARA ANÁLISE ---
+export async function submitProposalForAnalysis(propostaId: string) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado." }
+
+    try {
+        const pId = BigInt(propostaId)
+        const tenantIdStr = await getCurrentTenantId()
+        if (!tenantIdStr) return { success: false, message: "Tenant não encontrado." }
+        const tenantId = BigInt(tenantIdStr)
+        const userId = BigInt(session.user.id)
+
+        const proposta = await prisma.ycPropostas.findUnique({ where: { id: pId } })
+        if (!proposta) return { success: false, message: "Proposta não encontrada." }
+
+        if (proposta.status !== 'RASCUNHO') {
+            return { success: false, message: "Apenas propostas em rascunho podem ser submetidas." }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.ycPropostas.update({
+                where: { id: pId },
+                data: { status: 'EM_ANALISE' }
+            })
+
+            await tx.ycPropostasHistorico.create({
+                data: {
+                    sysTenantId: tenantId,
+                    sysUserId: userId,
+                    escopoId: proposta.escopoId,
+                    propostaId: pId,
+                    statusAnterior: 'RASCUNHO',
+                    statusNovo: 'EM_ANALISE',
+                    acao: 'SUBMETEU',
+                    observacao: 'Proposta submetida para análise da diretoria.'
+                }
+            })
+        })
+
+        return { success: true, message: "Proposta submetida para análise!" }
+    } catch (error) {
+        console.error("Erro ao submeter proposta:", error)
+        return { success: false, message: "Erro interno ao submeter proposta." }
+    }
+}

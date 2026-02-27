@@ -66,8 +66,10 @@ export function ProposalHistoryTab({ initialHistory }: Props) {
 
             {initialHistory.length === 0 ? (
                 <Card className="border-dashed border-2 shadow-none bg-slate-50/50">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-slate-400">
-                        <History className="w-12 h-12 mb-4 opacity-20" />
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                            <History className="w-8 h-8" />
+                        </div>
                         <h3 className="text-lg font-bold text-slate-700 mb-1">Nenhum evento registrado</h3>
                         <p className="text-sm text-slate-500">O histórico começará a ser gerado assim que houver interações com a proposta.</p>
                     </CardContent>

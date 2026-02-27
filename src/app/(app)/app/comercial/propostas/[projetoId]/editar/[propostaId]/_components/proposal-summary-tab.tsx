@@ -1,12 +1,16 @@
 "use client"
 
-import { ProposalFullDetail } from "@/app/actions/commercial-proposals"
+import { useState, useTransition } from "react"
+import { ProposalFullDetail, submitProposalForAnalysis } from "@/app/actions/commercial-proposals"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { 
   FileText, Calendar, Building2, Maximize, User, Phone, 
   Mail, Briefcase, CarFront, Box, TableProperties, AlertCircle, 
-  CheckCircle2, XCircle, Info, Megaphone
+  CheckCircle2, XCircle, Info, Megaphone, Send, Loader2
 } from "lucide-react"
 
 interface Props {
@@ -14,6 +18,10 @@ interface Props {
 }
 
 export function ProposalSummaryTab({ proposal }: Props) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const fmtDate = (d: Date | null) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"
 
@@ -29,6 +37,20 @@ export function ProposalSummaryTab({ proposal }: Props) {
       case 'RASCUNHO': return "bg-slate-100 text-slate-600 border-slate-200"
       default: return "bg-slate-100 text-slate-800"
     }
+  }
+
+  const handleSubmitForAnalysis = async () => {
+    setIsSubmitting(true)
+    const res = await submitProposalForAnalysis(proposal.id)
+    if (res.success) {
+        toast.success(res.message)
+        startTransition(() => {
+            router.refresh()
+        })
+    } else {
+        toast.error(res.message)
+    }
+    setIsSubmitting(false)
   }
 
   return (
@@ -57,9 +79,23 @@ export function ProposalSummaryTab({ proposal }: Props) {
                     </Badge>
                 </div>
 
-                <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 flex flex-col gap-1 items-center justify-center text-center">
-                    <span className="text-xs font-bold text-blue-800/70 uppercase tracking-tight">Valor da Proposta</span>
-                    <span className="text-3xl font-black text-blue-700 tracking-tight">{fmtCurrency(proposal.valorProposta)}</span>
+                <div className="flex flex-col gap-3">
+                    <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 flex flex-col gap-1 items-center justify-center text-center">
+                        <span className="text-xs font-bold text-blue-800/70 uppercase tracking-tight">Valor da Proposta</span>
+                        <span className="text-3xl font-black text-blue-700 tracking-tight">{fmtCurrency(proposal.valorProposta)}</span>
+                    </div>
+
+                    {/* BOTÃO DE SUBMETER */}
+                    {proposal.status === 'RASCUNHO' && (
+                        <Button 
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-11"
+                            onClick={handleSubmitForAnalysis}
+                            disabled={isSubmitting || isPending}
+                        >
+                            {isSubmitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
+                            {isSubmitting ? "Enviando..." : "Enviar para Análise"}
+                        </Button>
+                    )}
                 </div>
 
                 <div className="space-y-4">
