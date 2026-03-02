@@ -16,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ERP Construtoras",
-  description: "VHF - ERP para Construtoras",
+  title: "YouCenter - ERP",
+  description: "YouCenter - ERP para Construtoras",
 };
 
 export default function RootLayout({

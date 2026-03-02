@@ -136,6 +136,7 @@ model ycUsuarios {
   ativo                        Boolean                        @default(true, map: "DF__ycUsuario__ativo__0B91BA14")
   ultimoLogin                  DateTime?
   isSuperAdmin                 Boolean                        @default(false, map: "DF__ycUsuario__isSup__2DE6D218")
+  avatarUrl                    String?                        @db.VarChar(500)
   ycBlocos                     ycBlocos[]
   ycCargos                     ycCargos[]
   ycCargosPermissoes           ycCargosPermissoes[]

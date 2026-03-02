@@ -1,15 +1,20 @@
 import { redirect } from "next/navigation"
 import { TenantForm } from "./_components/tenant-form"
-// Importamos a nova action
 import { getTenantSettings } from "@/app/actions/tenant-settings"
 
 export default async function CompanySettingsPage() {
-  // Busca os dados via Server Action (que já valida sessão e tenant internamente)
   const company = await getTenantSettings()
 
-  // Se não retornou nada, significa que não tem usuário ou não tem tenant selecionado
   if (!company) {
     redirect("/select-org")
+  }
+
+  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || '';
+  const fullLogoUrl = company.logo ? `${baseUrl}/${company.logo}` : null;
+
+  const companyData = {
+    ...company,
+    logo: fullLogoUrl
   }
 
   return (
@@ -21,7 +26,7 @@ export default async function CompanySettingsPage() {
         </p>
       </div>
 
-      <TenantForm initialData={company} />
+      <TenantForm initialData={companyData} />
     </div>
   )
 }

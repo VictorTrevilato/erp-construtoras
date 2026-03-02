@@ -7,13 +7,27 @@ export default async function MePage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
 
-  // Buscar dados frescos do banco
   const user = await prisma.ycUsuarios.findUnique({
     where: { id: BigInt(session.user.id) },
-    select: { nome: true, email: true }
+    select: { 
+      nome: true, 
+      email: true,
+      avatarUrl: true
+    }
   })
 
   if (!user) redirect("/login")
+
+  // Montagem da URL completa
+  // Removemos a barra no final do STORAGE_BASE_URL (se houver) para evitar "net//public-assets"
+  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || '';
+  const fullAvatarUrl = user.avatarUrl ? `${baseUrl}/${user.avatarUrl}` : null;
+
+  // Criamos um novo objeto herdando os dados do usuario mas substituindo o avatarUrl
+  const userData = {
+    ...user,
+    avatarUrl: fullAvatarUrl
+  }
 
   return (
     <div className="space-y-6">
@@ -25,7 +39,7 @@ export default async function MePage() {
       </div>
 
       <div className="max-w-3xl">
-        <ProfileForm initialData={user} />
+        <ProfileForm initialData={userData} />
       </div>
     </div>
   )

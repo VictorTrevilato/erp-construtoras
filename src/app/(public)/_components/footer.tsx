@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="container mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2 font-bold text-xl text-white">
           <Building2 className="h-6 w-6 text-blue-400" />
-          <span>ERP Construtoras</span>
+          <span>YouCenter - ERP</span>
         </div>
         
         <p className="text-sm">

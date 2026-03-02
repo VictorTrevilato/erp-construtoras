@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
             <Building2 className="h-6 w-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight">ERP Construtoras</span>
+          <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
         </div>
 
         <div className="relative z-10 max-w-lg">

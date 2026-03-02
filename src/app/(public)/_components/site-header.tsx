@@ -11,7 +11,7 @@ export function SiteHeader() {
           <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-600 text-white">
             <Building2 className="h-5 w-5" />
           </div>
-          <span>ERP Construtoras</span>
+          <span>YouCenter - ERP</span>
         </div>
         
         <nav className="flex items-center gap-4">

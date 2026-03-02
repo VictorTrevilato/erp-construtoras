@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState, useEffect } from 'react'
+import { useActionState, useState, useEffect, useRef } from 'react'
 import { updateProfile, SettingsState } from '@/app/actions/settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Loader2, Save, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Save, Eye, EyeOff, Camera } from 'lucide-react'
 
 interface ProfileFormProps {
   initialData: {
     nome: string
     email: string
+    avatarUrl?: string | null
   }
 }
 
@@ -25,19 +26,20 @@ const initialState: SettingsState = {
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const [state, formAction, isPending] = useActionState(updateProfile, initialState)
   
-  // Controle da Seção de Senha (Accordion)
   const [isPasswordSectionOpen, setIsPasswordSectionOpen] = useState(false)
-  
-  // Controle de Visibilidade dos Inputs (Olhinho)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
+
+  // Referencia para o input de arquivo oculto
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Estado para o preview imediato da imagem no front-end
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(initialData.avatarUrl || null)
 
   useEffect(() => {
     if (state.message) {
       if (state.success) {
         toast.success(state.message)
-        setIsPasswordSectionOpen(false) // Fecha a área de senha após sucesso
-        // Reseta visibilidade
+        setIsPasswordSectionOpen(false)
         setShowCurrentPassword(false)
         setShowNewPassword(false)
       } else {
@@ -53,6 +55,40 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     .join('')
     .toUpperCase()
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Valida se e uma imagem
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor, selecione um arquivo de imagem válido.')
+        return
+      }
+      
+      // Valida o tamanho (exemplo: max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('A imagem deve ter no máximo 5MB.')
+        return
+      }
+
+      // Cria uma URL temporaria para o preview no navegador
+      const objectUrl = URL.createObjectURL(file)
+      setAvatarPreview(objectUrl)
+    }
+  }
+
+  // Limpa a memoria do navegador quando o componente desmontar
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && !avatarPreview.startsWith('http')) {
+        URL.revokeObjectURL(avatarPreview)
+      }
+    }
+  }, [avatarPreview])
+
   return (
     <form action={formAction}>
       <Card>
@@ -62,16 +98,36 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* Avatar */}
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src="" />
-              <AvatarFallback className="text-xl bg-primary/10 text-primary">{initials}</AvatarFallback>
-            </Avatar>
+            {/* Input oculto que sera enviado junto com o form */}
+            <input 
+              type="file" 
+              name="avatar" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/jpeg, image/png, image/webp" 
+              onChange={handleFileChange}
+            />
+            
+            <div 
+              className="relative cursor-pointer group" 
+              onClick={handleAvatarClick}
+            >
+              <Avatar className="h-20 w-20 transition-opacity group-hover:opacity-75 border">
+                <AvatarImage src={avatarPreview || undefined} alt={initialData.nome} className="object-cover" />
+                <AvatarFallback className="text-xl bg-primary/10 text-primary">{initials}</AvatarFallback>
+              </Avatar>
+              
+              {/* Overlay com icone de camera no hover */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+            </div>
+
             <div className="space-y-1">
               <h3 className="font-medium">Foto de Perfil</h3>
               <p className="text-xs text-muted-foreground">
-                Upload de imagens será habilitado em breve.
+                Clique na imagem para alterar. Max 5MB.
               </p>
             </div>
           </div>
@@ -117,7 +173,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             {isPasswordSectionOpen && (
               <div className="grid gap-4 md:grid-cols-2 animate-in slide-in-from-top-2 fade-in duration-300">
                 
-                {/* Senha Atual */}
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Senha Atual</Label>
                   <div className="relative">
@@ -138,7 +193,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   </div>
                 </div>
 
-                {/* Nova Senha */}
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Nova Senha</Label>
                   <div className="relative">
