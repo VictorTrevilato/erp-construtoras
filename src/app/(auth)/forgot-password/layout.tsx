@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Login | YouCenter",
+    absolute: "Esqueci a Senha | YouCenter",
   },
 };
 
-export default function LoginLayout({
+export default function ForgotPasswordLayout({
   children,
 }: {
   children: React.ReactNode

@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { ProfileForm } from "@/components/profile-form"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Minha Conta",
+};
 
 export default async function MePage() {
   const session = await auth()

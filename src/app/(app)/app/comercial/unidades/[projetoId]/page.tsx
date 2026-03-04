@@ -7,6 +7,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { UnitsTableClient } from "./_components/units-table-client"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Gestão de Unidades",
+};
 
 interface Props {
   params: Promise<{ projetoId: string }>

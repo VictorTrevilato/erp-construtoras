@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getCommercialProjects } from "@/app/actions/commercial-units"
 import { CommercialProjectsList } from "./_components/projects-list"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Gestão de Unidades",
+};
 
 export default async function CommercialUnitsPage() {
   const session = await auth()

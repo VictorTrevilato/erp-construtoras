@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getProjectsForNegotiation } from "@/app/actions/commercial-negotiation"
 import { NegotiationProjectsList } from "./_components/negotiation-projects-list"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mesa de Negociação",
+};
 
 export default async function NegotiationProjectsPage() {
   const session = await auth()

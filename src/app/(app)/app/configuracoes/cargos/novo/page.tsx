@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { RoleForm } from "../_components/role-form"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Cargos e Permissões",
+};
 
 export default async function NewRolePage() {
   const session = await auth()

@@ -7,6 +7,11 @@ import { ArrowLeft, Building2 } from "lucide-react"
 import Link from "next/link"
 import { CampaignsTable } from "./_components/campaigns-table"
 import { Card } from "@/components/ui/card"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Preços e Fluxos",
+};
 
 interface Props { params: Promise<{ projetoId: string }> }
 

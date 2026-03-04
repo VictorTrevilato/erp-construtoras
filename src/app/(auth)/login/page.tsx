@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react"
 import { authenticate } from "@/app/actions/auth-actions"
-import { Building2, ArrowRight, CheckCircle2, Star, Quote, Eye, EyeOff } from "lucide-react"
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
 
 export default function LoginPage() {
   const [errorMessage, dispatch, isPending] = useActionState(authenticate, undefined)
@@ -21,11 +23,15 @@ export default function LoginPage() {
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl opacity-30"></div>
         
         {/* Header */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
+        <div className="relative z-10 flex items-center mb-8">
+          <Image 
+            src="/logo.png" 
+            alt="YouCenter" 
+            width={160} 
+            height={48} 
+            className="h-10 w-auto object-contain brightness-0 invert" 
+            priority
+          />
         </div>
 
         {/* Conteúdo */}
@@ -57,27 +63,6 @@ export default function LoginPage() {
               <span className="font-medium">Portal do cliente com acompanhamento real</span>
             </li>
           </ul>
-
-          <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
-            <div className="flex gap-1 mb-3">
-              {[1,2,3,4,5].map((_, i) => (
-                <Star key={i} className="h-4 w-4 text-warning fill-warning" />
-              ))}
-            </div>
-            <div className="relative">
-              <Quote className="absolute -top-2 -left-2 h-8 w-8 text-white/10 rotate-180" />
-              <p className="text-sm text-slate-300 italic pl-4 relative z-10">
-                &quot;O ERP transformou a maneira como acompanhamos nossos custos. A transparência com os investidores aumentou drasticamente.&quot;
-              </p>
-            </div>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-secondary"></div>
-              <div>
-                <p className="text-xs font-semibold text-white">Ricardo Mendes</p>
-                <p className="text-[10px] text-slate-400">Diretor de Engenharia, Construtora Alpha</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
@@ -91,8 +76,15 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-sm space-y-8">
           
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
-              <Building2 className="h-6 w-6" />
+            <div className="lg:hidden mb-6 flex items-center justify-center">
+              <Image 
+                src="/logo.png" 
+                alt="YouCenter" 
+                width={140} 
+                height={40} 
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">
               Boas-vindas
@@ -126,20 +118,18 @@ export default function LoginPage() {
                   Senha
                 </label>
                 <div className="text-sm">
-                  <a href="#" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                  <Link href="/forgot-password" className="font-semibold text-primary hover:text-primary/80 transition-colors">
                     Esqueceu a senha?
-                  </a>
+                  </Link>
                 </div>
               </div>
               <div className="relative mt-2">
                 <input
                   id="password"
                   name="password"
-                  // Alterna entre text e password baseado no estado
                   type={showPassword ? "text" : "password"} 
                   autoComplete="current-password"
                   required
-                  // Adicionado pr-10 para o texto não ficar por baixo do ícone
                   className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   placeholder="••••••••"
                 />

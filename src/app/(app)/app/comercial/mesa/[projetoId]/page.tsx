@@ -4,7 +4,12 @@ import { getSalesMirrorData, getNegotiationHeader, getProjectActiveFlows } from 
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { NegotiationPageWrapper } from "./_components/negotiation-page-wrapper" // [NOVO]
+import { NegotiationPageWrapper } from "./_components/negotiation-page-wrapper"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mesa de Negociação",
+};
 
 interface Props {
     params: Promise<{ projetoId: string }>

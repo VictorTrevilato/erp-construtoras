@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { ApprovalPageWrapper } from "./_components/approval-page-wrapper"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Aprovações de Propostas",
+};
 
 interface Props {
     params: Promise<{ projetoId: string }>

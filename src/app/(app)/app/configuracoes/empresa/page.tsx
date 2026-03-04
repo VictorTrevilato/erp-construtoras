@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation"
 import { TenantForm } from "./_components/tenant-form"
 import { getTenantSettings } from "@/app/actions/tenant-settings"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dados da Empresa",
+};
 
 export default async function CompanySettingsPage() {
   const company = await getTenantSettings()

@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     tenantData = await prisma.ycEmpresas.findUnique({
       where: { id: BigInt(tenantIdStr) },
       select: { 
-        nome: true, logo: true, logoMini: true,
+        nome: true, logo: true, logoMini: true, favicon: true,
         corPrimaria: true, corSecundaria: true,
         sidebarTheme: true, sidebarNavTheme: true,
         tooltipsTheme: true, buttonsTheme: true,
@@ -39,8 +39,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const showSwitch = tenantCount > 1
 
   const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
-  const logoUrl = tenantData?.logo ? `${baseUrl}/${tenantData.logo}` : null
-  const logoMiniUrl = tenantData?.logoMini ? `${baseUrl}/${tenantData.logoMini}` : null
+  const logoUrl = tenantData?.logo ? (tenantData.logo.startsWith('http') ? tenantData.logo : `${baseUrl}/${tenantData.logo}`) : null
+  const logoMiniUrl = tenantData?.logoMini ? (tenantData.logoMini.startsWith('http') ? tenantData.logoMini : `${baseUrl}/${tenantData.logoMini}`) : null
 
   return (
     <ThemeWrapper 
@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       <PermissionProvider initialPermissions={permissions}>
         <SidebarLayout 
-          title={tenantData?.nome || "YouCon"} 
+          title={tenantData?.nome || "YouCenter"} 
           logoUrl={logoUrl}
           logoMiniUrl={logoMiniUrl}
           profile="erp" 

@@ -18,7 +18,7 @@ const features = [
     title: "Gestão Financeira",
     description: "Contas a pagar/receber, fluxo de caixa projetado, conciliação bancária e visão consolidada de múltiplos CNPJs.",
     icon: Wallet,
-    color: "text-success bg-success/10",
+    color: "text-primary bg-primary/10",
   },
   {
     title: "Comercial & Vendas",
@@ -30,7 +30,7 @@ const features = [
     title: "Segurança e Auditoria",
     description: "Controle de acesso granular por cargo e logs detalhados de todas as operações realizadas no sistema.",
     icon: ShieldCheck,
-    color: "text-warning bg-warning/10",
+    color: "text-primary bg-primary/10",
   },
   {
     title: "Portal do Cliente",

@@ -7,6 +7,11 @@ import { ArrowLeft, Building2 } from "lucide-react"
 import Link from "next/link"
 import { ProposalsList } from "./_components/proposals-list"
 import { Card } from "@/components/ui/card"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Propostas Comerciais",
+};
 
 interface Props { params: Promise<{ projetoId: string }> }
 

@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { MarketingHero } from "./_components/marketing-hero"
 import { CompanyWall } from "./_components/company-wall"
 import { ProjectSpotlight } from "./_components/project-spotlight"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+};
 
 export default async function DashboardPage() {
   const session = await auth()

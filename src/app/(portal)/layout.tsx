@@ -1,9 +1,14 @@
+import type { Metadata } from "next"
 import { SidebarLayout } from "@/components/sidebar"
 import { ThemeWrapper } from "@/components/theme-wrapper"
 import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Portal do Cliente",
+}
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const tenantIdStr = await getCurrentTenantId()
@@ -24,8 +29,8 @@ export default async function PortalLayout({ children }: { children: React.React
   }
 
   const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
-  const logoUrl = tenantData?.logo ? `${baseUrl}/${tenantData.logo}` : null
-  const logoMiniUrl = tenantData?.logoMini ? `${baseUrl}/${tenantData.logoMini}` : null
+  const logoUrl = tenantData?.logo ? (tenantData.logo.startsWith('http') ? tenantData.logo : `${baseUrl}/${tenantData.logo}`) : null
+  const logoMiniUrl = tenantData?.logoMini ? (tenantData.logoMini.startsWith('http') ? tenantData.logoMini : `${baseUrl}/${tenantData.logoMini}`) : null
 
   return (
     <ThemeWrapper 

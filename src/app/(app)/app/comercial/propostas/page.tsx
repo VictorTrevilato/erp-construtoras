@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getProposalProjects } from "@/app/actions/commercial-proposals"
 import { ProposalsProjectList } from "./_components/proposals-project-list"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Propostas Comerciais",
+};
 
 export default async function ProposalsPage() {
   const session = await auth()

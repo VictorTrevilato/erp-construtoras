@@ -13,6 +13,11 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, FileText } from "lucide-react"
 import Link from "next/link"
 import { ProposalEditorWrapper } from "./_components/proposal-editor-wrapper"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Propostas Comerciais",
+};
 
 interface Props { 
   params: Promise<{ projetoId: string, propostaId: string }> 

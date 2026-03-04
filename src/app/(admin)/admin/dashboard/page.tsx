@@ -1,6 +1,11 @@
 import { auth, signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { LogOut, CheckCircle2 } from "lucide-react"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+};
 
 export default async function Dashboard() {
   const session = await auth()

@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, KeyRound, CheckCircle2, Eye, EyeOff } from "lucide-react"
+import Image from "next/image"
+import { CheckCircle2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,11 +39,15 @@ export default function ResetPasswordPage() {
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl opacity-30"></div>
         
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
+        <div className="relative z-10 flex items-center mb-8">
+          <Image 
+            src="/logo.png" 
+            alt="YouCenter" 
+            width={160} 
+            height={48} 
+            className="h-10 w-auto object-contain brightness-0 invert" 
+            priority
+          />
         </div>
 
         <div className="relative z-10 max-w-lg">
@@ -54,7 +59,7 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        <div className="relative z-10 text-sm text-slate-500">
+        <div className="relative z-10 text-sm text-slate-500 flex justify-between items-end mt-12">
            <span>© {new Date().getFullYear()} VHF System. Todos os direitos reservados.</span>
         </div>
       </div>
@@ -64,8 +69,15 @@ export default function ResetPasswordPage() {
         <div className="mx-auto w-full max-w-sm space-y-8">
           
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
-              <KeyRound className="h-6 w-6" />
+            <div className="lg:hidden mb-6 flex items-center justify-center">
+              <Image 
+                src="/logo.png" 
+                alt="YouCenter" 
+                width={140} 
+                height={40} 
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-foreground">
               Nova Senha

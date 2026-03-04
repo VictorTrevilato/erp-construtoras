@@ -9,6 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Preços e Fluxos",
+};
 
 interface Props {
     params: Promise<{ projetoId: string, tabelaId: string }>

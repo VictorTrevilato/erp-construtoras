@@ -3,6 +3,11 @@ import { redirect, notFound } from "next/navigation"
 import { getAvailableScopes, getProjectById } from "@/app/actions/projects"
 import { getUserPermissions } from "@/app/actions/permissions"
 import { ProjectForm } from "../_components/project-form"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Projetos",
+};
 
 interface Props {
     params: Promise<{ id: string }>

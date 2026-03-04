@@ -9,6 +9,11 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Users } from "lucide-react"
 import Link from "next/link"
 import { RoleActions } from "./_components/role-actions"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Cargos e Permissões",
+};
 
 export default async function RolesPage() {
   const session = await auth()

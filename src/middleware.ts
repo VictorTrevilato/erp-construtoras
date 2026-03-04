@@ -8,9 +8,7 @@ export default auth((req) => {
   const user = req.auth?.user
   const isSuperAdmin = user?.isSuperAdmin
   
-  // [CORREÇÃO] Verificamos se o ID realmente existe no token
   const hasValidId = !!user?.id 
-  
   const { nextUrl } = req
   
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
@@ -31,7 +29,6 @@ export default auth((req) => {
 
   // 2. Redirecionamento de quem já está logado (Evitar Loop)
   if (isAuthRoute && isLoggedIn) {
-    // [CORREÇÃO CRÍTICA]
     // Só redirecionamos para /select-org se o usuário tiver um ID válido.
     // Se ele tiver logado mas sem ID (cookie corrompido), deixamos ele na tela de login
     // para que possa se autenticar novamente e consertar o cookie.
@@ -46,6 +43,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
   ],
-}
+};

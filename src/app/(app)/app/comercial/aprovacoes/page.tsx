@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getApprovalProjects } from "@/app/actions/commercial-approvals"
 import { ApprovalsProjectList } from "./_components/approvals-project-list"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Aprovações de Propostas",
+};
 
 export default async function ApprovalsHubPage() {
     const session = await auth()

@@ -1,8 +1,12 @@
 import { redirect, notFound } from "next/navigation"
 import { RoleForm } from "../_components/role-form"
 import { getUserPermissions, getAllSystemPermissions } from "@/app/actions/permissions"
-// Importamos a nova action
 import { getRoleById } from "@/app/actions/roles"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Cargos e Permissões",
+};
 
 export default async function EditRolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

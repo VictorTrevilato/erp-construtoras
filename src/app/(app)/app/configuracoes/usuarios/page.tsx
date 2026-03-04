@@ -10,6 +10,11 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Shield, MapPin } from "lucide-react"
 import { UserActions } from "./_components/user-actions"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Usuários e Acessos",
+};
 
 export default async function UsersPage() {
   const session = await auth()

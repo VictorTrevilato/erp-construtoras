@@ -7,6 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Building2 } from "lucide-react"
 import { ProjectActions } from "./_components/project-actions"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Projetos",
+};
 
 export default async function ProjectsPage() {
   const session = await auth()

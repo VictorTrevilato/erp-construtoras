@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getProjectsForTables } from "@/app/actions/commercial-prices"
 import { TablesProjectsList } from "./_components/tables-projects-list"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Preços e Fluxos",
+};
 
 export default async function TablesPage() {
   const session = await auth()

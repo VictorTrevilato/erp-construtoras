@@ -1,5 +1,10 @@
 import { getTenants } from '@/app/actions/admin'
 import { TenantClient } from './_components/tenant-client'
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Empresas",
+};
 
 // Tipo esperado pelo Componente (Client)
 type Tenant = {

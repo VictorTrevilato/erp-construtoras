@@ -1,5 +1,10 @@
 import { getUsers } from '@/app/actions/admin'
 import { UserClient } from './_components/user-client'
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Usuários Globais",
+};
 
 // 1. Tipo esperado pelo Componente Client (ID string)
 type UserData = {
