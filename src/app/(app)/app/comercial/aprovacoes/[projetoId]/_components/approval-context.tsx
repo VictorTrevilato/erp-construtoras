@@ -12,6 +12,7 @@ interface ApprovalContextType {
 
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined)
 
+// Disponibiliza no Context o estado da aba ativa da aprovação
 export function ApprovalProvider({ 
   children, 
   proposals 

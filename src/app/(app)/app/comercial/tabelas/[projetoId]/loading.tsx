@@ -6,7 +6,6 @@ export default function LoadingCampaigns() {
   return (
     <div className="space-y-6">
       
-      {/* Header Skeleton */}
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-24" /> 
         
@@ -19,7 +18,6 @@ export default function LoadingCampaigns() {
         </div>
       </div>
 
-      {/* Toolbar Skeleton */}
       <div className="flex justify-end">
          <Skeleton className="h-9 w-32" />
       </div>

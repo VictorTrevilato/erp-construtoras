@@ -53,6 +53,15 @@ model ycEmpresas {
   corPrimaria                  String?                        @db.VarChar(7)
   corSecundaria                String?                        @db.VarChar(7)
   ativo                        Boolean                        @default(true, map: "DF__ycEmpresa__ativo__75A278F5")
+  logoMini                     String?                        @db.VarChar(255)
+  favicon                      String?                        @db.VarChar(255)
+  sidebarTheme                 String                         @default("primary", map: "DF__ycEmpresa__sideb__7BE56230") @db.VarChar(20)
+  sidebarNavTheme              String                         @default("primary", map: "DF__ycEmpresa__sideb__7CD98669") @db.VarChar(20)
+  topbarTheme                  String                         @default("primary", map: "DF__ycEmpresa__topba__7DCDAAA2") @db.VarChar(20)
+  buttonsTheme                 String                         @default("primary", map: "DF__ycEmpresa__butto__7EC1CEDB") @db.VarChar(20)
+  subButtonsTheme              String                         @default("primary", map: "DF__ycEmpresa__subBu__7FB5F314") @db.VarChar(20)
+  tooltipsTheme                String                         @default("primary", map: "DF__ycEmpresa__toolt__00AA174D") @db.VarChar(20)
+  accentTheme                  String                         @default("primary", map: "DF__ycEmpresa__accen__019E3B86") @db.VarChar(20)
   ycBlocos                     ycBlocos[]
   ycCargos                     ycCargos[]
   ycCargosPermissoes           ycCargosPermissoes[]

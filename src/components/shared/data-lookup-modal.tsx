@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { useWhiteLabelTheme } from "@/components/theme-wrapper"
 
 export interface LookupColumn<T> {
     key: keyof T
@@ -39,6 +40,8 @@ export function DataLookupModal<T extends { id: string }>({
     limit = 10,
     initialSelected
 }: DataLookupModalProps<T>) {
+    const { accentTheme } = useWhiteLabelTheme() // <- HOOK ADICIONADO
+
     const [data, setData] = useState<T[]>([])
     const [total, setTotal] = useState(0)
     const [isLoading, setIsLoading] = useState(false)
@@ -61,7 +64,6 @@ export function DataLookupModal<T extends { id: string }>({
         }
     }, [fetchData, limit])
 
-    // Preenche a seleção inicial ao abrir
     useEffect(() => {
         if (isOpen) {
             const newMap = new Map<string, T>()
@@ -119,6 +121,10 @@ export function DataLookupModal<T extends { id: string }>({
         onClose()
     }
 
+    // Variáveis dinâmicas de cor
+    const themeAccentText = accentTheme === 'secondary' ? 'text-secondary' : 'text-primary'
+    const themeAccentBg = accentTheme === 'secondary' ? 'bg-secondary/10 hover:bg-secondary/20' : 'bg-primary/10 hover:bg-primary/20'
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-3xl flex flex-col h-[85vh]">
@@ -143,7 +149,8 @@ export function DataLookupModal<T extends { id: string }>({
                 <div className="flex-1 overflow-auto border rounded-md relative mt-2">
                     {isLoading && (
                         <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            {/* Loader inteligente */}
+                            <Loader2 className={`h-6 w-6 animate-spin ${themeAccentText}`} />
                         </div>
                     )}
                     
@@ -178,7 +185,8 @@ export function DataLookupModal<T extends { id: string }>({
                                     return (
                                         <TableRow 
                                             key={item.id} 
-                                            className={`cursor-pointer transition-colors ${isSelected ? (isInitial ? 'bg-amber-50/50 hover:bg-amber-50' : 'bg-blue-50/50 hover:bg-blue-50') : 'hover:bg-slate-50'}`}
+                                            // Fundo da linha selecionada inteligente
+                                            className={`cursor-pointer transition-colors ${isSelected ? (isInitial ? 'bg-warning/10 hover:bg-warning/20' : themeAccentBg) : 'hover:bg-slate-50'}`}
                                             onClick={() => handleSelect(item, !isSelected)}
                                         >
                                             <TableCell className="text-center">
@@ -186,7 +194,7 @@ export function DataLookupModal<T extends { id: string }>({
                                                     checked={isSelected}
                                                     onCheckedChange={(c) => handleSelect(item, !!c)}
                                                     onClick={e => e.stopPropagation()} 
-                                                    className={isInitial && isSelected ? "data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500" : ""}
+                                                    className={isInitial && isSelected ? "data-[state=checked]:bg-warning data-[state=checked]:border-warning data-[state=checked]:text-warning-foreground" : ""}
                                                 />
                                             </TableCell>
                                             {columns.map(col => (
@@ -204,7 +212,7 @@ export function DataLookupModal<T extends { id: string }>({
 
                 <div className="flex items-center justify-between mt-4 pt-2 border-t">
                     <div className="text-sm text-muted-foreground flex items-center gap-4">
-                        <span>{total} registros • Selecionados: <strong className="text-slate-900">{selectedItems.size}</strong></span>
+                        <span>{total} registros • Selecionados: <strong className="text-foreground">{selectedItems.size}</strong></span>
                     </div>
                     
                     <div className="flex items-center gap-4">

@@ -15,7 +15,6 @@ export default async function UsersPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  // [CORREÇÃO] Renomeamos para 'rawRoles' para tratar o dado bruto abaixo
   const [users, rawRoles, scopes, allPermissions] = await Promise.all([
     getUsers(),
     getRoles(),
@@ -23,7 +22,6 @@ export default async function UsersPage() {
     getAllSystemPermissions()
   ])
 
-  // [CORREÇÃO] Convertemos o BigInt para String
   const roles = rawRoles.map(role => ({
     id: role.id.toString(),
     nome: role.nome
@@ -33,7 +31,7 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Usuários e Acessos</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Usuários e Acessos</h1>
           <p className="text-muted-foreground">
             Gerencie quem tem acesso ao sistema e quais escopos podem visualizar.
           </p>
@@ -41,7 +39,7 @@ export default async function UsersPage() {
 
         <UserActions 
           mode="create" 
-          roles={roles} // Agora passamos a lista tratada (id: string)
+          roles={roles} 
           scopes={scopes} 
           allPermissions={allPermissions}
         />
@@ -78,12 +76,12 @@ export default async function UsersPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+                          <AvatarFallback className="bg-primary/10 text-primary font-bold">
                             {user.nome.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="font-medium">{user.nome}</span>
+                          <span className="font-medium text-foreground">{user.nome}</span>
                           <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                       </div>
@@ -91,15 +89,17 @@ export default async function UsersPage() {
                     
                     <TableCell>
                       <Badge variant="outline" className="gap-1">
-                        <Shield className="w-3 h-3" />
+                        <Shield className="w-3 h-3 text-muted-foreground" />
                         {user.cargoNome}
                       </Badge>
                     </TableCell>
 
                     <TableCell>
-                      <Badge variant={user.ativo ? "secondary" : "destructive"}>
-                        {user.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
+                      {user.ativo ? (
+                        <Badge className="bg-success text-white hover:bg-success/90">Ativo</Badge>
+                      ) : (
+                        <Badge variant="destructive">Inativo</Badge>
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -113,7 +113,7 @@ export default async function UsersPage() {
                       <UserActions 
                         mode="edit" 
                         user={user} 
-                        roles={roles} // Lista tratada aqui também
+                        roles={roles} 
                         scopes={scopes} 
                         allPermissions={allPermissions}
                       />

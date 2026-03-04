@@ -54,15 +54,15 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'DISPONIVEL': 
-        return 'bg-emerald-50 ring-1 ring-emerald-200 text-emerald-900 hover:bg-emerald-100 hover:ring-emerald-400 hover:shadow-md cursor-pointer'
+        return 'bg-success/10 ring-1 ring-success/30 text-success hover:bg-success/20 hover:ring-success/50 hover:shadow-md cursor-pointer'
       case 'RESERVADO': 
-        return 'bg-amber-50 ring-1 ring-amber-200 text-amber-800 cursor-not-allowed opacity-90'
+        return 'bg-warning/10 ring-1 ring-warning/30 text-warning cursor-not-allowed opacity-90'
       case 'EM_ANALISE': 
-        return 'bg-blue-50 ring-1 ring-blue-200 text-blue-800 cursor-not-allowed opacity-90'
+        return 'bg-info/10 ring-1 ring-info/30 text-info cursor-not-allowed opacity-90'
       case 'VENDIDO': 
-        return 'bg-rose-50 ring-1 ring-rose-200 text-rose-800 cursor-not-allowed opacity-60 grayscale-[0.5]'
+        return 'bg-destructive/10 ring-1 ring-destructive/30 text-destructive cursor-not-allowed opacity-60 grayscale-[0.5]'
       default: 
-        return 'bg-gray-50 text-gray-400'
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -97,39 +97,39 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
         
         {/* --- SEÇÃO 1: KPIs GLOBAIS --- */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-slate-500 shadow-sm">
-                <div className="p-2 bg-slate-100 rounded-full"><Building2 className="w-4 h-4 text-slate-600"/></div>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-muted-foreground shadow-sm">
+                <div className="p-2 bg-muted rounded-full"><Building2 className="w-4 h-4 text-muted-foreground"/></div>
                 <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-500">Total</p>
-                    <p className="text-xl font-bold text-slate-700">{stats.total}</p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Total</p>
+                    <p className="text-xl font-bold text-foreground">{stats.total}</p>
                 </div>
             </Card>
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-emerald-500 shadow-sm">
-                <div className="p-2 bg-emerald-100 rounded-full"><CheckCircle2 className="w-4 h-4 text-emerald-600"/></div>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-success shadow-sm">
+                <div className="p-2 bg-success/20 rounded-full"><CheckCircle2 className="w-4 h-4 text-success"/></div>
                 <div>
-                    <p className="text-[10px] uppercase font-bold text-emerald-600">Disponíveis</p>
-                    <p className="text-xl font-bold text-emerald-700">{stats.disponivel}</p>
+                    <p className="text-[10px] uppercase font-bold text-success">Disponíveis</p>
+                    <p className="text-xl font-bold text-success">{stats.disponivel}</p>
                 </div>
             </Card>
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-amber-500 shadow-sm">
-                <div className="p-2 bg-amber-100 rounded-full"><AlertCircle className="w-4 h-4 text-amber-600"/></div>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-warning shadow-sm">
+                <div className="p-2 bg-warning/20 rounded-full"><AlertCircle className="w-4 h-4 text-warning"/></div>
                 <div>
-                    <p className="text-[10px] uppercase font-bold text-amber-600">Reservadas</p>
-                    <p className="text-xl font-bold text-amber-700">{stats.reservado}</p>
+                    <p className="text-[10px] uppercase font-bold text-warning">Reservadas</p>
+                    <p className="text-xl font-bold text-warning">{stats.reservado}</p>
                 </div>
             </Card>
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-blue-500 shadow-sm">
-                <div className="p-2 bg-blue-100 rounded-full"><Clock className="w-4 h-4 text-blue-600"/></div>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-info shadow-sm">
+                <div className="p-2 bg-info/20 rounded-full"><Clock className="w-4 h-4 text-info"/></div>
                 <div>
-                    <p className="text-[10px] uppercase font-bold text-blue-600">Em Análise</p>
-                    <p className="text-xl font-bold text-blue-700">{stats.emAnalise}</p>
+                    <p className="text-[10px] uppercase font-bold text-info">Em Análise</p>
+                    <p className="text-xl font-bold text-info">{stats.emAnalise}</p>
                 </div>
             </Card>
-            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-rose-500 shadow-sm">
-                <div className="p-2 bg-rose-100 rounded-full"><Ban className="w-4 h-4 text-rose-600"/></div>
+            <Card className="p-3 flex items-center gap-3 border-l-4 border-l-destructive shadow-sm">
+                <div className="p-2 bg-destructive/20 rounded-full"><Ban className="w-4 h-4 text-destructive"/></div>
                 <div>
-                    <p className="text-[10px] uppercase font-bold text-rose-600">Vendidas</p>
-                    <p className="text-xl font-bold text-rose-700">{stats.vendido}</p>
+                    <p className="text-[10px] uppercase font-bold text-destructive">Vendidas</p>
+                    <p className="text-xl font-bold text-destructive">{stats.vendido}</p>
                 </div>
             </Card>
         </div>
@@ -146,10 +146,10 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                 return (
                     <div key={blockName} className="space-y-4">
                         {/* Header do Bloco com Botão na Direita */}
-                        <div className="flex items-center justify-between border-b border-dashed pb-2">
+                        <div className="flex items-center justify-between border-b border-dashed border-border pb-2">
                             <div className="flex items-center gap-2">
-                                <Layers className="w-5 h-5 text-blue-600" />
-                                <h3 className="text-lg font-bold text-gray-800">{blockName}</h3>
+                                <Layers className="w-5 h-5 text-primary" />
+                                <h3 className="text-lg font-bold text-foreground">{blockName}</h3>
                                 <Badge variant="secondary" className="text-xs">{blockUnits.length} unidades</Badge>
                             </div>
 
@@ -181,7 +181,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                                 const unit = blockUnits.find(u => u.andar === floor && getUnitSuffix(u.unidade, maxUnitNumber) === suffix)
 
                                                 if (!unit) {
-                                                    return <div key={`${floor}-${suffix}`} className="w-28 h-20 bg-transparent border border-dashed border-slate-200 rounded-lg opacity-30" />
+                                                    return <div key={`${floor}-${suffix}`} className="w-28 h-20 bg-transparent border border-dashed border-border rounded-lg opacity-30" />
                                                 }
 
                                                 return (
@@ -207,7 +207,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                                                     )}
                                                                 </div>
                                                             </TooltipTrigger>
-                                                            <TooltipContent className="text-xs bg-slate-900 text-white border-none">
+                                                            <TooltipContent className="text-xs bg-popover text-popover-foreground border border-border">
                                                                 <p className="font-bold mb-1">Unidade {unit.unidade}</p>
                                                                 <p>Valor: {unit.valorTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                                                 <p>Situação: {formatStatusLabel(unit.statusComercial)}</p>
@@ -220,7 +220,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                                     </div>
                                 ))}
 
-                                <div className="flex gap-4 items-center mt-2 pt-2 border-t border-dashed">
+                                <div className="flex gap-4 items-center mt-2 pt-2 border-t border-dashed border-border">
                                     <div className="w-10"></div>
                                     <div className="flex-1 flex gap-3">
                                         {allSuffixes.map((suffix) => (
@@ -239,7 +239,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
 
         {/* --- SEÇÃO 3: OUTRAS UNIDADES --- */}
         {specialUnits.length > 0 && (
-            <div className="mt-12 bg-slate-50 p-6 rounded-xl border border-dashed">
+            <div className="mt-12 bg-muted/30 p-6 rounded-xl border border-dashed border-border">
                 <h3 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
                     <Building2 className="w-4 h-4"/> Lojas & Áreas Comerciais
                 </h3>
@@ -255,7 +255,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                         >
                             <span className="font-bold text-lg">{unit.unidade}</span>
                             <span className="text-xs mt-1">{unit.areaPrivativa} m²</span>
-                            <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-white/50">{formatStatusLabel(unit.statusComercial)}</Badge>
+                            <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-background/50">{formatStatusLabel(unit.statusComercial)}</Badge>
                         </div>
                     ))}
                 </div>

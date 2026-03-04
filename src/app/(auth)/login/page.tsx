@@ -18,11 +18,11 @@ export default function LoginPage() {
         
         {/* Efeitos de Fundo */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-blue-900 blur-3xl opacity-30"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl opacity-30"></div>
         
         {/* Header */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
             <Building2 className="h-6 w-6" />
           </div>
           <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
@@ -39,20 +39,20 @@ export default function LoginPage() {
           
           <ul className="space-y-4 text-slate-300 mb-12">
             <li className="flex items-center gap-3">
-              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-primary" />
               </div>
               <span className="font-medium">Controle financeiro e fluxo de caixa</span>
             </li>
             <li className="flex items-center gap-3">
-              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-primary" />
               </div>
               <span className="font-medium">Gestão centralizada de múltiplas obras</span>
             </li>
             <li className="flex items-center gap-3">
-              <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                 <CheckCircle2 className="h-4 w-4 text-blue-400" />
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                 <CheckCircle2 className="h-4 w-4 text-primary" />
               </div>
               <span className="font-medium">Portal do cliente com acompanhamento real</span>
             </li>
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
             <div className="flex gap-1 mb-3">
               {[1,2,3,4,5].map((_, i) => (
-                <Star key={i} className="h-4 w-4 text-amber-400 fill-amber-400" />
+                <Star key={i} className="h-4 w-4 text-warning fill-warning" />
               ))}
             </div>
             <div className="relative">
@@ -71,7 +71,7 @@ export default function LoginPage() {
               </p>
             </div>
             <div className="mt-4 flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500"></div>
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-secondary"></div>
               <div>
                 <p className="text-xs font-semibold text-white">Ricardo Mendes</p>
                 <p className="text-[10px] text-slate-400">Diretor de Engenharia, Construtora Alpha</p>
@@ -91,7 +91,7 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-sm space-y-8">
           
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600 mb-4">
+            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
               <Building2 className="h-6 w-6" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -114,7 +114,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3"
+                  className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 pl-3"
                   placeholder="admin@empresa.com"
                 />
               </div>
@@ -126,7 +126,7 @@ export default function LoginPage() {
                   Senha
                 </label>
                 <div className="text-sm">
-                  <a href="#" className="font-semibold text-blue-600 hover:text-blue-500">
+                  <a href="#" className="font-semibold text-primary hover:text-primary/80 transition-colors">
                     Esqueceu a senha?
                   </a>
                 </div>
@@ -140,7 +140,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   // Adicionado pr-10 para o texto não ficar por baixo do ícone
-                  className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   placeholder="••••••••"
                 />
                 <button
@@ -159,7 +159,7 @@ export default function LoginPage() {
             </div>
 
             {errorMessage && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-500 border border-red-200 flex justify-center text-center">
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20 flex justify-center text-center">
                 {errorMessage}
               </div>
             )}
@@ -168,7 +168,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex w-full justify-center items-center gap-2 rounded-md bg-blue-600 px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                className="flex w-full justify-center items-center gap-2 rounded-md bg-primary px-3 py-2.5 text-sm font-semibold leading-6 text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-70 disabled:cursor-not-allowed transition-all"
               >
                 {isPending ? "Autenticando..." : "Entrar na Plataforma"}
                 {!isPending && <ArrowRight className="h-4 w-4" />}

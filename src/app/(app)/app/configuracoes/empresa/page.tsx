@@ -9,12 +9,15 @@ export default async function CompanySettingsPage() {
     redirect("/select-org")
   }
 
+  // Pegamos a URL base do Azure
   const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || '';
-  const fullLogoUrl = company.logo ? `${baseUrl}/${company.logo}` : null;
 
+  // Montamos as 3 URLs completas dinamicamente
   const companyData = {
     ...company,
-    logo: fullLogoUrl
+    logo: company.logo ? `${baseUrl}/${company.logo}` : null,
+    logoMini: company.logoMini ? `${baseUrl}/${company.logoMini}` : null,
+    favicon: company.favicon ? `${baseUrl}/${company.favicon}` : null,
   }
 
   return (

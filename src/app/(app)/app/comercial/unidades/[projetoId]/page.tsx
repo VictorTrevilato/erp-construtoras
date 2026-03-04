@@ -54,7 +54,7 @@ export default async function ProjectStockPage({ params }: Props) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <Building2 className="h-8 w-8 text-gray-700" />
+                    <Building2 className="h-8 w-8 text-muted-foreground" />
                     {project.nome}
                 </h1>
                 <p className="text-muted-foreground">
@@ -68,13 +68,13 @@ export default async function ProjectStockPage({ params }: Props) {
                     <span className="text-[10px] text-muted-foreground uppercase font-bold">Total</span>
                     <span className="text-2xl font-bold">{totalUnits}</span>
                 </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-green-50 border-green-200">
-                    <span className="text-[10px] text-green-700 uppercase font-bold">Livres</span>
-                    <span className="text-2xl font-bold text-green-700">{availableUnits}</span>
+                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-success/10 border-success/20">
+                    <span className="text-[10px] text-success uppercase font-bold">Livres</span>
+                    <span className="text-2xl font-bold text-success">{availableUnits}</span>
                 </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-red-50 border-red-200">
-                    <span className="text-[10px] text-red-700 uppercase font-bold">Vendidas</span>
-                    <span className="text-2xl font-bold text-red-700">{soldUnits}</span>
+                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-destructive/10 border-destructive/20">
+                    <span className="text-[10px] text-destructive uppercase font-bold">Vendidas</span>
+                    <span className="text-2xl font-bold text-destructive">{soldUnits}</span>
                 </Card>
             </div>
         </div>

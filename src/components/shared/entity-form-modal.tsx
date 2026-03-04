@@ -12,6 +12,7 @@ import { Loader2, UserPlus, Search, UserCog } from "lucide-react"
 import { toast } from "sonner"
 import { createSimpleEntity, updateSimpleEntity, getEntityById, CreateEntityInput } from "@/app/actions/entities"
 import { fetchAddressByCep } from "@/app/actions/viacep"
+import { useWhiteLabelTheme } from "@/components/theme-wrapper" // <- HOOK
 
 interface EntityFormModalProps {
     isOpen: boolean
@@ -21,18 +22,19 @@ interface EntityFormModalProps {
 }
 
 export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: EntityFormModalProps) {
+    const { accentTheme } = useWhiteLabelTheme() // <- HOOK ADICIONADO
+    const themeAccentText = accentTheme === 'secondary' ? 'text-secondary' : 'text-primary'
+
     const [isPending, setIsPending] = useState(false)
     const [isLoadingData, setIsLoadingData] = useState(false)
     const [isFetchingCep, setIsFetchingCep] = useState(false)
     
-    // Estados do Form
     const [tipo, setTipo] = useState<'PF' | 'PJ'>('PF')
     const [estadoCivil, setEstadoCivil] = useState("")
     const [formData, setFormData] = useState<Partial<CreateEntityInput>>({})
 
     const isEditMode = !!entityIdToEdit
 
-    // Busca os dados se for Edição
     useEffect(() => {
         async function loadEntity() {
             if (isOpen && entityIdToEdit) {
@@ -42,13 +44,11 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                     setTipo(data.tipo as 'PF' | 'PJ')
                     setEstadoCivil(data.estadoCivil || "")
                     
-                    // Ajusta data de nascimento para input date (YYYY-MM-DD)
                     let dNasc = ""
                     if (data.dataNascimento) {
                         dNasc = new Date(data.dataNascimento).toISOString().split('T')[0]
                     }
 
-                    // Formata o Doc
                     let docFormatado = data.documento || ""
                     if (data.tipo === 'PF' && docFormatado.length === 11) docFormatado = docFormatado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
                     if (data.tipo === 'PJ' && docFormatado.length === 14) docFormatado = docFormatado.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
@@ -64,7 +64,6 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                 }
                 setIsLoadingData(false)
             } else if (isOpen && !entityIdToEdit) {
-                // Modo Cadastro: Limpa tudo
                 setTipo('PF')
                 setEstadoCivil("")
                 setFormData({})
@@ -109,7 +108,6 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                     cidade: res.data!.cidade,
                     uf: res.data!.uf
                 }))
-                //toast.success("Endereço preenchido automaticamente via Correios.")
             } else {
                 toast.error(res.message || "Erro ao buscar CEP.")
             }
@@ -177,7 +175,7 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                 
                 <DialogHeader className="p-6 pb-4 border-b shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        {isEditMode ? <UserCog className="w-5 h-5 text-amber-600" /> : <UserPlus className="w-5 h-5 text-blue-600" />}
+                        {isEditMode ? <UserCog className="w-5 h-5 text-warning" /> : <UserPlus className={`w-5 h-5 ${themeAccentText}`} />}
                         {isEditMode ? "Editar Dados da Entidade" : "Cadastrar Entidade Completa"}
                     </DialogTitle>
                     <DialogDescription>
@@ -187,15 +185,15 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
 
                 {isLoadingData ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-                        <p className="text-slate-500">Carregando dados...</p>
+                        <Loader2 className={`w-8 h-8 animate-spin mb-4 ${themeAccentText}`} />
+                        <p className="text-muted-foreground">Carregando dados...</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
                         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
                             
                             <div className="space-y-3 bg-slate-50 p-4 rounded-lg border">
-                                <Label className="text-sm font-bold uppercase text-slate-500">Classificação</Label>
+                                <Label className="text-sm font-bold uppercase text-muted-foreground">Classificação</Label>
                                 <RadioGroup value={tipo} onValueChange={(val: string) => setTipo(val as 'PF' | 'PJ')} className="flex gap-6" disabled={isEditMode}>
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="PF" id="pf" />
@@ -209,18 +207,18 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-sm font-bold uppercase text-slate-500 flex items-center gap-2">
+                                <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2">
                                     {tipo === 'PF' ? 'Dados Pessoais' : 'Dados da Empresa'}
                                     <Separator className="flex-1" />
                                 </h3>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>{tipo === 'PF' ? 'Nome Completo' : 'Razão Social'} <span className="text-red-500">*</span></Label>
+                                        <Label>{tipo === 'PF' ? 'Nome Completo' : 'Razão Social'} <span className="text-destructive">*</span></Label>
                                         <Input name="nome" placeholder={tipo === 'PF' ? 'Ex: João da Silva' : 'Ex: Empresa LTDA'} value={formData.nome || ""} onChange={e => handleFormChange('nome', e.target.value)} required />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>{tipo === 'PF' ? 'CPF' : 'CNPJ'} <span className="text-red-500">*</span></Label>
+                                        <Label>{tipo === 'PF' ? 'CPF' : 'CNPJ'} <span className="text-destructive">*</span></Label>
                                         <Input name="documento" placeholder={tipo === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'} value={formData.documento || ""} onChange={handleDocumentoChange} maxLength={tipo === 'PF' ? 14 : 18} disabled={isEditMode} required />
                                     </div>
                                 </div>
@@ -284,7 +282,7 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-sm font-bold uppercase text-slate-500 flex items-center gap-2">
+                                <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2">
                                     Contatos
                                     <Separator className="flex-1" />
                                 </h3>
@@ -309,7 +307,7 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-sm font-bold uppercase text-slate-500 flex items-center gap-2">
+                                <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2">
                                     Endereço
                                     <Separator className="flex-1" />
                                 </h3>
@@ -317,7 +315,7 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
                                     <div className="grid gap-2">
                                         <Label className="flex justify-between items-center">
                                             CEP
-                                            {isFetchingCep && <Loader2 className="w-3 h-3 animate-spin text-blue-500" />}
+                                            {isFetchingCep && <Loader2 className={`w-3 h-3 animate-spin ${themeAccentText}`} />}
                                         </Label>
                                         <div className="relative">
                                             <Input name="cep" placeholder="00000-000" value={formData.cep || ""} onChange={handleCepChange} maxLength={9} />
@@ -358,7 +356,7 @@ export function EntityFormModal({ isOpen, onClose, onSuccess, entityIdToEdit }: 
 
                         <DialogFooter className="p-4 bg-slate-50 border-t shrink-0 items-center">
                             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                            <Button type="submit" disabled={isPending} className="bg-blue-600 hover:bg-blue-700 min-w-[150px]">
+                            <Button type="submit" disabled={isPending} className="min-w-[150px]">
                                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {isEditMode ? "Salvar Alterações" : "Salvar e Vincular"}
                             </Button>

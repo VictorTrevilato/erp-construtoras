@@ -57,7 +57,7 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
   // Configuração Visual (Padronizada com Projetos)
   const ActionIcon = canEdit ? Pencil : Eye
   const actionLabel = canEdit ? "Editar cargo" : "Visualizar detalhes"
-  const iconColor = canEdit ? "text-blue-600" : "text-gray-500"
+  const iconColor = canEdit ? "text-primary" : "text-muted-foreground"
 
   // Regra de Negócio para Exclusão (Travada se houver usuários)
   const isBusinessLocked = userCount > 0
@@ -84,7 +84,6 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
         </Tooltip>
 
         {/* 2. Botão Excluir */}
-        {/* Só renderiza se tiver permissão. Se tiver permissão mas users > 0, renderiza desabilitado. */}
         {canDelete && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -94,7 +93,7 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className={!isBusinessLocked ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}
+                      className={!isBusinessLocked ? "text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors" : "text-muted-foreground/50 cursor-not-allowed"}
                       disabled={isBusinessLocked}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -102,7 +101,7 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                      <AlertDialogTitle className="text-foreground">Tem certeza absoluta?</AlertDialogTitle>
                       <AlertDialogDescription>
                         Esta ação não pode ser desfeita. Isso excluirá permanentemente o cargo.
                       </AlertDialogDescription>
@@ -111,7 +110,7 @@ export function RoleActions({ roleId, userCount }: RoleActionsProps) {
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleDelete}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         disabled={isDeleting}
                       >
                         {isDeleting ? "Excluindo..." : "Sim, excluir cargo"}

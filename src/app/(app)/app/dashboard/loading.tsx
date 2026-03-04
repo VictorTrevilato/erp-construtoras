@@ -4,7 +4,6 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 export default function DashboardLoading() {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="space-y-2">
         <Skeleton className="h-8 w-[200px]" />
         <Skeleton className="h-4 w-[150px]" />

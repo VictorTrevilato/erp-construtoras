@@ -5,7 +5,7 @@ import { ProjectForm } from "../_components/project-form"
 
 export default async function NewProjectPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session) redirect("/login") //Permissão
 
   const scopes = await getAvailableScopes()
 

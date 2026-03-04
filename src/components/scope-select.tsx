@@ -10,13 +10,13 @@ import {
 import { Building2, Home, HardHat, Folder, Landmark, CircleDashed } from "lucide-react"
 import React from "react" // Importante para o tipo ElementType
 
-// [CORREÇÃO] Trocamos 'any' por 'React.ElementType'
+// Trocamos as cores fixas (blue, purple, etc) pelas nossas variáveis dinâmicas e semânticas!
 const SCOPE_CONFIG: Record<string, { icon: React.ElementType, color: string }> = {
-  HOLDING:      { icon: Landmark,    color: "text-indigo-600" },
-  MATRIZ:       { icon: Building2,   color: "text-blue-600" },
-  FILIAL:       { icon: Home,        color: "text-purple-600" },
-  OBRA:         { icon: HardHat,     color: "text-orange-600" },
-  DEPARTAMENTO: { icon: Folder,      color: "text-gray-600" },
+  HOLDING:      { icon: Landmark,    color: "text-primary" },
+  MATRIZ:       { icon: Building2,   color: "text-info" }, 
+  FILIAL:       { icon: Home,        color: "text-secondary" },
+  OBRA:         { icon: HardHat,     color: "text-warning" },
+  DEPARTAMENTO: { icon: Folder,      color: "text-muted-foreground" },
 }
 
 interface ScopeOption {
@@ -40,7 +40,7 @@ export function ScopeSelect({ value, onValueChange, options, placeholder = "Sele
   const selectedOption = options.find(o => o.id === value)
   
   const selectedConfig = selectedOption 
-    ? SCOPE_CONFIG[selectedOption.tipo] || { icon: CircleDashed, color: "text-slate-500" }
+    ? SCOPE_CONFIG[selectedOption.tipo] || { icon: CircleDashed, color: "text-muted-foreground" }
     : null
   
   // O TypeScript agora sabe que SelectedIcon é um componente válido
@@ -49,7 +49,8 @@ export function ScopeSelect({ value, onValueChange, options, placeholder = "Sele
   return (
     <>
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger className={error ? "border-red-500" : ""}>
+        {/* Usando a cor semântica destrutiva para bordas de erro */}
+        <SelectTrigger className={error ? "border-destructive ring-destructive" : ""}>
           {selectedOption && SelectedIcon ? (
             <div className="flex items-center gap-2">
                <SelectedIcon className={`w-4 h-4 ${selectedConfig?.color}`} />
@@ -65,7 +66,7 @@ export function ScopeSelect({ value, onValueChange, options, placeholder = "Sele
         
         <SelectContent>
           {options.map((scope) => {
-            const config = SCOPE_CONFIG[scope.tipo] || { icon: CircleDashed, color: "text-slate-500" }
+            const config = SCOPE_CONFIG[scope.tipo] || { icon: CircleDashed, color: "text-muted-foreground" }
             const Icon = config.icon
             const indent = (scope.nivel - 1) * 16 
 
@@ -83,7 +84,8 @@ export function ScopeSelect({ value, onValueChange, options, placeholder = "Sele
           })}
         </SelectContent>
       </Select>
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {/* Usando a cor semântica destrutiva para o texto de erro */}
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </>
   )
 }

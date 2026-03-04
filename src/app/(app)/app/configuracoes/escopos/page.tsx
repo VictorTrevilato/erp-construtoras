@@ -15,7 +15,7 @@ export default async function ScopesPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Escopos de Trabalho</h1>
         <p className="text-muted-foreground">
-          Desenhe a hierarquia organizacional da sua empresa (Matriz, Filiais e Obras).
+          Desenhe a hierarquia organizacional da sua empresa.
         </p>
       </div>
 

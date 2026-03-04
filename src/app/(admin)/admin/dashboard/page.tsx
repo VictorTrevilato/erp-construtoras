@@ -1,18 +1,33 @@
 import { auth, signOut } from "@/auth"
+import { Button } from "@/components/ui/button"
+import { LogOut, CheckCircle2 } from "lucide-react"
 
 export default async function Dashboard() {
   const session = await auth()
 
   return (
-    <div className="p-10 font-sans">
-      <h1 className="text-2xl font-bold text-green-700">Login Realizado com Sucesso! 🔓</h1>
+    <div className="p-6 md:p-10 font-sans bg-background min-h-screen">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-success/10 text-success">
+          <CheckCircle2 className="h-6 w-6" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground">
+          Login Realizado com Sucesso! 🔓
+        </h1>
+      </div>
       
-      <div className="mt-6 p-4 bg-white shadow rounded border">
-        <h2 className="font-bold text-lg mb-2">Dados da Sessão (Auth.js + Prisma):</h2>
-        <ul className="space-y-1 text-gray-700">
-          <li><strong>Nome:</strong> {session?.user?.name}</li>
-          <li><strong>Email:</strong> {session?.user?.email}</li>
-          <li><strong>ID (Banco):</strong> {session?.user?.id}</li>
+      <div className="mt-8 p-6 bg-card text-card-foreground shadow-sm rounded-xl border border-border max-w-2xl">
+        <h2 className="font-bold text-lg mb-4">Dados da Sessão (Auth.js + Prisma):</h2>
+        <ul className="space-y-2 text-muted-foreground">
+          <li>
+            <strong className="text-foreground">Nome:</strong> {session?.user?.name}
+          </li>
+          <li>
+            <strong className="text-foreground">Email:</strong> {session?.user?.email}
+          </li>
+          <li>
+            <strong className="text-foreground">ID (Banco):</strong> {session?.user?.id}
+          </li>
         </ul>
       </div>
 
@@ -21,10 +36,12 @@ export default async function Dashboard() {
           "use server"
           await signOut({ redirectTo: "/login" })
         }}
+        className="mt-8"
       >
-        <button className="mt-6 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition">
+        <Button variant="destructive" type="submit" className="gap-2">
+          <LogOut className="h-4 w-4" />
           Sair do Sistema
-        </button>
+        </Button>
       </form>
     </div>
   )

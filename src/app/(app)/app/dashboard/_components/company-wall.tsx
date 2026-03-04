@@ -7,7 +7,7 @@ export function CompanyWall() {
       id: 1,
       type: "hr",
       icon: PartyPopper,
-      color: "text-pink-600 bg-pink-50",
+      color: "text-primary bg-primary/10",
       title: "Aniversariantes do Mês",
       content: "Confira a lista dos colaboradores que sopram as velinhas em Fevereiro! Teremos bolo na copa dia 25.",
       date: "Hoje, 09:00"
@@ -16,7 +16,7 @@ export function CompanyWall() {
       id: 2,
       type: "general",
       icon: Megaphone,
-      color: "text-blue-600 bg-blue-50",
+      color: "text-info bg-info/10",
       title: "Nova Política da Empresa",
       content: "A diretoria atualizou as diretrizes para o trabalho híbrido. Acesse o documento no drive compartilhado.",
       date: "Ontem"
@@ -25,7 +25,7 @@ export function CompanyWall() {
       id: 3,
       type: "event",
       icon: CalendarDays,
-      color: "text-orange-600 bg-orange-50",
+      color: "text-warning bg-warning/10",
       title: "Treinamento de Segurança",
       content: "Obrigatório para todas as equipes de engenharia. Sala de reuniões 2.",
       date: "12/02 - 14:00"
@@ -34,7 +34,7 @@ export function CompanyWall() {
       id: 4,
       type: "it",
       icon: Info,
-      color: "text-slate-600 bg-slate-100",
+      color: "text-muted-foreground bg-muted",
       title: "Manutenção no Servidor",
       content: "O sistema passará por instabilidade programada neste sábado à noite.",
       date: "Aviso Técnico"
@@ -45,7 +45,7 @@ export function CompanyWall() {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-blue-600" />
+          <Megaphone className="h-5 w-5 text-primary" />
           Mural de Avisos
         </CardTitle>
         <CardDescription>Fique por dentro do que acontece na empresa.</CardDescription>
@@ -58,13 +58,13 @@ export function CompanyWall() {
                 <item.icon className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium leading-none group-hover:text-blue-600 transition-colors cursor-pointer">
+                <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors cursor-pointer">
                   {item.title}
                 </p>
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.content}
                 </p>
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                   {item.date}
                 </p>
               </div>

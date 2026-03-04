@@ -36,15 +36,13 @@ export default async function UsersPage(props: { searchParams: SearchParams }) {
 
   const { data: users, meta } = await getUsers(page, pageSize, search, sortBy, sortDir)
 
-  // [CORREÇÃO] Tipagem explícita e conversão de BigInt para String
   const formattedUsers = (users as DatabaseUser[])?.map((user) => ({
     ...user,
     id: user.id.toString(),
   })) as UserData[]
 
   return (
-    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex">
-      {/* Agora passamos os dados formatados sem 'any' */}
+    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex bg-background">
       <UserClient initialData={formattedUsers || []} meta={meta} />
     </div>
   )

@@ -26,7 +26,7 @@ export default async function RolesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cargos e Permissões</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Cargos e Permissões</h1>
           <p className="text-muted-foreground">
             Defina os papéis dos usuários e o que cada um pode acessar no sistema.
           </p>
@@ -71,10 +71,10 @@ export default async function RolesPage() {
               ) : (
                 roles.map((role) => (
                   <TableRow key={role.id.toString()}>
-                    <TableCell className="font-medium">{role.nome}</TableCell>
-                    <TableCell>{role.descricao || "-"}</TableCell>
+                    <TableCell className="font-medium text-foreground">{role.nome}</TableCell>
+                    <TableCell className="text-muted-foreground">{role.descricao || "-"}</TableCell>
                     <TableCell>
-                      <Badge variant={role.interno ? "secondary" : "outline"}>
+                      <Badge variant={role.interno ? "default" : "secondary"}>
                         {role.interno ? "Interno (Equipe)" : "Externo (Portal)"}
                       </Badge>
                     </TableCell>

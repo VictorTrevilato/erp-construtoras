@@ -58,7 +58,7 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
   // Controle de Modal
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
-  const [isDuplicating, setIsDuplicating] = useState(false) // [NOVO] Flag para modo duplicação
+  const [isDuplicating, setIsDuplicating] = useState(false) 
   
   const [isPending, setIsPending] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -84,10 +84,9 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     setIsDialogOpen(true)
   }
 
-  // [NOVO] Ação de Duplicação
   const handleDuplicate = (campaign: Campaign) => {
     setEditingCampaign(campaign)
-    setIsDuplicating(true) // Ativa modo duplicação
+    setIsDuplicating(true) 
     setIsDialogOpen(true)
   }
 
@@ -96,10 +95,8 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     let res;
 
     if (isDuplicating && editingCampaign) {
-        // Modo Duplicação: Chama a action específica
         res = await duplicateCampaign(projetoId, editingCampaign.id, formData)
     } else {
-        // Modo Criar/Editar: Chama o upsert padrão
         const tabelaId = editingCampaign ? editingCampaign.id : null
         res = await upsertCampaign(projetoId, tabelaId, formData)
     }
@@ -136,19 +133,20 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
              <Calculator className="w-4 h-4" /> Simulador de Venda
         </Button>
 
-        <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" /> Nova Tabela
         </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-gray-50/50 items-end">
+          {/* Header de Filtros */}
+          <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-muted/50 items-end">
             <div className="flex-1 relative w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Buscar por nome ou código..." 
-                className="pl-8 bg-white"
+                className="pl-8 bg-background"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
@@ -156,11 +154,11 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
             <div className="flex gap-2 w-full md:w-auto">
                 <div className="grid gap-1 flex-1">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Vigência De</span>
-                    <Input type="date" className="bg-white" value={filterDateStart} onChange={e => setFilterDateStart(e.target.value)} />
+                    <Input type="date" className="bg-background" value={filterDateStart} onChange={e => setFilterDateStart(e.target.value)} />
                 </div>
                 <div className="grid gap-1 flex-1">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Até</span>
-                    <Input type="date" className="bg-white" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
+                    <Input type="date" className="bg-background" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
                 </div>
             </div>
           </div>
@@ -180,16 +178,16 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma tabela encontrada.</TableCell></TableRow>
               ) : (
                 filteredCampaigns.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-slate-50">
-                    <TableCell className="font-bold text-gray-800">{c.codigo}</TableCell>
-                    <TableCell className="text-gray-600">{c.nome}</TableCell>
-                    <TableCell className="text-gray-600">
+                  <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-bold text-foreground">{c.codigo}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.nome}</TableCell>
+                    <TableCell className="text-muted-foreground">
                         <div className="flex items-center gap-2">
                            <CalendarIcon className="w-3 h-3 text-muted-foreground" />
                            {fmtDate(c.vigenciaInicial)} até {fmtDate(c.vigenciaFinal)}
                         </div>
                     </TableCell>
-                    <TableCell className="text-gray-600">{Number(c.taxaJuros).toFixed(2)}%</TableCell>
+                    <TableCell className="text-muted-foreground">{Number(c.taxaJuros).toFixed(2)}%</TableCell>
                     
                     <TableCell className="text-right">
                        <div className="flex justify-end gap-1">
@@ -197,18 +195,17 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" asChild>
                                  <Link href={`/app/comercial/tabelas/${projetoId}/editar/${c.id}`}>
-                                    <ArrowRight className="h-4 w-4 text-green-600" />
+                                    <ArrowRight className="h-4 w-4 text-success" />
                                  </Link>
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Acessar Configurações</TooltipContent>
                            </Tooltip>
 
-                           {/* [NOVO] Botão Duplicar */}
                            <Tooltip>
                              <TooltipTrigger asChild>
-                               <Button variant="ghost" size="icon" onClick={() => handleDuplicate(c)}>
-                                  <Copy className="h-4 w-4 text-amber-600" />
+                               <Button variant="ghost" size="icon" onClick={() => handleDuplicate(c)} className="hover:bg-warning/10 hover:text-warning">
+                                  <Copy className="h-4 w-4 text-warning" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Duplicar Tabela</TooltipContent>
@@ -216,8 +213,8 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
 
                            <Tooltip>
                              <TooltipTrigger asChild>
-                               <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
-                                  <Edit2 className="h-4 w-4 text-blue-600" />
+                               <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="hover:bg-primary/10 hover:text-primary">
+                                  <Edit2 className="h-4 w-4 text-primary" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Editar Propriedades</TooltipContent>
@@ -225,8 +222,8 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
 
                            <Tooltip>
                              <TooltipTrigger asChild>
-                               <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
+                               <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)} className="hover:bg-destructive/10 hover:text-destructive">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Excluir Tabela</TooltipContent>
@@ -301,7 +298,6 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                         <Input 
                             name="vigenciaInicial" 
                             type="date" 
-                            // Na duplicação, limpamos as datas para forçar o usuário a escolher um período válido (sem colisão)
                             defaultValue={
                                 isDuplicating 
                                 ? "" 
@@ -347,7 +343,7 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Confirmar Exclusão
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -57,7 +57,7 @@ function GridInput({ value, onChange, disabled, className }: GridInputProps) {
         <div className="relative w-full">
             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none font-medium z-10">R$</span>
             <Input 
-                className={cn("h-8 bg-white border-slate-300 focus:border-blue-500 text-right pl-8", className)}
+                className={cn("h-8 bg-background border-input focus:border-primary focus:ring-1 text-right pl-8", className)}
                 value={displayValue}
                 onChange={handleChange}
                 onFocus={(e) => e.target.select()}
@@ -88,9 +88,7 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     
     // --- CONTROLE DE TRAVA ---
-    // Trava de Segurança
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    // Se está formalizando, NUNCA destrava. Se está aprovado, destrava se o usuário clicar.
     const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
     const [isPending, setIsPending] = useState(false)
 
@@ -170,12 +168,11 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
         
         setIsPending(true)
 
-        // Limpa e formata os dados para a Action
         const payload = data.map(d => ({
             tipo: d.tipo,
-            vencimento: new Date(d.vencimento + "T12:00:00Z"), // Força meio-dia para evitar bug de fuso
+            vencimento: new Date(d.vencimento + "T12:00:00Z"),
             valor: d.valor,
-            parcela: 0 // A Action recalcula a numeração exata
+            parcela: 0 
         }))
 
         const unlockTriggered = proposal.status === 'APROVADO' && isUnlocked
@@ -196,40 +193,40 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
             
             {/* ALERTAS DE BLOQUEIO */}
             {isFormalizing ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-red-100 rounded-full h-fit text-red-600">
+                        <div className="p-2 bg-destructive/20 rounded-full h-fit text-destructive">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-800 text-sm">Edição Bloqueada</h4>
-                            <p className="text-sm text-red-700 mt-0.5">
+                            <h4 className="font-bold text-destructive text-sm">Edição Bloqueada</h4>
+                            <p className="text-sm text-destructive/80 mt-0.5">
                                 A proposta está em fase de formalização/assinatura. Nenhuma edição pode ser feita.
                             </p>
                         </div>
                     </div>
                 </div>
             ) : proposal.status === 'APROVADO' && !isUnlocked && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-amber-100 rounded-full h-fit text-amber-600">
+                        <div className="p-2 bg-warning/20 rounded-full h-fit text-warning">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-amber-800 text-sm">Proposta Aprovada</h4>
-                            <p className="text-sm text-amber-700 mt-0.5">
+                            <h4 className="font-bold text-warning text-sm">Proposta Aprovada</h4>
+                            <p className="text-sm text-warning/80 mt-0.5">
                                 Os dados estão bloqueados. Edições alterarão o status de volta para &quot;Em Análise&quot;.
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-white border-amber-300 text-amber-700 hover:bg-amber-100" onClick={() => setIsUnlocked(true)}>
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
                         <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
                     </Button>
                 </div>
             )}
 
             {isUnlocked && proposal.status === 'APROVADO' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 flex items-center gap-2 font-medium">
+                <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info flex items-center gap-2 font-medium">
                     <AlertTriangle className="w-4 h-4" />
                     Atenção: Ao salvar, o status retornará para &quot;Em Análise&quot; e o agrupamento das Condições (Aba 2) será recriado.
                 </div>
@@ -237,12 +234,12 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
 
             {/* BARRA DE AÇÕES (Sticky Top estilo Excel) */}
             <div className={cn("sticky top-4 z-20 transition-all", !isUnlocked && "opacity-60 pointer-events-none")}>
-                <Card className="bg-slate-50 border-slate-200 shadow-md">
+                <Card className="bg-muted/50 border-border shadow-md">
                     <CardContent className="p-4 flex flex-wrap items-end gap-4">
                         <div className="grid gap-1.5 w-32">
                             <label className="text-[10px] font-bold uppercase text-muted-foreground">Tipo</label>
                             <Select value={bulkType} onValueChange={setBulkType} disabled={!isUnlocked}>
-                                <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                                <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Tipo" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ALL">Manter Atual</SelectItem>
                                     {TIPO_OPCOES.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
@@ -253,7 +250,7 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                             <label className="text-[10px] font-bold uppercase text-muted-foreground">Data Exata</label>
                             <Input 
                                 type="date" 
-                                className="h-9 bg-white" 
+                                className="h-9 bg-background" 
                                 value={bulkDate} 
                                 onChange={e => setBulkDate(e.target.value)} 
                                 disabled={!isUnlocked}
@@ -267,15 +264,15 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                 disabled={!isUnlocked}
                             />
                         </div>
-                        <Button onClick={applyBulk} variant="secondary" className="mb-[1px] border bg-white hover:bg-slate-100" disabled={!isUnlocked}>
+                        <Button onClick={applyBulk} variant="secondary" className="mb-[1px]" disabled={!isUnlocked}>
                             <Calculator className="mr-2 h-4 w-4" /> Aplicar aos {selectedIds.size} marcados
                         </Button>
 
                         <div className="flex-1 flex justify-end gap-2">
-                            <Button variant="outline" className="mb-[1px] bg-white text-red-600 hover:text-red-700 hover:bg-red-50" onClick={removeSelectedRows} disabled={!isUnlocked || selectedIds.size === 0}>
+                            <Button variant="outline" className="mb-[1px] text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={removeSelectedRows} disabled={!isUnlocked || selectedIds.size === 0}>
                                 <Trash2 className="h-4 w-4" /> Excluir
                             </Button>
-                            <Button variant="outline" className="mb-[1px] bg-white border-blue-200 text-blue-700 hover:bg-blue-50" onClick={addRow} disabled={!isUnlocked}>
+                            <Button variant="outline" className="mb-[1px] border-primary/30 text-primary hover:bg-primary/10" onClick={addRow} disabled={!isUnlocked}>
                                 <Plus className="mr-2 h-4 w-4" /> Adicionar Parcela
                             </Button>
                         </div>
@@ -284,9 +281,9 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
             </div>
 
             {/* TABELA FLUXO FINO */}
-            <div className={cn("border rounded-md bg-white shadow-sm overflow-x-auto transition-all", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
+            <div className={cn("border rounded-md bg-background shadow-sm overflow-x-auto transition-all", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
                 <Table className="whitespace-nowrap">
-                    <TableHeader className="bg-slate-100">
+                    <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="w-10 text-center">
                                 <Checkbox 
@@ -295,11 +292,11 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                     disabled={!isUnlocked}
                                 />
                             </TableHead>
-                            <TableHead className="w-16 text-center text-xs font-bold text-slate-500 uppercase">#</TableHead>
-                            <TableHead className="w-48 text-xs font-bold text-slate-500 uppercase">Tipo / Classificação</TableHead>
-                            <TableHead className="w-48 text-xs font-bold text-slate-500 uppercase">Data de Vencimento</TableHead>
-                            <TableHead className="w-56 text-right text-xs font-bold text-slate-500 uppercase">Valor Nominal</TableHead>
-                            <TableHead className="text-right text-xs font-bold text-slate-500 uppercase">% Ref.</TableHead>
+                            <TableHead className="w-16 text-center text-xs font-bold text-muted-foreground uppercase">#</TableHead>
+                            <TableHead className="w-48 text-xs font-bold text-muted-foreground uppercase">Tipo / Classificação</TableHead>
+                            <TableHead className="w-48 text-xs font-bold text-muted-foreground uppercase">Data de Vencimento</TableHead>
+                            <TableHead className="w-56 text-right text-xs font-bold text-muted-foreground uppercase">Valor Nominal</TableHead>
+                            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase">% Ref.</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -310,7 +307,7 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                 const percentual = proposal.valorProposta > 0 ? (row.valor / proposal.valorProposta) * 100 : 0
 
                                 return (
-                                    <TableRow key={row.id} className={selectedIds.has(row.id) ? "bg-blue-50/50" : ""}>
+                                    <TableRow key={row.id} className={selectedIds.has(row.id) ? "bg-primary/10" : ""}>
                                         <TableCell className="text-center">
                                             <Checkbox 
                                                 checked={selectedIds.has(row.id)} 
@@ -319,13 +316,13 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                             />
                                         </TableCell>
                                         
-                                        <TableCell className="text-center font-bold text-slate-400">
+                                        <TableCell className="text-center font-bold text-muted-foreground">
                                             {index + 1}
                                         </TableCell>
 
                                         <TableCell className="p-2">
                                             <Select value={row.tipo} onValueChange={(v) => updateRow(row.id, 'tipo', v)} disabled={!isUnlocked}>
-                                                <SelectTrigger className="h-8 bg-white border-transparent hover:border-slate-300">
+                                                <SelectTrigger className="h-8 bg-background border-transparent hover:border-input">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -339,7 +336,7 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                                 type="date" 
                                                 value={row.vencimento}
                                                 onChange={(e) => updateRow(row.id, 'vencimento', e.target.value)}
-                                                className="h-8 bg-white border-transparent hover:border-slate-300"
+                                                className="h-8 bg-background border-transparent hover:border-input"
                                                 disabled={!isUnlocked}
                                             />
                                         </TableCell>
@@ -349,11 +346,11 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                                                 value={row.valor}
                                                 onChange={(v) => updateRow(row.id, 'valor', v)}
                                                 disabled={!isUnlocked}
-                                                className="border-transparent hover:border-slate-300 focus:border-blue-500 font-bold text-slate-700"
+                                                className="border-transparent hover:border-input focus:border-primary font-bold text-foreground"
                                             />
                                         </TableCell>
 
-                                        <TableCell className="text-right text-xs font-semibold text-slate-400 bg-slate-50/50">
+                                        <TableCell className="text-right text-xs font-semibold text-muted-foreground bg-muted/30">
                                             {percentual.toFixed(2)}%
                                         </TableCell>
                                     </TableRow>
@@ -361,30 +358,30 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                             })
                         )}
                     </TableBody>
-                    <TableFooter className="border-t-2 border-slate-300">
-                        <TableRow className="bg-slate-50">
-                            <TableCell colSpan={4} className="text-right text-sm font-bold text-slate-600 uppercase tracking-tight pr-4">
+                    <TableFooter className="border-t-2 border-border">
+                        <TableRow className="bg-muted/50">
+                            <TableCell colSpan={4} className="text-right text-sm font-bold text-muted-foreground uppercase tracking-tight pr-4">
                                 Soma das Parcelas
                             </TableCell>
-                            <TableCell className={cn("text-right text-base font-black", isValid ? "text-emerald-600" : "text-red-600")}>
+                            <TableCell className={cn("text-right text-base font-black", isValid ? "text-success" : "text-destructive")}>
                                 {fmtCurrency(totalInstallments)}
                             </TableCell>
                             <TableCell></TableCell>
                         </TableRow>
-                        <TableRow className="bg-white">
-                            <TableCell colSpan={4} className="text-right text-sm font-bold text-slate-600 uppercase tracking-tight pr-4">
+                        <TableRow className="bg-background">
+                            <TableCell colSpan={4} className="text-right text-sm font-bold text-muted-foreground uppercase tracking-tight pr-4">
                                 Valor da Proposta
                             </TableCell>
-                            <TableCell className="text-right text-base font-black text-blue-800">
+                            <TableCell className="text-right text-base font-black text-primary">
                                 {fmtCurrency(proposal.valorProposta)}
                             </TableCell>
                             <TableCell></TableCell>
                         </TableRow>
-                        <TableRow className={isValid ? "bg-emerald-50" : "bg-red-50"}>
+                        <TableRow className={isValid ? "bg-success/10" : "bg-destructive/10"}>
                             <TableCell colSpan={4} className="text-right text-xs font-bold uppercase tracking-tight pr-4">
-                                <span className={isValid ? "text-emerald-700" : "text-red-600"}>Diferença Restante</span>
+                                <span className={isValid ? "text-success" : "text-destructive"}>Diferença Restante</span>
                             </TableCell>
-                            <TableCell className={cn("text-right text-sm font-black", isValid ? "text-emerald-600" : "text-red-600")}>
+                            <TableCell className={cn("text-right text-sm font-black", isValid ? "text-success" : "text-destructive")}>
                                 {fmtCurrency(difference)}
                             </TableCell>
                             <TableCell></TableCell>
@@ -402,7 +399,7 @@ export function ProposalInstallmentsTab({ proposal, initialInstallments }: Props
                     
                     <Button 
                         size="lg" 
-                        className="bg-emerald-600 hover:bg-emerald-700 min-w-[200px]" 
+                        className="min-w-[200px]" 
                         onClick={handleSave} 
                         disabled={isPending || !isValid}
                     >

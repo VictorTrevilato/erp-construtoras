@@ -69,15 +69,15 @@ export function ProposalsList({ proposals, projetoId }: Props) {
   // Estilização de Status Específica
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'APROVADO': return "bg-emerald-100 text-emerald-800 border-emerald-200"
-      case 'FORMALIZADA': return "bg-indigo-100 text-indigo-800 border-indigo-200"
-      case 'EM_ASSINATURA': return "bg-purple-100 text-purple-800 border-purple-200"
-      case 'ASSINADO': return "bg-emerald-600 text-white border-emerald-700"
-      case 'REPROVADO': return "bg-red-100 text-red-800 border-red-200"
-      case 'CANCELADO': return "bg-slate-800 text-white border-slate-900"
-      case 'EM_ANALISE': return "bg-blue-100 text-blue-800 border-blue-200"
-      case 'RASCUNHO': return "bg-slate-100 text-slate-600 border-slate-200"
-      default: return "bg-slate-100 text-slate-800"
+      case 'APROVADO': return "bg-success/20 text-success border-success/30"
+      case 'FORMALIZADA': return "bg-primary/20 text-primary border-primary/30"
+      case 'EM_ASSINATURA': return "bg-primary/20 text-primary border-primary/30"
+      case 'ASSINADO': return "bg-success text-success-foreground border-success/30"
+      case 'REPROVADO': return "bg-destructive/20 text-destructive border-destructive/30"
+      case 'CANCELADO': return "bg-muted text-muted-foreground border-border"
+      case 'EM_ANALISE': return "bg-info/20 text-info border-info/30"
+      case 'RASCUNHO': return "bg-muted/50 text-muted-foreground border-border"
+      default: return "bg-muted text-muted-foreground"
     }
   }
 
@@ -118,23 +118,23 @@ export function ProposalsList({ proposals, projetoId }: Props) {
 
       if (validade < hoje) {
           return (
-              <div className="flex items-center gap-1.5 text-slate-600" title="Proposta Vencida">
-                  <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+              <div className="flex items-center gap-1.5 text-muted-foreground" title="Proposta Vencida">
+                  <AlertCircle className="w-3.5 h-3.5 text-destructive" />
                   <span>{formattedDate}</span>
               </div>
           )
       }
       if (validade.getTime() === hoje.getTime()) {
           return (
-              <div className="flex items-center gap-1.5 text-slate-600" title="Vence Hoje">
-                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <div className="flex items-center gap-1.5 text-muted-foreground" title="Vence Hoje">
+                  <Clock className="w-3.5 h-3.5 text-warning" />
                   <span>{formattedDate}</span>
               </div>
           )
       }
       return (
-          <div className="flex items-center gap-1.5 text-slate-600" title="No Prazo">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+          <div className="flex items-center gap-1.5 text-muted-foreground" title="No Prazo">
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
               <span>{formattedDate}</span>
           </div>
       )
@@ -144,13 +144,13 @@ export function ProposalsList({ proposals, projetoId }: Props) {
     <TooltipProvider>
       <Card>
         <CardContent className="p-0">
-          <div className="flex flex-col xl:flex-row gap-4 p-4 border-b bg-gray-50/50 xl:items-end">
+          <div className="flex flex-col xl:flex-row gap-4 p-4 border-b bg-muted/30 xl:items-end">
             {/* Texto */}
             <div className="flex-1 relative min-w-[250px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Buscar por cliente, unidade ou tabela..." 
-                className="pl-8 bg-white"
+                className="pl-8 bg-background"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
@@ -159,7 +159,7 @@ export function ProposalsList({ proposals, projetoId }: Props) {
             {/* Seletores */}
             <div className="flex gap-2 w-full xl:w-auto">
                 <Select value={filterBlock} onValueChange={setFilterBlock}>
-                  <SelectTrigger className="w-[140px] bg-white"><SelectValue placeholder="Bloco" /></SelectTrigger>
+                  <SelectTrigger className="w-[140px] bg-background"><SelectValue placeholder="Bloco" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Todos Blocos</SelectItem>
                     {uniqueBlocks.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -167,7 +167,7 @@ export function ProposalsList({ proposals, projetoId }: Props) {
                 </Select>
                 
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectTrigger className="w-[160px] bg-background"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Todos Status</SelectItem>
                     <SelectItem value="RASCUNHO">Rascunho</SelectItem>
@@ -186,11 +186,11 @@ export function ProposalsList({ proposals, projetoId }: Props) {
             <div className="flex gap-2 w-full xl:w-auto">
                 <div className="grid gap-1 flex-1 xl:w-[130px]">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">De</span>
-                    <Input type="date" className="bg-white" value={filterDateStart} onChange={e => setFilterDateStart(e.target.value)} />
+                    <Input type="date" className="bg-background" value={filterDateStart} onChange={e => setFilterDateStart(e.target.value)} />
                 </div>
                 <div className="grid gap-1 flex-1 xl:w-[130px]">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Até</span>
-                    <Input type="date" className="bg-white" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
+                    <Input type="date" className="bg-background" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
                 </div>
             </div>
           </div>
@@ -212,13 +212,13 @@ export function ProposalsList({ proposals, projetoId }: Props) {
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma proposta encontrada.</TableCell></TableRow>
               ) : (
                 filteredProposals.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-slate-50">
+                  <TableRow key={p.id} className="hover:bg-muted/50">
                     
                     {/* Estilo Bloco/Unidade (Idêntico a Gestão de Unidades) */}
                     <TableCell>
                        <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground uppercase">{p.bloco}</span>
-                          <span className="font-bold text-base text-gray-800">{p.unidade}</span>
+                          <span className="font-bold text-base text-foreground">{p.unidade}</span>
                        </div>
                     </TableCell>
                     
@@ -231,18 +231,18 @@ export function ProposalsList({ proposals, projetoId }: Props) {
                     <TableCell>
                         {/* REGRA LGPD: Swap de ícone sem layout shift e Blur */}
                         <div className="flex items-center gap-2 group cursor-default w-fit">
-                            <EyeOff className="w-4 h-4 text-slate-400 group-hover:hidden" />
-                            <Eye className="w-4 h-4 text-slate-400 hidden group-hover:block" />
-                            <span className="font-medium text-slate-800 blur-sm group-hover:blur-none transition-all duration-300">
+                            <EyeOff className="w-4 h-4 text-muted-foreground/70 group-hover:hidden" />
+                            <Eye className="w-4 h-4 text-muted-foreground/70 hidden group-hover:block" />
+                            <span className="font-medium text-foreground blur-sm group-hover:blur-none transition-all duration-300">
                                 {p.compradorNome}
                             </span>
                         </div>
                     </TableCell>
                     
-                    <TableCell className="text-slate-600 text-sm">{fmtDate(p.dataProposta)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{fmtDate(p.dataProposta)}</TableCell>
                     <TableCell className="text-sm">{renderValidade(p.validade)}</TableCell>
                     
-                    <TableCell className="text-right font-bold text-green-700 text-sm">
+                    <TableCell className="text-right font-bold text-success text-sm">
                         {fmtCurrency(p.valorProposta)}
                     </TableCell>
                     
@@ -253,7 +253,7 @@ export function ProposalsList({ proposals, projetoId }: Props) {
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" asChild>
                                  <Link href={`/app/comercial/propostas/${projetoId}/editar/${p.id}`}>
-                                    <Edit2 className="h-4 w-4 text-blue-600" />
+                                    <Edit2 className="h-4 w-4 text-primary" />
                                  </Link>
                                </Button>
                              </TooltipTrigger>
@@ -270,7 +270,7 @@ export function ProposalsList({ proposals, projetoId }: Props) {
                                     onClick={() => setDeleteId(p.id)}
                                     disabled={p.status !== 'RASCUNHO'}
                                  >
-                                    <Trash2 className={p.status === 'RASCUNHO' ? "h-4 w-4 text-red-500" : "h-4 w-4 text-slate-300"} />
+                                    <Trash2 className={p.status === 'RASCUNHO' ? "h-4 w-4 text-destructive" : "h-4 w-4 text-muted-foreground/30"} />
                                  </Button>
                                </span>
                              </TooltipTrigger>
@@ -299,7 +299,7 @@ export function ProposalsList({ proposals, projetoId }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleDelete} variant="destructive">
               Confirmar Exclusão
             </AlertDialogAction>
           </AlertDialogFooter>

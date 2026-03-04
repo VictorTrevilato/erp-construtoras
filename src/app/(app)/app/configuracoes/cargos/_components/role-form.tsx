@@ -61,10 +61,10 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
       {/* Cabeçalho e Botões */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             {initialData ? "Editar Cargo" : "Novo Cargo"}
             {readOnly && (
-              <Badge variant="outline" className="text-amber-600 border-amber-600 gap-1">
+              <Badge variant="outline" className="text-warning border-warning gap-1">
                 <Lock className="w-3 h-3"/> Somente Leitura
               </Badge>
             )}
@@ -117,7 +117,7 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
                 defaultValue={initialData?.nome} 
                 disabled={readOnly} 
               />
-              {state.errors?.nome && <p className="text-sm text-red-500">{state.errors.nome[0]}</p>}
+              {state.errors?.nome && <p className="text-sm text-destructive">{state.errors.nome[0]}</p>}
             </div>
             
             <div className="space-y-2">
@@ -135,7 +135,7 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
 
         {/* Matriz de Permissões */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <CheckSquare className="h-5 w-5" />
             Permissões de Acesso
           </h3>
@@ -143,17 +143,17 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
             {sortedCategories.map((category) => (
               <Card key={category} className="flex flex-col overflow-hidden">
-                <CardHeader className="pb-3 bg-gray-50/50 border-b">
+                <CardHeader className="pb-3 bg-muted/50 border-b border-border">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-medium">{category}</CardTitle>
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge className="text-xs">
                       {groupedPermissions[category].length}
                     </Badge>
                   </div>
                 </CardHeader>
                 
                 {/* [AJUSTE DE UI] CardContent sem padding + Div interna com scroll e altura máxima */}
-                <CardContent className="p-0">
+                <CardContent className="p-0 bg-background">
                   <div className="h-[320px] overflow-y-auto p-4 space-y-4 pr-2">
                     {/* Adicionei 'pr-2' para dar um respiro pro scrollbar não colar no texto */}
                     

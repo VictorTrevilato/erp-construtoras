@@ -5,7 +5,7 @@ import { NegotiationProjectsList } from "./_components/negotiation-projects-list
 
 export default async function NegotiationProjectsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session) redirect("/login") // Permissão
 
   const projects = await getProjectsForNegotiation()
 

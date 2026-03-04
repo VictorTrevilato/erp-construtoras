@@ -19,10 +19,10 @@ export default async function DashboardPage() {
       
       {/* 1. Header Simples e Pessoal */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Olá, {userName}
         </h1>
-        <p className="text-slate-500 capitalize text-sm">
+        <p className="text-muted-foreground capitalize text-sm">
           {today}
         </p>
       </div>
@@ -37,8 +37,8 @@ export default async function DashboardPage() {
           
           {/* Seção Extra: Links Rápidos Genéricos */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             {['Portal do Colaborador', 'Suporte TI', 'Reservas de Sala', 'Documentos'].map((item) => (
-                <div key={item} className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm text-center text-sm font-medium text-slate-600 hover:text-blue-600 hover:border-blue-200 cursor-pointer transition-colors">
+             {['Portal', 'Suporte TI', 'Reservas de Sala', 'Documentos'].map((item) => (
+                <div key={item} className="bg-card p-4 rounded-lg border border-border shadow-sm text-center text-sm font-medium text-muted-foreground hover:text-primary hover:border-primary/50 cursor-pointer transition-colors">
                   {item}
                 </div>
              ))}

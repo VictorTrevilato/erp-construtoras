@@ -42,7 +42,7 @@ export default function MeLoading() {
             </div>
 
             {/* Esqueleto da secao de Senha */}
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-5 w-32" />
                 <Skeleton className="h-9 w-36" />

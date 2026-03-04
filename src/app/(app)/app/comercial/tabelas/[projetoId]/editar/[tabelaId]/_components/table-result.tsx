@@ -50,20 +50,20 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                             {/* === BLOCO 1: PRODUTO & PREÇO === */}
                             
                             {/* Unidade + Bloco Unificado (Sticky Left) */}
-                            <TableHead className="w-24 font-bold text-gray-900 sticky left-0 z-30 bg-white border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm">
+                            <TableHead className="w-24 font-bold text-foreground sticky left-0 z-30 bg-background border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm">
                                 Unidade
                             </TableHead>
                             
-                            <TableHead className="w-24 text-right text-sm text-gray-700 bg-white border-y h-12">Área</TableHead>
-                            <TableHead className="text-right text-sm w-28 text-gray-700 bg-white border-y h-12">Valor m²</TableHead>
+                            <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área</TableHead>
+                            <TableHead className="text-right text-sm w-28 text-muted-foreground bg-background border-y h-12">Valor m²</TableHead>
                             
                             {/* Colunas de Fatores */}
-                            <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Corr.</TableHead>
-                            <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Andar</TableHead>
-                            <TableHead className="text-right text-sm w-24 text-gray-700 bg-white border-y h-12">% Dir</TableHead>
+                            <TableHead className="text-right text-sm w-24 text-muted-foreground bg-background border-y h-12">% Corr.</TableHead>
+                            <TableHead className="text-right text-sm w-24 text-muted-foreground bg-background border-y h-12">% Andar</TableHead>
+                            <TableHead className="text-right text-sm w-24 text-muted-foreground bg-background border-y h-12">% Dir</TableHead>
                             
                             {/* Valor Final */}
-                            <TableHead className="text-right text-sm w-32 text-gray-900 font-semibold bg-white border-y border-r rounded-r-lg h-12">
+                            <TableHead className="text-right text-sm w-32 text-foreground font-semibold bg-background border-y border-r rounded-r-lg h-12">
                                 Valor Final
                             </TableHead>
                             
@@ -80,10 +80,10 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                                 return (
                                     <TableHead 
                                         key={idx} 
-                                        className={`text-right min-w-[100px] bg-white border-y border-r-0 last:border-r h-12 ${roundedClass}`}
+                                        className={`text-right min-w-[100px] bg-background border-y border-r-0 last:border-r h-12 ${roundedClass}`}
                                     >
                                         <div className="flex flex-col items-end py-1 px-2">
-                                            <span className="font-semibold text-xs text-gray-900 uppercase">{flow.tipo}</span>
+                                            <span className="font-semibold text-xs text-foreground uppercase">{flow.tipo}</span>
                                             <span className="text-[10px] text-muted-foreground font-normal">
                                                 {flow.qtdeParcelas}x de {Number(flow.percentual).toFixed(2)}%
                                             </span>
@@ -135,35 +135,35 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                                     {/* === BLOCO 1 === */}
                                     
                                     {/* Célula Unificada Sticky (Bloco em cima, Unidade em baixo) */}
-                                    <TableCell className="border-y border-l sticky left-0 z-10 bg-white group-hover:bg-slate-50 py-3 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                    <TableCell className="border-y border-l sticky left-0 z-10 bg-background group-hover:bg-muted/50 py-3 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                         <div className="flex flex-col">
                                             <span className="text-xs text-muted-foreground">{row.blocoNome}</span>
-                                            <span className="font-bold text-sm text-gray-900">{row.unidade}</span>
+                                            <span className="font-bold text-sm text-foreground">{row.unidade}</span>
                                         </div>
                                     </TableCell>
                                     
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(row.areaPrivativa)}
                                     </TableCell>
                                     
                                     {/* Dados de Cálculo */}
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(row.valorMetroQuadrado)}
                                     </TableCell>
                                     
                                     {/* Correção (8 casas) */}
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(row.fatorCorrecao, 8)}
                                     </TableCell>
 
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(row.fatorAndar, 4)}
                                     </TableCell>
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(row.fatorDiretoria, 4)}
                                     </TableCell>
                                     
-                                    <TableCell className="text-right text-sm text-gray-900 font-medium border-y border-r rounded-r-md bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-foreground font-medium border-y border-r rounded-r-md bg-background group-hover:bg-muted/50">
                                         {fmtCurrency(valFinal)}
                                     </TableCell>
 
@@ -179,10 +179,10 @@ export function TableResult({ priceData, flows }: { priceData: PriceRow[], flows
                                         return (
                                             <TableCell 
                                                 key={idx} 
-                                                className={`text-right text-sm border-y border-r-0 last:border-r bg-white group-hover:bg-slate-50 px-4 ${roundedClass}`}
+                                                className={`text-right text-sm border-y border-r-0 last:border-r bg-background group-hover:bg-muted/50 px-4 ${roundedClass}`}
                                             >
                                                 <div className="flex flex-col gap-0.5">
-                                                    <span className="font-normal text-gray-700">
+                                                    <span className="font-normal text-muted-foreground">
                                                         {fmtCurrency(flow.valorParcela)}
                                                     </span>
                                                     {flow.qtdeParcelas > 1 && (

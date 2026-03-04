@@ -1,17 +1,31 @@
-import { Sidebar } from "@/components/sidebar"
+import { SidebarLayout } from "@/components/sidebar"
 import { ThemeWrapper } from "@/components/theme-wrapper"
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic"
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+
+  if (!session?.user?.isSuperAdmin) {
+    redirect("/app/dashboard")
+  }
+
   return (
     <ThemeWrapper theme="theme-admin">
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar title="VHF System" color="bg-purple-700" profile="admin" showTenantSwitch={false} />
-        <main className="flex-1 ml-72 p-8 overflow-y-auto">
-          <div className="min-h-screen w-full">
-            {children}
-          </div>
-        </main>
-      </div>
+      <SidebarLayout 
+        title="VHF Admin" 
+        logoUrl={null} 
+        logoMiniUrl={null}
+        profile="admin" 
+        showTenantSwitch={true}
+        sidebarTheme="primary"
+        sidebarNavTheme="primary"
+        tooltipsTheme="primary"
+      >
+        {children}
+      </SidebarLayout>
     </ThemeWrapper>
   )
 }

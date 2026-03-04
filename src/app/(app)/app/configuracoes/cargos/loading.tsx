@@ -19,7 +19,7 @@ export default function Loading() {
           <Skeleton className="h-4 w-full max-w-md" />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-border">
             <Table>
               <TableHeader>
                 <TableRow>

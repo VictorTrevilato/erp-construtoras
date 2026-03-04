@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export default function LoadingTables() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
       <div className="flex flex-col gap-2">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-4 w-96" />

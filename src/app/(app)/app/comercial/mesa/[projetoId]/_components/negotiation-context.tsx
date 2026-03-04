@@ -25,8 +25,8 @@ interface NegotiationContextType {
 
     // Dados do Formulário (Persistência)
     lead: LeadData
-    setLead: (lead: LeadData) => void // Aceita o objeto direto
-    updateLead: (field: keyof LeadData, value: string) => void // Helper para campos individuais
+    setLead: (lead: LeadData) => void
+    updateLead: (field: keyof LeadData, value: string) => void
     
     targetPrice: number
     setTargetPrice: (val: number) => void

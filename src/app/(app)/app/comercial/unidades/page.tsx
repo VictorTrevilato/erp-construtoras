@@ -12,7 +12,6 @@ export default async function CommercialUnitsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        {/* [AJUSTE] Sem ícone e subtítulo simplificado */}
         <h1 className="text-3xl font-bold tracking-tight">
           Gestão de Unidades
         </h1>

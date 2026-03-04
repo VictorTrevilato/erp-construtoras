@@ -46,7 +46,7 @@ export default async function EditTablePage({ params }: Props) {
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             {header.nome}
-                            <span className="text-sm font-normal text-muted-foreground bg-slate-100 px-2 py-0.5 rounded border">
+                            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded border">
                                 {header.codigo}
                             </span>
                         </h1>
@@ -59,13 +59,13 @@ export default async function EditTablePage({ params }: Props) {
 
             <Tabs defaultValue="precificacao" className="w-full">
                 <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
-                    <TabsTrigger value="precificacao" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6">
+                    <TabsTrigger value="precificacao" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6">
                         1. Precificação
                     </TabsTrigger>
-                    <TabsTrigger value="fluxos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6">
+                    <TabsTrigger value="fluxos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6">
                         2. Fluxos de Pagamento
                     </TabsTrigger>
-                    <TabsTrigger value="resultado" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6">
+                    <TabsTrigger value="resultado" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6">
                         3. Resultado da Tabela
                     </TabsTrigger>
                 </TabsList>

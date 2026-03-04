@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 export default function LoadingProposalEditor() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
+      
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-24" /> 
         

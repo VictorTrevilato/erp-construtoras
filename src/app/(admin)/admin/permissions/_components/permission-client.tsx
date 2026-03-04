@@ -67,7 +67,6 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
   }
 
   // Server Action
-  // [CORREÇÃO] Removemos '| null' do tipo e inicializamos com um objeto válido no final
   const [state, formAction, isSaving] = useActionState(async (prev: ActionState, formData: FormData) => {
     let result;
     if (editingItem) {
@@ -85,7 +84,7 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
       toast.error(result.message)
     }
     return result
-  }, { success: false, message: '' }) // <--- Inicialização válida (não nula)
+  }, { success: false, message: '' })
 
   const confirmDelete = async () => {
     if (!deleteId) return
@@ -146,7 +145,7 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Permissões</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Permissões</h1>
             <p className="text-muted-foreground">Dicionário global de ações do sistema.</p>
           </div>
           
@@ -171,7 +170,7 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
                     className="uppercase font-mono"
                     required 
                   />
-                  {state?.errors?.codigo && <p className="text-sm text-red-500">{state.errors.codigo}</p>}
+                  {state?.errors?.codigo && <p className="text-sm text-destructive">{state.errors.codigo}</p>}
                 </div>
                 
                 <div className="grid gap-2">
@@ -213,10 +212,10 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
-          <Button variant="secondary" onClick={handleSearch} disabled={isPending}>Buscar</Button>
+          <Button onClick={handleSearch} disabled={isPending}>Buscar</Button>
         </div>
 
-        <div className="border rounded-md relative">
+        <div className="border border-border bg-card rounded-md relative">
           <Table>
             <TableHeader>
               <TableRow>
@@ -255,7 +254,7 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
                     </TableCell>
                     <TableCell>{item.descricao}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{item.categoria}</Badge>
+                      <Badge>{item.categoria}</Badge>
                     </TableCell>
                     
                     {/* AÇÕES COM TOOLTIPS */}
@@ -283,7 +282,7 @@ export function PermissionClient({ initialData, meta }: { initialData: Permissio
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors" 
+                              className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors" 
                               onClick={() => setDeleteId(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />

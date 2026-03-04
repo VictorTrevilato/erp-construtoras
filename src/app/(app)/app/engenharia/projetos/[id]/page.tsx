@@ -30,7 +30,7 @@ export default async function EditProjectPage({ params }: Props) {
     <ProjectForm 
       initialData={project} 
       availableScopes={scopes} 
-      readOnly={!canEdit} // Trava o formulário
+      readOnly={!canEdit}
     />
   )
 }

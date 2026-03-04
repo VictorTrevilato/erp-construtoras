@@ -79,7 +79,7 @@ export default function LoadingProjectStock() {
                   {/* Tipo */}
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   
-                  {/* Numéricos (Sem comentários entre as células para evitar erro de hidratação) */}
+                  {/* Numéricos */}
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-8" /></div></TableCell>
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-8" /></div></TableCell>
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-12" /></div></TableCell>

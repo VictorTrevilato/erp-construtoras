@@ -27,9 +27,9 @@ export default function Loading() {
             <div 
               key={i} 
               className="flex items-center gap-3"
-              style={{ marginLeft: `${(i % 3) * 32}px` }} // Simula indentação variada
+              style={{ marginLeft: `${(i % 3) * 32}px` }}
             >
-              <Skeleton className="h-9 w-9 rounded-md" /> {/* Ícone */}
+              <Skeleton className="h-9 w-9 rounded-md" />
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-4 w-48" />
                 <Skeleton className="h-2 w-24" />

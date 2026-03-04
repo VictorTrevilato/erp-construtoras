@@ -1,43 +1,55 @@
-import { Sidebar } from "@/components/sidebar"
+import { SidebarLayout } from "@/components/sidebar"
 import { ThemeWrapper } from "@/components/theme-wrapper"
-import { auth } from "@/auth" // Import necessário para pegar a sessão
-import { prisma } from "@/lib/prisma" // Import para consultar o banco
+import { prisma } from "@/lib/prisma"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 
-export default async function PortalLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const session = await auth()
-  
-  // Conta quantos vínculos ativos o usuário tem para decidir se mostra o botão "Trocar Perfil"
-  const tenantCount = await prisma.ycUsuariosEmpresas.count({
-    where: {
-      usuarioId: BigInt(session?.user?.id || 0),
-      ativo: true,
-      ycEmpresas: { ativo: true }
-    }
-  })
+export const dynamic = "force-dynamic"
 
-  // Só mostra o botão se tiver mais de 1 vínculo
-  const showSwitch = tenantCount > 1
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const tenantIdStr = await getCurrentTenantId()
+  let tenantData = null
+
+  if (tenantIdStr) {
+    tenantData = await prisma.ycEmpresas.findUnique({
+      where: { id: BigInt(tenantIdStr) },
+      select: { 
+        nome: true, logo: true, logoMini: true, 
+        corPrimaria: true, corSecundaria: true,
+        sidebarTheme: true, sidebarNavTheme: true, 
+        tooltipsTheme: true, buttonsTheme: true,
+        subButtonsTheme: true, accentTheme: true,
+        topbarTheme: true
+      }
+    })
+  }
+
+  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
+  const logoUrl = tenantData?.logo ? `${baseUrl}/${tenantData.logo}` : null
+  const logoMiniUrl = tenantData?.logoMini ? `${baseUrl}/${tenantData.logoMini}` : null
 
   return (
-    <ThemeWrapper theme="theme-portal">
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar 
-          title="Área do Cliente" 
-          color="bg-emerald-700" 
-          profile="portal" 
-          showTenantSwitch={showSwitch}
-        />
-        
-        <main className="flex-1 ml-72 p-8 overflow-y-auto">
-          <div className="min-h-screen w-full">
-            {children}
-          </div>
-        </main>
-      </div>
+    <ThemeWrapper 
+      theme="theme-portal"
+      primaryColor={tenantData?.corPrimaria}
+      secondaryColor={tenantData?.corSecundaria}
+      buttonsTheme={tenantData?.buttonsTheme}
+      subButtonsTheme={tenantData?.subButtonsTheme}
+      tooltipsTheme={tenantData?.tooltipsTheme}
+      accentTheme={tenantData?.accentTheme}
+    >
+      <SidebarLayout 
+        title={tenantData?.nome || "Portal do Cliente"} 
+        logoUrl={logoUrl}
+        logoMiniUrl={logoMiniUrl}
+        profile="portal" 
+        showTenantSwitch={false} 
+        sidebarTheme={tenantData?.sidebarTheme}
+        sidebarNavTheme={tenantData?.sidebarNavTheme}
+        tooltipsTheme={tenantData?.tooltipsTheme}
+        topbarTheme={tenantData?.topbarTheme}
+      >
+        {children}
+      </SidebarLayout>
     </ThemeWrapper>
   )
 }

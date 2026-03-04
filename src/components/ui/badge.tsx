@@ -1,7 +1,10 @@
+"use client"
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { useWhiteLabelTheme } from "@/components/theme-wrapper"
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -28,8 +31,16 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
+  const { accentTheme } = useWhiteLabelTheme()
+  
+  // Se for default ou não passar nada, obedece o accentTheme
+  let finalVariant = variant
+  if (variant === "default" || !variant) {
+    finalVariant = accentTheme === "secondary" ? "secondary" : "default"
+  }
+
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div className={cn(badgeVariants({ variant: finalVariant }), className)} {...props} />
   )
 }
 

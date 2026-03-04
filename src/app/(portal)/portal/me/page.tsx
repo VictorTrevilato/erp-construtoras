@@ -20,8 +20,8 @@ export default async function MePage() {
 
   // Montagem da URL completa
   // Removemos a barra no final do STORAGE_BASE_URL (se houver) para evitar "net//public-assets"
-  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || '';
-  const fullAvatarUrl = user.avatarUrl ? `${baseUrl}/${user.avatarUrl}` : null;
+  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
+  const fullAvatarUrl = user.avatarUrl ? `${baseUrl}/${user.avatarUrl}` : null
 
   // Criamos um novo objeto herdando os dados do usuario mas substituindo o avatarUrl
   const userData = {

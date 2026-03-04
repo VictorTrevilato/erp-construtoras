@@ -32,7 +32,7 @@ export default async function MePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Minha Conta</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Minha Conta</h1>
         <p className="text-muted-foreground">
           Gerencie suas informações pessoais.
         </p>

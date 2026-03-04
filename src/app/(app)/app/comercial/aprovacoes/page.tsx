@@ -5,7 +5,7 @@ import { ApprovalsProjectList } from "./_components/approvals-project-list"
 
 export default async function ApprovalsHubPage() {
     const session = await auth()
-    if (!session) redirect("/login")
+    if (!session) redirect("/login") // Permissão
 
     const projects = await getApprovalProjects()
 

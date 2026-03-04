@@ -35,7 +35,7 @@ export default function Loading() {
       <div className="grid gap-4 md:grid-cols-3">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="h-64">
-             <CardHeader className="border-b bg-gray-50/50">
+             <CardHeader className="border-b border-border bg-muted/50">
                <Skeleton className="h-5 w-32" />
              </CardHeader>
              <CardContent className="pt-4 space-y-3">

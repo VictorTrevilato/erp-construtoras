@@ -28,11 +28,11 @@ export default function ForgotPasswordPage() {
       
       {/* LADO ESQUERDO: Branding (Mantendo o padrão do Login) */}
       <div className="hidden bg-slate-900 lg:flex flex-col justify-between p-12 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-purple-900 blur-3xl opacity-40"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-blue-900 blur-3xl opacity-30"></div>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl opacity-30"></div>
         
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
             <Building2 className="h-6 w-6" />
           </div>
           <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
@@ -53,18 +53,18 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* LADO DIREITO: Formulário */}
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="mx-auto w-full max-w-sm space-y-8">
           
           {/* Header Mobile */}
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600 mb-4">
+            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
               <Mail className="h-6 w-6" />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
               Esqueceu a senha?
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               Digite seu e-mail corporativo abaixo para receber as instruções de redefinição.
             </p>
           </div>
@@ -93,20 +93,20 @@ export default function ForgotPasswordPage() {
               </Button>
 
               <div className="text-center">
-                <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
+                <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-primary flex items-center justify-center gap-2 transition-colors">
                   <ArrowLeft className="h-4 w-4" /> Voltar para o Login
                 </Link>
               </div>
             </form>
           ) : (
             <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="h-8 w-8 text-success" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-gray-900">E-mail Enviado!</h3>
-                <p className="text-sm text-gray-500">
-                  Se o e-mail <strong>{email}</strong> estiver cadastrado, você receberá um link para redefinir sua senha em instantes.
+                <h3 className="text-xl font-semibold text-foreground">E-mail Enviado!</h3>
+                <p className="text-sm text-muted-foreground">
+                  Se o e-mail <strong className="text-foreground">{email}</strong> estiver cadastrado, você receberá um link para redefinir sua senha em instantes.
                 </p>
               </div>
               
@@ -115,7 +115,7 @@ export default function ForgotPasswordPage() {
                   Tentar outro e-mail
                 </Button>
                 <div className="block">
-                  <Link href="/login" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                  <Link href="/login" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
                     Voltar para o Login
                   </Link>
                 </div>

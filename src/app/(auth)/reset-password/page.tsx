@@ -33,13 +33,13 @@ export default function ResetPasswordPage() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       
-      {/* LADO ESQUERDO */}
+      {/* LADO ESQUERDO: Branding (Mantendo o padrão do Login) */}
       <div className="hidden bg-slate-900 lg:flex flex-col justify-between p-12 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-emerald-900 blur-3xl opacity-30"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-40"></div>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-[500px] w-[500px] rounded-full bg-slate-800 blur-3xl opacity-50"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl opacity-30"></div>
         
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+          <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
             <Building2 className="h-6 w-6" />
           </div>
           <span className="text-xl font-bold tracking-tight">YouCenter - ERP</span>
@@ -60,17 +60,17 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* LADO DIREITO */}
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="mx-auto w-full max-w-sm space-y-8">
           
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 mb-4">
+            <div className="lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 text-primary mb-4">
               <KeyRound className="h-6 w-6" />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
               Nova Senha
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               Preencha os campos abaixo para finalizar a recuperação.
             </p>
           </div>
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1} // Evita foco ao navegar com TAB
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Atualizando..." : "Alterar Senha"}
               {!isLoading && <CheckCircle2 className="ml-2 h-4 w-4" />}
             </Button>

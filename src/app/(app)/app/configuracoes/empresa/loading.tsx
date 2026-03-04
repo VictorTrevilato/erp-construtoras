@@ -27,11 +27,11 @@ export default function Loading() {
             </div>
           </div>
 
-          <div className="pt-6 border-t">
+          <div className="pt-6 border-t border-border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-32 w-full border-2 border-dashed rounded-lg" />
+                <Skeleton className="h-32 w-full border-2 border-dashed border-border rounded-lg" />
               </div>
               <div className="space-y-4">
                 <Skeleton className="h-4 w-32" />
@@ -50,7 +50,7 @@ export default function Loading() {
           </div>
 
         </CardContent>
-        <div className="border-t px-6 py-4 bg-gray-50/50 flex justify-end">
+        <div className="border-t border-border px-6 py-4 bg-muted/50 flex justify-end">
           <Skeleton className="h-10 w-40" />
         </div>
       </Card>

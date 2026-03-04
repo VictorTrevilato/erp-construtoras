@@ -39,15 +39,14 @@ export default async function TenantsPage(props: { searchParams: SearchParams })
 
   const { data: tenants, meta } = await getTenants(page, pageSize, search, sortBy, sortDir)
 
-  // [CORREÇÃO] Conversão e Tipagem Explícita
+  // Conversão e Tipagem Explícita
   const formattedTenants = (tenants as DatabaseTenant[])?.map((t) => ({
     ...t,
     id: t.id.toString(),
   })) as Tenant[]
 
   return (
-    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex">
-      {/* Agora passamos os dados formatados sem 'any' */}
+    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex bg-background">
       <TenantClient 
         initialData={formattedTenants || []} 
         meta={meta} 

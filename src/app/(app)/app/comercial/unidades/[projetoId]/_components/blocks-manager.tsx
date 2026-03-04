@@ -101,7 +101,7 @@ export function BlocksManager({ projetoId, blocks }: { projetoId: string, blocks
                           <TableCell className="text-muted-foreground text-xs">{b.codigo || "-"}</TableCell>
                           <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={() => setDeleteId(b.id)} disabled={isPending}>
-                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                  <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                           </TableCell>
                       </TableRow>
@@ -128,7 +128,7 @@ export function BlocksManager({ projetoId, blocks }: { projetoId: string, blocks
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} variant="destructive">
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -13,9 +13,8 @@ import { toast } from "sonner"
 import { Loader2, MapPin, Building, FileText, ArrowLeft, Save, Lock } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ScopeSelect } from "@/components/scope-select" // Importando nosso novo componente
+import { ScopeSelect } from "@/components/scope-select"
 
-// Lista completa de estados BR
 const BRAZIL_STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", 
   "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
@@ -51,7 +50,7 @@ interface ProjectData {
 interface ProjectFormProps {
   initialData?: ProjectData | null
   availableScopes: ScopeOption[]
-  readOnly?: boolean // Nova prop para travar o form
+  readOnly?: boolean 
 }
 
 const initialState: ProjectFormState = { message: "", errors: {} }
@@ -80,19 +79,18 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
   return (
     <form action={formAction} className="w-full pb-10">
       
-      {/* INPUTS OCULTOS (Essenciais para Server Actions) */}
       <input type="hidden" name="escopoId" value={formData.escopoId} />
       <input type="hidden" name="tipo" value={formData.tipo} />
       <input type="hidden" name="status" value={formData.status} />
       <input type="hidden" name="estado" value={formData.estado} />
 
-      {/* --- HEADER (Padrão: Título Esquerda / Botões Direita) --- */}
+      {/* --- HEADER --- */}
       <div className="flex items-center justify-between mb-8">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             {initialData ? `Editar Projeto` : "Novo Projeto"}
             {readOnly && (
-              <Badge variant="outline" className="text-amber-600 border-amber-600 gap-1">
+              <Badge variant="outline" className="text-warning border-warning gap-1">
                 <Lock className="w-3 h-3"/> Somente Leitura
               </Badge>
             )}
@@ -112,7 +110,6 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
             </Button>
           </Link>
           
-          {/* Só mostra botão Salvar se NÃO for ReadOnly. Se for ReadOnly, não mostra nada. */}
           {!readOnly && (
             <Button type="submit" disabled={isPending}>
               {isPending ? (
@@ -125,14 +122,14 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
         </div>
       </div>
 
-      {/* --- CONTEÚDO (Cards Separados) --- */}
+      {/* --- CONTEÚDO --- */}
       <div className="space-y-6">
         
         {/* CARD 1: IDENTIFICAÇÃO */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Building className="w-4 h-4 text-blue-600" /> Identificação e Vínculo
+              <Building className="w-4 h-4 text-primary" /> Identificação e Vínculo
             </CardTitle>
             <CardDescription>Defina a qual unidade organizacional este projeto pertence.</CardDescription>
           </CardHeader>
@@ -141,7 +138,6 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Escopo Organizacional *</Label>
-                {/* Componente Reutilizável de Escopo */}
                 <ScopeSelect 
                   value={formData.escopoId}
                   onValueChange={(val) => setFormData({...formData, escopoId: val})}
@@ -160,7 +156,7 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
                   required 
                   disabled={readOnly}
                 />
-                {state.errors?.nome && <p className="text-xs text-red-500">{state.errors.nome[0]}</p>}
+                {state.errors?.nome && <p className="text-xs text-destructive">{state.errors.nome[0]}</p>}
               </div>
             </div>
 
@@ -207,16 +203,15 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
           </CardContent>
         </Card>
 
-        {/* CARD 2: LOCALIZAÇÃO (Ordem Corrigida) */}
+        {/* CARD 2: LOCALIZAÇÃO */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-orange-600" /> Endereço Físico
+              <MapPin className="w-4 h-4 text-warning" /> Endereço Físico
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             
-            {/* Linha 1: CEP (Menor) + Logradouro (Maior) */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2 col-span-1">
                 <Label>CEP</Label>
@@ -228,7 +223,6 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
               </div>
             </div>
 
-            {/* Linha 2: Número + Bairro + Cidade */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2 col-span-1">
                 <Label>Número</Label>
@@ -244,7 +238,6 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
               </div>
             </div>
 
-            {/* Linha 3: Estado + Complemento */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                <div className="space-y-2 col-span-1">
                 <Label>Estado (UF)</Label>
@@ -270,7 +263,7 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4 text-purple-600" /> Dados Legais e Cartorários
+              <FileText className="w-4 h-4 text-info" /> Dados Legais e Cartorários
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -34,7 +34,7 @@ export function ApprovalPageWrapper({ proposals }: { proposals: ApprovalType[] }
                 {/* Header da Lista (Fixo) */}
                 <div className="mb-4 flex items-end justify-between shrink-0 pt-1">
                     <div>
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Pendências</h3>
+                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Pendências</h3>
                         <p className="text-xs text-muted-foreground">{proposals.length} propostas aguardando</p>
                     </div>
                     <Button 
@@ -42,7 +42,7 @@ export function ApprovalPageWrapper({ proposals }: { proposals: ApprovalType[] }
                         size="icon" 
                         onClick={handleRefresh}
                         disabled={isPending}
-                        className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                        className="h-8 w-8 text-muted-foreground/70 hover:text-primary hover:bg-primary/10"
                         title="Atualizar lista"
                     >
                         <RefreshCw className={cn("w-4 h-4", isPending && "animate-spin")} />

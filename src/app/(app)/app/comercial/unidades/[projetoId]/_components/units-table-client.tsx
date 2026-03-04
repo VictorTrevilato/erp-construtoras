@@ -62,11 +62,11 @@ interface Unit {
 
 const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DISPONIVEL': return 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200'
-      case 'VENDIDO': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200'
-      case 'RESERVADO': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200'
-      case 'EM_ANALISE': return 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200'
-      default: return 'bg-slate-100 text-slate-800 border-slate-200'
+      case 'DISPONIVEL': return 'bg-success/20 text-success hover:bg-success/30 border-success/30'
+      case 'VENDIDO': return 'bg-destructive/20 text-destructive hover:bg-destructive/30 border-destructive/30'
+      case 'RESERVADO': return 'bg-warning/20 text-warning hover:bg-warning/30 border-warning/30'
+      case 'EM_ANALISE': return 'bg-info/20 text-info hover:bg-info/30 border-info/30'
+      default: return 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
     }
 }
 
@@ -128,32 +128,32 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
     <TooltipProvider>
       <div className="flex justify-between items-center mb-4">
         <BlocksManager projetoId={projetoId} blocks={blocks} />
-        <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" /> Nova Unidade
         </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-gray-50/50">
+          <div className="flex flex-col md:flex-row gap-4 p-4 border-b bg-muted/30">
             <div className="flex-1 relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Buscar por número..." 
-                className="pl-8 bg-white"
+                className="pl-8 bg-background"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
             </div>
             <Select value={filterBlock} onValueChange={setFilterBlock}>
-              <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Bloco" /></SelectTrigger>
+              <SelectTrigger className="w-[180px] bg-background"><SelectValue placeholder="Bloco" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos os Blocos</SelectItem>
                 {blocks.map(b => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Status Comercial" /></SelectTrigger>
+              <SelectTrigger className="w-[180px] bg-background"><SelectValue placeholder="Status Comercial" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos Status</SelectItem>
                 <SelectItem value="DISPONIVEL">Disponível</SelectItem>
@@ -184,13 +184,13 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                 <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado.</TableCell></TableRow>
               ) : (
                 filteredUnits.map((unit) => (
-                  <TableRow key={unit.id} className="hover:bg-slate-50">
+                  <TableRow key={unit.id} className="hover:bg-muted/50">
                     <TableCell>
                        <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground">{unit.blocoNome}</span>
-                          <span className="font-bold text-base text-gray-800">{unit.unidade}</span>
+                          <span className="font-bold text-base text-foreground">{unit.unidade}</span>
                           {unit.statusInterno !== 'DISPONIVEL' && (
-                             <span className="text-[10px] text-amber-600 font-medium">{unit.statusInterno}</span>
+                             <span className="text-[10px] text-warning font-medium">{unit.statusInterno}</span>
                           )}
                        </div>
                     </TableCell>
@@ -215,7 +215,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                            <Tooltip>
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" onClick={() => handleView(unit)}>
-                                  <Eye className="h-4 w-4 text-gray-500" />
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Ver Detalhes</TooltipContent>
@@ -224,7 +224,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                            <Tooltip>
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" onClick={() => handleEdit(unit)}>
-                                  <Edit2 className="h-4 w-4 text-blue-600" />
+                                  <Edit2 className="h-4 w-4 text-primary" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Editar</TooltipContent>
@@ -233,7 +233,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                            <Tooltip>
                              <TooltipTrigger asChild>
                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(unit.id)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                  <Trash2 className="h-4 w-4 text-destructive" />
                                </Button>
                              </TooltipTrigger>
                              <TooltipContent>Excluir</TooltipContent>
@@ -267,7 +267,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} variant="destructive">
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>

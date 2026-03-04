@@ -26,8 +26,6 @@ import {
 
 // --- Tipagem Completa e Segura ---
 
-// Esta interface deve bater com o que vem do 'getUsers' (backend) 
-// e com o que o 'UserFormDialog' espera.
 interface UserProp {
   usuarioEmpresaId: string
   usuarioGlobalId: string
@@ -36,7 +34,6 @@ interface UserProp {
   cargoId: string
   escoposAtuais: string[]
   permissoesExtras: Record<string, boolean>
-  // Campos opcionais que vêm da listagem mas não são usados no form direto
   cargoNome?: string
   ativo?: boolean
 }
@@ -79,8 +76,6 @@ export function UserActions({ mode, user, roles, scopes, allPermissions }: Props
     else toast.error(res.message)
   }
 
-  // [CORREÇÃO] Removemos a variável 'userDataForDialog' que não estava sendo usada.
-
   if (mode === "create") {
     return (
       <>
@@ -108,7 +103,7 @@ export function UserActions({ mode, user, roles, scopes, allPermissions }: Props
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
-                <Pencil className="h-4 w-4 text-blue-600" />
+                <Pencil className="h-4 w-4 text-primary" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Editar Usuário</TooltipContent>
@@ -119,7 +114,7 @@ export function UserActions({ mode, user, roles, scopes, allPermissions }: Props
               <TooltipTrigger asChild>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="icon">
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
@@ -130,13 +125,13 @@ export function UserActions({ mode, user, roles, scopes, allPermissions }: Props
               <AlertDialogHeader>
                 <AlertDialogTitle>Revogar acesso?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  O usuário <strong>{user?.nome}</strong> perderá o acesso a esta empresa imediatamente.
+                  O usuário <strong className="text-foreground">{user?.nome}</strong> perderá o acesso a esta empresa imediatamente.
                   O cadastro global dele não será excluído.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Confirmar
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -148,8 +143,6 @@ export function UserActions({ mode, user, roles, scopes, allPermissions }: Props
       <UserFormDialog 
         open={isOpen} 
         onOpenChange={setIsOpen} 
-        // [CORREÇÃO] Removemos o 'as any'. Como UserProp agora tem a estrutura correta,
-        // o TypeScript aceita passar 'user' (ou null se undefined).
         editingUser={user || null} 
         allRoles={roles}
         allScopes={scopes}

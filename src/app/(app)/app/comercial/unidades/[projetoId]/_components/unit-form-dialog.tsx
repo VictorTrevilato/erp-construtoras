@@ -282,11 +282,11 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                      />
                   </div>
                   <div className="space-y-2">
-                     <Label className="font-bold text-blue-600">Privativa Total</Label>
+                     <Label className="font-bold text-primary">Privativa Total</Label>
                      <Input 
                         value={formData.areaPrivativaTotal} 
                         readOnly 
-                        className="bg-slate-50 font-medium"
+                        className="bg-muted/50 font-medium"
                      />
                   </div>
                   <div className="space-y-2">
@@ -299,11 +299,11 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                      />
                   </div>
                   <div className="space-y-2">
-                     <Label className="font-bold text-blue-600">Área Real Total</Label>
+                     <Label className="font-bold text-primary">Área Real Total</Label>
                      <Input 
                         value={formData.areaRealTotal} 
                         readOnly 
-                        className="bg-slate-50 font-medium"
+                        className="bg-muted/50 font-medium"
                      />
                   </div>
                </div>
@@ -365,7 +365,6 @@ export function UnitFormDialog({ projetoId, unit, blocks, isOpen, onClose, readO
                             <Label>Área Depósito (m²)</Label>
                             <Input 
                               type="number" 
-                              // [CORREÇÃO CRÍTICA] Adicionado step para permitir decimais
                               step="0.0001"
                               value={formData.areaDeposito} 
                               onChange={(e) => handleChange("areaDeposito", e.target.value)} 

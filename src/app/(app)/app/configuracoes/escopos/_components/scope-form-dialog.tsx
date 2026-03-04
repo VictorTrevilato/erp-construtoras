@@ -52,13 +52,13 @@ const initialState: ScopeFormState = { message: "", errors: {} }
 
 const STANDARD_TYPES = ["HOLDING", "MATRIZ", "FILIAL", "OBRA", "DEPARTAMENTO"]
 
-// Configuração Visual (Copiada para garantir funcionamento isolado)
+// Configuração Visual Semântica
 const TYPE_CONFIG: Record<string, { icon: React.ElementType, color: string }> = {
-  HOLDING:      { icon: Landmark,    color: "text-indigo-600" },
-  MATRIZ:       { icon: Building2,   color: "text-blue-600" },
-  FILIAL:       { icon: Home,        color: "text-purple-600" },
-  OBRA:         { icon: HardHat,     color: "text-orange-600" },
-  DEPARTAMENTO: { icon: Folder,      color: "text-gray-600" },
+  HOLDING:      { icon: Landmark,    color: "text-primary" },
+  MATRIZ:       { icon: Building2,   color: "text-info" },
+  FILIAL:       { icon: Home,        color: "text-success" },
+  OBRA:         { icon: HardHat,     color: "text-warning" },
+  DEPARTAMENTO: { icon: Folder,      color: "text-muted-foreground" },
 }
 
 export function ScopeFormDialog({ open, onOpenChange, parentId, editingScope, allScopes }: ScopeFormDialogProps) {
@@ -98,7 +98,7 @@ export function ScopeFormDialog({ open, onOpenChange, parentId, editingScope, al
 
   // Função auxiliar para renderizar item no Select de Pais
   const renderScopeOption = (scope: ScopeOption) => {
-    const config = TYPE_CONFIG[scope.tipo] || { icon: CircleDashed, color: "text-slate-500" }
+    const config = TYPE_CONFIG[scope.tipo] || { icon: CircleDashed, color: "text-muted-foreground" }
     const Icon = config.icon
     
     return (

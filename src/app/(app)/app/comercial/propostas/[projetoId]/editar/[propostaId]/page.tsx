@@ -29,7 +29,7 @@ export default async function ProposalEditorPage({ params }: Props) {
   if (!proposal) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-            <h2 className="text-2xl font-bold text-slate-700">Proposta não encontrada</h2>
+            <h2 className="text-2xl font-bold text-foreground">Proposta não encontrada</h2>
             <Button asChild variant="outline">
                 <Link href={`/app/comercial/propostas/${projetoId}`}>Voltar para a lista</Link>
             </Button>
@@ -57,7 +57,7 @@ export default async function ProposalEditorPage({ params }: Props) {
               </Link>
               <div>
                   <h1 className="text-2xl font-bold flex items-center gap-2">
-                      <FileText className="h-6 w-6 text-blue-600" />
+                      <FileText className="h-6 w-6 text-primary" />
                       Proposta Comercial
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1">

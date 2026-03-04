@@ -26,7 +26,6 @@ export default async function ProjectProposalsPage({ params }: Props) {
   // --- Lógica de Status (KPIs) ---
   const totalCount = proposals.length
   const aprovadasCount = proposals.filter(p => p.status === 'APROVADO').length
-  const reprovadasCount = proposals.filter(p => p.status === 'REPROVADO').length
   const analiseCount = proposals.filter(p => p.status === 'EM_ANALISE').length
 
   return (
@@ -43,7 +42,7 @@ export default async function ProjectProposalsPage({ params }: Props) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <Building2 className="h-8 w-8 text-gray-700" />
+                    <Building2 className="h-8 w-8 text-muted-foreground" />
                     {project.nome}
                 </h1>
                 <p className="text-muted-foreground">
@@ -53,21 +52,17 @@ export default async function ProjectProposalsPage({ params }: Props) {
             
             {/* Cards de Status (KPIs) */}
             <div className="flex gap-4">
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-slate-50 border-slate-200">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">Total</span>
-                    <span className="text-2xl font-bold text-slate-700">{totalCount}</span>
+                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-muted/30 border-border">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Total</span>
+                    <span className="text-2xl font-bold text-foreground">{totalCount}</span>
                 </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-blue-50 border-blue-200">
-                    <span className="text-[10px] text-blue-700 uppercase font-bold">Em Análise</span>
-                    <span className="text-2xl font-bold text-blue-700">{analiseCount}</span>
+                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-info/10 border-info/20">
+                    <span className="text-[10px] text-info uppercase font-bold">Em Análise</span>
+                    <span className="text-2xl font-bold text-info">{analiseCount}</span>
                 </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-green-50 border-green-200">
-                    <span className="text-[10px] text-green-700 uppercase font-bold">Aprovadas</span>
-                    <span className="text-2xl font-bold text-green-700">{aprovadasCount}</span>
-                </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-red-50 border-red-200">
-                    <span className="text-[10px] text-red-700 uppercase font-bold">Reprovadas</span>
-                    <span className="text-2xl font-bold text-red-700">{reprovadasCount}</span>
+                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-success/10 border-success/20">
+                    <span className="text-[10px] text-success uppercase font-bold">Aprovadas</span>
+                    <span className="text-2xl font-bold text-success">{aprovadasCount}</span>
                 </Card>
             </div>
         </div>

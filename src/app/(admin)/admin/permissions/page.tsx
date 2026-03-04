@@ -32,16 +32,13 @@ export default async function PermissionsPage(props: { searchParams: SearchParam
 
   const { data: permissions, meta } = await getPermissions(page, pageSize, search, sortBy, sortDir)
 
-  // [CORREÇÃO] Usamos explicitamente o "as Permission[]" no final.
-  // Isso satisfaz o linter (que reclamava que Permission não era usado) 
-  // e satisfaz o TypeScript (que garante a conversão de tipos).
   const formattedPermissions = (permissions as DatabasePermission[])?.map((p) => ({
     ...p,
     id: p.id.toString(),
   })) as Permission[]
 
   return (
-    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex">
+    <div className="h-full flex-1 flex-col space-y-8 p-8 md:flex bg-background">
       <PermissionClient initialData={formattedPermissions || []} meta={meta} />
     </div>
   )

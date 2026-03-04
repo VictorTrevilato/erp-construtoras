@@ -45,11 +45,11 @@ type ScopeItem = {
 }
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType, color: string, label: string }> = {
-  HOLDING:      { icon: Landmark,    color: "text-indigo-600 bg-indigo-50", label: "Holding" },
-  MATRIZ:       { icon: Building2,   color: "text-blue-600 bg-blue-50",     label: "Matriz" },
-  FILIAL:       { icon: Home,        color: "text-purple-600 bg-purple-50", label: "Filial" },
-  OBRA:         { icon: HardHat,     color: "text-orange-600 bg-orange-50", label: "Obra" },
-  DEPARTAMENTO: { icon: Folder,      color: "text-gray-600 bg-gray-50",     label: "Depto." },
+  HOLDING:      { icon: Landmark,    color: "text-primary bg-primary/10", label: "Holding" },
+  MATRIZ:       { icon: Building2,   color: "text-info bg-info/10",     label: "Matriz" },
+  FILIAL:       { icon: Home,        color: "text-success bg-success/10", label: "Filial" },
+  OBRA:         { icon: HardHat,     color: "text-warning bg-warning/10", label: "Obra" },
+  DEPARTAMENTO: { icon: Folder,      color: "text-muted-foreground bg-muted",     label: "Depto." },
 }
 
 export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
@@ -111,7 +111,7 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
 
       <div className="space-y-1">
         {scopes.length === 0 && (
-          <div className="text-center py-10 text-muted-foreground border border-dashed rounded-lg bg-gray-50/50">
+          <div className="text-center py-10 text-muted-foreground border border-dashed border-border rounded-lg bg-muted/50">
             Nenhum escopo definido. Comece criando sua Holding ou Matriz.
           </div>
         )}
@@ -120,7 +120,7 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
           {scopes.map((scope) => {
             const config = TYPE_CONFIG[scope.tipo] || { 
               icon: CircleDashed, 
-              color: "text-slate-600 bg-slate-100", 
+              color: "text-muted-foreground bg-muted", 
               label: scope.tipo 
             }
             
@@ -130,11 +130,11 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
             return (
               <div 
                 key={scope.id} 
-                className="flex items-center group relative hover:bg-gray-50 p-2 rounded-md transition-colors border border-transparent hover:border-gray-200"
+                className="flex items-center group relative hover:bg-muted/50 p-2 rounded-md transition-colors border border-transparent hover:border-border"
                 style={{ marginLeft: `${indent}px` }}
               >
                 {scope.nivel > 1 && (
-                  <CornerDownRight className="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <CornerDownRight className="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 )}
 
                 <div className={`p-2 rounded-md mr-3 shrink-0 ${config.color}`}>
@@ -143,14 +143,13 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">{scope.nome}</span>
+                    <span className="font-medium text-sm text-foreground truncate">{scope.nome}</span>
                     <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-muted-foreground shrink-0">
                       {config.label}
                     </Badge>
                   </div>
                   
-                  {/* [AJUSTE] Caminho Técnico restaurado com mais visibilidade */}
-                  <div className="text-[10px] text-gray-500 font-mono mt-0.5 hidden group-hover:block truncate">
+                  <div className="text-[10px] text-muted-foreground font-mono mt-0.5 hidden group-hover:block truncate">
                     Path: {scope.caminho}
                   </div>
                 </div>
@@ -158,8 +157,8 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAddChild(scope.id)}>
-                        <Plus className="h-4 w-4 text-gray-500" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-foreground" onClick={() => handleAddChild(scope.id)}>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Adicionar filho</TooltipContent>
@@ -167,8 +166,8 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
 
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(scope)}>
-                        <Pencil className="h-4 w-4 text-blue-500" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary hover:bg-primary/10" onClick={() => handleEdit(scope)}>
+                        <Pencil className="h-4 w-4 text-primary" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Editar escopo</TooltipContent>
@@ -176,8 +175,8 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
 
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(scope)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteClick(scope)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Excluir escopo</TooltipContent>
@@ -202,7 +201,7 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação excluirá o escopo <strong>{scopeToDelete?.nome}</strong>. 
+              Esta ação excluirá o escopo <strong className="text-foreground">{scopeToDelete?.nome}</strong>. 
               <br/>Isso não pode ser desfeito.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -213,7 +212,7 @@ export function ScopeTree({ scopes }: { scopes: ScopeItem[] }) {
                 e.preventDefault()
                 confirmDelete()
               }} 
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
             >
               {isDeleting ? "Excluindo..." : "Sim, excluir"}

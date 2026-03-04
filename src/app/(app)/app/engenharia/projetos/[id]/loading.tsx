@@ -8,8 +8,8 @@ export default function LoadingProjectEdit() {
       {/* HEADER SKELETON */}
       <div className="flex items-center justify-between mb-8">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-48" /> {/* Título: Editar Projeto */}
-          <Skeleton className="h-4 w-80" /> {/* Subtítulo */}
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-80" />
         </div>
         
         <div className="flex items-center gap-2">

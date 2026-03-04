@@ -5,7 +5,7 @@ import { TablesProjectsList } from "./_components/tables-projects-list"
 
 export default async function TablesPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session) redirect("/login") // Permissão
 
   const projects = await getProjectsForTables()
 

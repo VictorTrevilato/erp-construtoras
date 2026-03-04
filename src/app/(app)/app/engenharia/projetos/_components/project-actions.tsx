@@ -44,7 +44,6 @@ export function ProjectActions({ mode, project, permissions = { canCreate: true,
 
   // --- MODO CRIAÇÃO (Botão Novo) ---
   if (mode === "create") {
-    // Se não tiver permissão de criar, nem renderiza o botão
     if (!permissions.canCreate) return null
 
     return (
@@ -58,10 +57,9 @@ export function ProjectActions({ mode, project, permissions = { canCreate: true,
   }
 
   // --- MODO EDIÇÃO (Botões da Tabela) ---
-  // Lógica do Ícone: Se pode editar = Lápis (Azul), Se só ver = Olho (Cinza/Padrão)
   const ActionIcon = permissions.canEdit ? Pencil : Eye
   const actionLabel = permissions.canEdit ? "Editar Projeto" : "Visualizar Projeto"
-  const iconColor = permissions.canEdit ? "text-blue-600" : "text-gray-500"
+  const iconColor = permissions.canEdit ? "text-primary" : "text-muted-foreground"
 
   return (
     <div className="flex items-center justify-end gap-2">
@@ -79,14 +77,14 @@ export function ProjectActions({ mode, project, permissions = { canCreate: true,
           <TooltipContent>{actionLabel}</TooltipContent>
         </Tooltip>
 
-        {/* Botão Excluir (Só aparece se tiver permissão) */}
+        {/* Botão Excluir */}
         {permissions.canDelete && (
           <AlertDialog>
             <Tooltip>
               <TooltipTrigger asChild>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                  <Button variant="ghost" size="icon" className="hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </AlertDialogTrigger>
               </TooltipTrigger>
@@ -97,13 +95,13 @@ export function ProjectActions({ mode, project, permissions = { canCreate: true,
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir Projeto?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tem certeza que deseja excluir <strong>{project?.nome}</strong>?
+                  Tem certeza que deseja excluir <strong className="text-foreground">{project?.nome}</strong>?
                   Esta ação é irreversível e pode afetar históricos financeiros.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Confirmar Exclusão
                 </AlertDialogAction>
               </AlertDialogFooter>

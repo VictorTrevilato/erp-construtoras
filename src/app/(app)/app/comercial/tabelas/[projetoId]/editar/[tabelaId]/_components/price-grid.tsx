@@ -61,7 +61,7 @@ function GridInput({ value, onChange, decimals, prefix, placeholder, className }
                 </span>
             )}
             <Input 
-                className={`h-9 bg-white border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-right shadow-sm ${prefix ? 'pl-8' : ''} ${className}`}
+                className={`h-9 bg-background border-input focus:border-primary focus:ring-1 focus:ring-primary text-right shadow-sm ${prefix ? 'pl-8' : ''} ${className}`}
                 value={displayValue}
                 onChange={handleChange}
                 placeholder={placeholder}
@@ -186,7 +186,7 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
         <div className="space-y-4">
             {/* Barra de Ações (Sticky Top) */}
             <div className="sticky top-4 z-20">
-                <Card className="bg-slate-50 border-slate-200 shadow-md">
+                <Card className="bg-muted/50 border-border shadow-md">
                     <CardContent className="p-4 flex items-end gap-4">
                         <div className="grid gap-1.5 w-36">
                             <label className="text-xs font-semibold uppercase text-muted-foreground">Valor m² Base</label>
@@ -221,11 +221,11 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                                 decimals={4}
                             />
                         </div>
-                        <Button onClick={applyBulk} variant="secondary" className="mb-0.5 border bg-white hover:bg-slate-100 min-w-[140px]">
+                        <Button onClick={applyBulk} variant="secondary" className="mb-0.5 min-w-[140px]">
                             <Calculator className="mr-2 h-4 w-4" /> Aplicar aos {selectedIds.size} selecionados
                         </Button>
                         <div className="flex-1 text-right">
-                             <Button onClick={handleSave} disabled={isSaving} className="w-40 bg-green-600 hover:bg-green-700">
+                             <Button onClick={handleSave} disabled={isSaving} className="w-40">
                                  {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : "Salvar Tabela"}
                              </Button>
                         </div>
@@ -234,9 +234,9 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
             </div>
 
             {/* Tabela Full */}
-            <div className="border rounded-md bg-white shadow-sm overflow-x-auto">
+            <div className="border rounded-md bg-background shadow-sm overflow-x-auto">
                 <Table className="whitespace-nowrap">
-                    <TableHeader className="bg-slate-100">
+                    <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="w-10 text-center">
                                 <Checkbox 
@@ -244,20 +244,18 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                                     onCheckedChange={toggleSelectAll} 
                                 />
                             </TableHead>
-                            {/* [CORREÇÃO] Largura reduzida e título simplificado */}
-                            <TableHead className="w-20 font-bold text-gray-900 text-sm">Unidade</TableHead>
+                            <TableHead className="w-20 font-bold text-foreground text-sm">Unidade</TableHead>
                             
                             <TableHead className="w-24 text-sm">Área Priv.</TableHead>
                             <TableHead className="w-32 text-right text-sm">Valor m²</TableHead>
                             
-                            {/* [CORREÇÃO] Títulos completos e largura padronizada */}
                             <TableHead className="w-32 text-right text-sm">Fator Correção</TableHead>
                             <TableHead className="w-32 text-right text-sm">Fator Andar</TableHead>
                             <TableHead className="w-32 text-right text-sm">Fator Diretoria</TableHead>
                             
                             <TableHead className="w-36 text-right text-sm text-muted-foreground">Valor Base</TableHead>
                             
-                            <TableHead className="text-right font-bold text-green-700 bg-green-50/30 text-sm w-36">Valor Final</TableHead>
+                            <TableHead className="text-right font-bold text-success bg-success/5 text-sm w-36">Valor Final</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -266,7 +264,7 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                             const valFinal = valBase * row.fatorCorrecao * row.fatorAndar * row.fatorDiretoria
                             
                             return (
-                                <TableRow key={row.unidadeId} className={selectedIds.has(row.unidadeId) ? "bg-blue-50/50" : ""}>
+                                <TableRow key={row.unidadeId} className={selectedIds.has(row.unidadeId) ? "bg-primary/10" : ""}>
                                     <TableCell className="text-center">
                                         <Checkbox 
                                             checked={selectedIds.has(row.unidadeId)} 
@@ -274,11 +272,10 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                                         />
                                     </TableCell>
                                     
-                                    {/* [CORREÇÃO] Inversão de Bloco/Unidade para padrão visual */}
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span className="text-xs text-muted-foreground">{row.blocoNome}</span>
-                                            <span className="font-bold text-sm text-gray-900">{row.unidade}</span>
+                                            <span className="font-bold text-sm text-foreground">{row.unidade}</span>
                                         </div>
                                     </TableCell>
 
@@ -318,19 +315,19 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                                     </TableCell>
 
                                     {/* Valor Base */}
-                                    <TableCell className="text-right text-sm text-muted-foreground bg-gray-50/30">
+                                    <TableCell className="text-right text-sm text-muted-foreground bg-muted/30">
                                         {fmtCurrency(valBase)}
                                     </TableCell>
 
                                     {/* Final */}
-                                    <TableCell className="text-right font-bold text-green-700 bg-green-50/30 text-sm">
+                                    <TableCell className="text-right font-bold text-success bg-success/5 text-sm">
                                         {fmtCurrency(valFinal)}
                                     </TableCell>
                                 </TableRow>
                             )
                         })}
                     </TableBody>
-                    <TableFooter className="bg-slate-100 font-bold border-t-2 border-slate-300">
+                    <TableFooter className="bg-muted font-bold border-t-2 border-border">
                         <TableRow>
                             <TableCell colSpan={2} className="text-sm">TOT. / MÉD.</TableCell>
                             <TableCell className="text-sm">{fmtDecimal(totals.area)}</TableCell>
@@ -339,7 +336,7 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                             <TableCell className="text-center text-sm">{fmtDecimal(totals.fatAndar / totals.count)}</TableCell>
                             <TableCell className="text-center text-sm">{fmtDecimal(totals.fatDir / totals.count)}</TableCell>
                             <TableCell className="text-right text-sm">{fmtCurrency(totals.base)}</TableCell>
-                            <TableCell className="text-right text-green-800 text-sm">{fmtCurrency(totals.final)}</TableCell>
+                            <TableCell className="text-right text-success text-sm">{fmtCurrency(totals.final)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>

@@ -2,7 +2,6 @@
 
 import { useState, useActionState, useTransition, useEffect } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-// [CORREÇÃO] Importar ActionState
 import { createUser, updateUser, deleteUser, changeUserPassword, sendUserResetEmail, ActionState } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -91,7 +90,6 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
   // --- SERVER ACTIONS ---
 
   // 1. Create / Update
-  // [CORREÇÃO] Tipagem ActionState e inicialização não-nula
   const [state, formAction, isSaving] = useActionState(async (prev: ActionState, formData: FormData) => {
     let result;
     if (editingUser) {
@@ -189,7 +187,7 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Usuários</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Usuários</h1>
             <p className="text-muted-foreground">Gestão de identidades e acessos globais.</p>
           </div>
           
@@ -214,7 +212,7 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                 <div className="grid gap-2">
                   <Label htmlFor="email">E-mail (Login)</Label>
                   <Input id="email" name="email" type="email" defaultValue={editingUser?.email || ''} required />
-                  {state?.errors?.email && <p className="text-sm text-red-500">{state.errors.email}</p>}
+                  {state?.errors?.email && <p className="text-sm text-destructive">{state.errors.email}</p>}
                 </div>
 
                 {/* Senha só aparece na CRIAÇÃO */}
@@ -222,24 +220,24 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                   <div className="grid gap-2">
                     <Label htmlFor="password">Senha Inicial</Label>
                     <Input id="password" name="password" type="password" required />
-                    {state?.errors?.password && <p className="text-sm text-red-500">{state.errors.password}</p>}
+                    {state?.errors?.password && <p className="text-sm text-destructive">{state.errors.password}</p>}
                   </div>
                 )}
 
                 <div className="flex flex-col gap-4 py-2">
-                  <div className="flex items-center justify-between border p-3 rounded-md">
+                  <div className="flex items-center justify-between border border-border p-3 rounded-md">
                      <div className="space-y-0.5">
-                        <Label className="text-base">Ativo</Label>
+                        <Label className="text-base text-foreground">Ativo</Label>
                         <p className="text-xs text-muted-foreground">Pode realizar login no sistema.</p>
                      </div>
                      <input type="hidden" name="ativo" value={ativo ? 'on' : 'off'} />
                      <Switch checked={ativo} onCheckedChange={setAtivo} />
                   </div>
 
-                  <div className="flex items-center justify-between border p-3 rounded-md border-purple-100 bg-purple-50/50">
+                  <div className="flex items-center justify-between border p-3 rounded-md border-primary/20 bg-primary/5">
                      <div className="space-y-0.5">
-                        <Label className="text-base text-purple-900">Super Admin</Label>
-                        <p className="text-xs text-purple-700/70">Acesso irrestrito ao sistema (VHF).</p>
+                        <Label className="text-base text-primary">Super Admin</Label>
+                        <p className="text-xs text-primary/70">Acesso irrestrito ao sistema (VHF).</p>
                      </div>
                      <input type="hidden" name="isSuperAdmin" value={isSuperAdmin ? 'on' : 'off'} />
                      <Switch checked={isSuperAdmin} onCheckedChange={setIsSuperAdmin} />
@@ -266,11 +264,11 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
-          <Button variant="secondary" onClick={handleSearch} disabled={isPending}>Buscar</Button>
+          <Button onClick={handleSearch} disabled={isPending}>Buscar</Button>
         </div>
 
         {/* TABLE */}
-        <div className="border rounded-md relative">
+        <div className="border border-border bg-card rounded-md relative">
           <Table>
             <TableHeader>
               <TableRow>
@@ -308,7 +306,7 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                     <TableCell className="text-muted-foreground text-xs">{user.id}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border">
                            <User className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <span className="font-medium pt-0.5">{user.nome}</span>
@@ -317,7 +315,7 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       {user.isSuperAdmin ? (
-                        <Badge className="bg-purple-600 hover:bg-purple-700 flex w-fit items-center gap-1">
+                        <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 flex w-fit items-center gap-1">
                           <ShieldAlert className="h-3 w-3" /> Admin
                         </Badge>
                       ) : (
@@ -326,8 +324,8 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                     </TableCell>
                     <TableCell>
                       {user.ativo ? 
-                        <Badge className="bg-emerald-600 hover:bg-emerald-700">Ativo</Badge> : 
-                        <Badge variant="destructive" className="bg-rose-600 hover:bg-rose-700">Inativo</Badge>
+                        <Badge className="bg-success text-white hover:bg-success/90">Ativo</Badge> : 
+                        <Badge variant="destructive" className="bg-destructive text-white hover:bg-destructive/90">Inativo</Badge>
                       }
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
@@ -336,13 +334,12 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                     <TableCell className="text-right">
                        <div className="flex justify-end gap-1">
                         
-                        {/* Enviar E-mail Reset - Tooltip */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
+                              className="text-info hover:text-info/80 hover:bg-info/10 transition-colors" 
                               onClick={() => setResetEmailId(user.id)}
                             >
                               <Mail className="h-4 w-4" />
@@ -353,13 +350,12 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                           </TooltipContent>
                         </Tooltip>
 
-                        {/* Trocar Senha Manual - Tooltip */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-amber-500 hover:text-amber-600 hover:bg-amber-50" 
+                              className="text-warning hover:text-warning/80 hover:bg-warning/10 transition-colors" 
                               onClick={() => { setPasswordUserId(user.id); setIsPasswordDialogOpen(true); }}
                             >
                               <KeyRound className="h-4 w-4" />
@@ -370,13 +366,12 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                           </TooltipContent>
                         </Tooltip>
 
-                        {/* Editar - Tooltip */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-muted-foreground hover:text-primary hover:bg-primary/10" 
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" 
                               onClick={() => setEditingUser(user)}
                             >
                               <Pencil className="h-4 w-4" />
@@ -387,13 +382,12 @@ export function UserClient({ initialData, meta }: { initialData: UserData[], met
                           </TooltipContent>
                         </Tooltip>
 
-                        {/* Excluir - Tooltip */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50" 
+                              className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors" 
                               onClick={() => setDeleteId(user.id)}
                             >
                               <Trash2 className="h-4 w-4" />

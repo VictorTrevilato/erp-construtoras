@@ -24,18 +24,20 @@ export default function LoadingApprovalOutlook() {
                   <Skeleton className="h-3 w-32" />
               </div>
               <div className="flex flex-col gap-3">
-                  {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-32 rounded-xl border p-4 space-y-3">
-                          <div className="flex justify-between">
-                              <Skeleton className="h-5 w-20 rounded-full" />
-                              <Skeleton className="h-3 w-16" />
-                          </div>
-                          <Skeleton className="h-4 w-48" />
-                          <div className="pt-3 border-t flex justify-between">
-                              <Skeleton className="h-4 w-24" />
-                              <Skeleton className="h-4 w-20" />
-                          </div>
-                      </div>
+                  {[1, 2, 3].map((_, i) => (
+                      <Card key={i} className="shadow-sm">
+                          <CardContent className="p-4 space-y-3">
+                              <div className="flex justify-between">
+                                  <Skeleton className="h-5 w-24" />
+                                  <Skeleton className="h-5 w-16 rounded-full" />
+                              </div>
+                              <Skeleton className="h-4 w-32" />
+                              <div className="flex justify-between items-end pt-2">
+                                  <Skeleton className="h-4 w-20" />
+                                  <Skeleton className="h-5 w-28" />
+                              </div>
+                          </CardContent>
+                      </Card>
                   ))}
               </div>
           </div>
@@ -43,7 +45,7 @@ export default function LoadingApprovalOutlook() {
           {/* Direita: Detalhe Skeleton */}
           <div className="lg:col-span-8 h-full space-y-6">
               {/* Card Header Info */}
-              <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
+              <div className="bg-card p-6 rounded-xl border shadow-sm space-y-4">
                   <div className="flex justify-between">
                       <div className="space-y-2">
                           <Skeleton className="h-8 w-48" />

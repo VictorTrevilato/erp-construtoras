@@ -22,11 +22,11 @@ const fmtDecimal = (val: number, digits = 2) => val.toLocaleString('pt-BR', { mi
 // Cores atualizadas
 const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DISPONIVEL': return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200'
-      case 'VENDIDO': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200'
-      case 'RESERVADO': return 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200'
-      case 'EM_ANALISE': return 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200'
-      default: return 'bg-slate-100 text-slate-800 border-slate-200'
+      case 'DISPONIVEL': return 'bg-success/20 text-success hover:bg-success/30 border-success/30'
+      case 'VENDIDO': return 'bg-destructive/20 text-destructive hover:bg-destructive/30 border-destructive/30'
+      case 'RESERVADO': return 'bg-warning/20 text-warning hover:bg-warning/30 border-warning/30'
+      case 'EM_ANALISE': return 'bg-info/20 text-info hover:bg-info/30 border-info/30'
+      default: return 'bg-muted text-muted-foreground border-border'
     }
 }
 
@@ -60,7 +60,7 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                     placeholder="Filtrar por unidade ou bloco..." 
-                    className="pl-8 bg-white"
+                    className="pl-8 bg-background"
                     value={filter}
                     onChange={e => setFilter(e.target.value)}
                 />
@@ -74,16 +74,16 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                             {/* === BLOCO 1: DADOS DO IMÓVEL === */}
                             
                             {/* Unidade & Bloco (Sticky Left) */}
-                            <TableHead className="w-32 font-bold text-gray-900 sticky left-0 z-30 bg-white border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm pl-4">
+                            <TableHead className="w-32 font-bold text-foreground sticky left-0 z-30 bg-background border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm pl-4">
                                 Unidade
                             </TableHead>
                             
-                            <TableHead className="w-28 text-center text-gray-700 bg-white border-y h-12">Status</TableHead>
-                            <TableHead className="w-24 text-right text-sm text-gray-700 bg-white border-y h-12">Área Priv.</TableHead>
-                            <TableHead className="w-24 text-right text-sm text-gray-700 bg-white border-y h-12">Área Com.</TableHead>
+                            <TableHead className="w-28 text-center text-muted-foreground bg-background border-y h-12">Status</TableHead>
+                            <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Priv.</TableHead>
+                            <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Com.</TableHead>
                             
                             {/* Valor Tabela (Destaque) */}
-                            <TableHead className="text-right text-sm w-36 text-gray-900 font-semibold bg-white border-y border-r rounded-r-lg h-12">
+                            <TableHead className="text-right text-sm w-36 text-foreground font-semibold bg-background border-y border-r rounded-r-lg h-12">
                                 Valor Tabela
                             </TableHead>
                             
@@ -99,10 +99,10 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                 return (
                                     <TableHead 
                                         key={idx} 
-                                        className={`text-right min-w-[100px] bg-white border-y border-r-0 last:border-r h-12 ${roundedClass}`}
+                                        className={`text-right min-w-[100px] bg-background border-y border-r-0 last:border-r h-12 ${roundedClass}`}
                                     >
                                         <div className="flex flex-col items-end py-1 px-2">
-                                            <span className="font-semibold text-xs text-gray-900 uppercase">{flow.tipo}</span>
+                                            <span className="font-semibold text-xs text-foreground uppercase">{flow.tipo}</span>
                                             <span className="text-[10px] text-muted-foreground font-normal">
                                                 {flow.qtdeParcelas}x de {Number(flow.percentual).toFixed(2)}%
                                             </span>
@@ -153,27 +153,27 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                     {/* === BLOCO 1 === */}
                                     
                                     {/* Unidade & Bloco (Sticky) */}
-                                    <TableCell className="border-y border-l sticky left-0 z-10 bg-white group-hover:bg-slate-50 py-2 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-4">
+                                    <TableCell className="border-y border-l sticky left-0 z-10 bg-background group-hover:bg-muted/50 py-2 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-4">
                                         <div className="flex flex-col">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">{unit.blocoNome}</span>
-                                            <span className="font-bold text-sm text-gray-900">{unit.unidade}</span>
+                                            <span className="font-bold text-sm text-foreground">{unit.unidade}</span>
                                         </div>
                                     </TableCell>
                                     
-                                    <TableCell className="border-y bg-white group-hover:bg-slate-50 text-center">
+                                    <TableCell className="border-y bg-background group-hover:bg-muted/50 text-center">
                                         <Badge variant="outline" className={getStatusColor(unit.statusComercial)}>
                                             {formatStatusLabel(unit.statusComercial)}
                                         </Badge>
                                     </TableCell>
                                     
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(unit.areaPrivativa)}
                                     </TableCell>
-                                    <TableCell className="text-right text-sm text-gray-600 border-y bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-muted-foreground border-y bg-background group-hover:bg-muted/50">
                                         {fmtDecimal(unit.areaUsoComum)}
                                     </TableCell>
                                     
-                                    <TableCell className="text-right text-sm text-gray-900 font-medium border-y border-r rounded-r-md bg-white group-hover:bg-slate-50">
+                                    <TableCell className="text-right text-sm text-foreground font-medium border-y border-r rounded-r-md bg-background group-hover:bg-muted/50">
                                         {valFinal > 0 ? fmtCurrency(valFinal) : <span className="text-muted-foreground text-xs">Sob Consulta</span>}
                                     </TableCell>
 
@@ -189,11 +189,11 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                         return (
                                             <TableCell 
                                                 key={idx} 
-                                                className={`text-right text-sm border-y border-r-0 last:border-r bg-white group-hover:bg-slate-50 px-4 ${roundedClass}`}
+                                                className={`text-right text-sm border-y border-r-0 last:border-r bg-background group-hover:bg-muted/50 px-4 ${roundedClass}`}
                                             >
                                                 {valFinal > 0 ? (
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="font-normal text-gray-700">
+                                                        <span className="font-normal text-muted-foreground">
                                                             {fmtCurrency(flow.valorParcela)}
                                                         </span>
                                                         {flow.qtdeParcelas > 1 && (

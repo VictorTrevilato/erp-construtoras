@@ -9,6 +9,7 @@ interface ProposalContextType {
 
 const ProposalContext = createContext<ProposalContextType | undefined>(undefined)
 
+// Disponibiliza no Context o estado da aba ativa da proposta
 export function ProposalProvider({ children }: { children: ReactNode }) {
     const [activeTab, setActiveTab] = useState("resumo")
 

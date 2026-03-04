@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export default function LoadingTableEdit() {
   return (
     <div className="space-y-6 pb-20">
-      {/* Header Skeleton */}
+      
       <div className="flex items-center justify-between border-b pb-4">
           <div className="flex items-center gap-4">
              <Skeleton className="w-10 h-10 rounded-md" /> {/* Botão Voltar */}
@@ -16,7 +16,6 @@ export default function LoadingTableEdit() {
           </div>
       </div>
 
-      {/* Tabs Skeleton */}
       <div className="space-y-6">
           <div className="flex gap-4 border-b">
               <Skeleton className="h-10 w-32" />

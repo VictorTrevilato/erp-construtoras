@@ -152,92 +152,92 @@ export function ProposalAnalysis({ standardFlow, proposalConditions, unitArea }:
     const area = unitArea > 0 ? unitArea : 1 
 
     return (
-        <Card className="border-slate-200 bg-slate-50/50 shadow-sm mt-6">
-            <CardHeader className="pb-2 border-b border-slate-200 bg-white rounded-t-lg">
-                <CardTitle className="text-sm font-bold uppercase text-slate-600 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-blue-600"/>
+        <Card className="border-border bg-muted/30 shadow-sm mt-6">
+            <CardHeader className="pb-2 border-b border-border bg-background rounded-t-lg">
+                <CardTitle className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary"/>
                     Análise de Viabilidade Financeira
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-100 text-slate-500 font-semibold text-xs uppercase">
+                        <thead className="bg-muted text-muted-foreground font-semibold text-xs uppercase">
                             <tr>
                                 <th className="px-4 py-3 text-left border-r w-32">Indicador</th>
                                 <th className="px-4 py-3 text-right w-36">m² Nominal</th>
-                                <th className="px-4 py-3 text-right w-36 bg-blue-50/30 text-blue-700">m² Presente</th>
+                                <th className="px-4 py-3 text-right w-36 bg-primary/10 text-primary">m² Presente</th>
                                 <th className="px-4 py-3 text-right w-40">VGV Nominal</th>
-                                <th className="px-4 py-3 text-right w-40 bg-blue-50/30 text-blue-700">VGV Presente</th>
+                                <th className="px-4 py-3 text-right w-40 bg-primary/10 text-primary">VGV Presente</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200">
+                        <tbody className="divide-y divide-border">
                             {/* TABELA PADRÃO */}
-                            <tr className="bg-white">
-                                <td className="px-4 py-3 font-medium text-slate-700 border-r">Tabela Padrão</td>
-                                <td className="px-4 py-3 text-right text-slate-600">
+                            <tr className="bg-background">
+                                <td className="px-4 py-3 font-medium text-foreground border-r">Tabela Padrão</td>
+                                <td className="px-4 py-3 text-right text-muted-foreground">
                                     {fmtBRL(analysis.std.totalNominal / area)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-medium text-slate-700 bg-blue-50/10">
+                                <td className="px-4 py-3 text-right font-medium text-foreground bg-primary/5">
                                     {fmtBRL(analysis.std.totalPresente / area)}
                                 </td>
-                                <td className="px-4 py-3 text-right text-slate-600">
+                                <td className="px-4 py-3 text-right text-muted-foreground">
                                     {fmtBRL(analysis.std.totalNominal)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-medium text-slate-700 bg-blue-50/10">
+                                <td className="px-4 py-3 text-right font-medium text-foreground bg-primary/5">
                                     {fmtBRL(analysis.std.totalPresente)}
                                 </td>
                             </tr>
 
                             {/* PROPOSTA */}
-                            <tr className="bg-white">
-                                <td className="px-4 py-3 font-bold text-blue-900 border-r flex items-center gap-2">
+                            <tr className="bg-background">
+                                <td className="px-4 py-3 font-bold text-primary border-r flex items-center gap-2">
                                     <DollarSign className="w-3 h-3"/> Proposta
                                 </td>
-                                <td className="px-4 py-3 text-right font-medium text-slate-800">
+                                <td className="px-4 py-3 text-right font-medium text-foreground">
                                     {fmtBRL(analysis.prop.totalNominal / area)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-bold text-blue-900 bg-blue-50/30">
+                                <td className="px-4 py-3 text-right font-bold text-primary bg-primary/10">
                                     {fmtBRL(analysis.prop.totalPresente / area)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-medium text-slate-800">
+                                <td className="px-4 py-3 text-right font-medium text-foreground">
                                     {fmtBRL(analysis.prop.totalNominal)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-bold text-blue-900 bg-blue-50/30">
+                                <td className="px-4 py-3 text-right font-bold text-primary bg-primary/10">
                                     {fmtBRL(analysis.prop.totalPresente)}
                                 </td>
                             </tr>
 
                             {/* DIFERENÇA */}
-                            <tr className="bg-slate-50 font-medium text-xs">
-                                <td className="px-4 py-2 text-slate-500 border-r">Diferença (R$)</td>
-                                <td className={cn("px-4 py-2 text-right", analysis.diff.nominal < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                            <tr className="bg-muted/50 font-medium text-xs">
+                                <td className="px-4 py-2 text-muted-foreground border-r">Diferença (R$)</td>
+                                <td className={cn("px-4 py-2 text-right", analysis.diff.nominal < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtBRL(analysis.diff.nominal / area)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right bg-slate-100", analysis.diff.present < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right bg-muted", analysis.diff.present < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtBRL(analysis.diff.present / area)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right", analysis.diff.nominal < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right", analysis.diff.nominal < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtBRL(analysis.diff.nominal)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right bg-slate-100", analysis.diff.present < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right bg-muted", analysis.diff.present < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtBRL(analysis.diff.present)}
                                 </td>
                             </tr>
 
                             {/* VARIAÇÃO */}
-                            <tr className="bg-slate-50 font-bold text-xs">
-                                <td className="px-4 py-2 text-slate-500 border-r">Variação (%)</td>
-                                <td className={cn("px-4 py-2 text-right", analysis.var.nominal < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                            <tr className="bg-muted/50 font-bold text-xs">
+                                <td className="px-4 py-2 text-muted-foreground border-r">Variação (%)</td>
+                                <td className={cn("px-4 py-2 text-right", analysis.var.nominal < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtPercent(analysis.var.nominal)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right bg-slate-100", analysis.var.present < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right bg-muted", analysis.var.present < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtPercent(analysis.var.present)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right", analysis.var.nominal < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right", analysis.var.nominal < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtPercent(analysis.var.nominal)}
                                 </td>
-                                <td className={cn("px-4 py-2 text-right bg-slate-100", analysis.var.present < -0.01 ? "text-red-600" : "text-emerald-600")}>
+                                <td className={cn("px-4 py-2 text-right bg-muted", analysis.var.present < -0.01 ? "text-destructive" : "text-success")}>
                                     {fmtPercent(analysis.var.present)}
                                 </td>
                             </tr>

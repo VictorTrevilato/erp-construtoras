@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Building2, ArrowRight, MapPin, Layers, DoorOpen, FileText } from "lucide-react"
 import Link from "next/link"
 
-// [CORREÇÃO] Tipagem declarada explicitamente para evitar conflitos com a Action
 export interface ProposalProjectSummary {
   id: string
   nome: string
@@ -25,12 +24,12 @@ export function ProposalsProjectList({ projects }: { projects: ProposalProjectSu
   
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      LANCAMENTO: "bg-blue-100 text-blue-800 border-blue-200",
-      PLANTA: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      OBRAS: "bg-orange-100 text-orange-800 border-orange-200",
-      ENTREGUE: "bg-green-100 text-green-800 border-green-200",
+      LANCAMENTO: "bg-primary/10 text-primary border-primary/20",
+      PLANTA: "bg-info/10 text-info border-info/20",
+      OBRAS: "bg-warning/10 text-warning border-warning/20",
+      ENTREGUE: "bg-success/10 text-success border-success/20",
     }
-    return styles[status] || "bg-slate-100 text-slate-800"
+    return styles[status] || "bg-muted text-muted-foreground border-border"
   }
 
   return (
@@ -57,11 +56,11 @@ export function ProposalsProjectList({ projects }: { projects: ProposalProjectSu
               </TableRow>
             ) : (
               projects.map((project) => (
-                <TableRow key={project.id} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-semibold text-base flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gray-500" />
+                        <Building2 className="w-4 h-4 text-muted-foreground" />
                         {project.nome}
                       </span>
                       {(project.cidade || project.uf) && (

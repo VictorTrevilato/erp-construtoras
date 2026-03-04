@@ -7,8 +7,8 @@ export default function LoadingCommercialUnits() {
     <div className="space-y-6">
       {/* Header (Título e Subtítulo) */}
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-10 w-64" /> {/* Título */}
-        <Skeleton className="h-4 w-96" /> {/* Subtítulo */}
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-4 w-96" />
       </div>
 
       <Card>

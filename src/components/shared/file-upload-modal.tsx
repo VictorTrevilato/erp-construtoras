@@ -3,9 +3,10 @@
 import { useState, useRef, DragEvent } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { UploadCloud, FileText, FileSpreadsheet, File as FileIcon, X } from "lucide-react"
+import { UploadCloud, FileText, FilePenLine, FileSpreadsheet, File as FileIcon, X } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useWhiteLabelTheme } from "@/components/theme-wrapper" // <- HOOK
 
 interface FileUploadModalProps {
     isOpen: boolean
@@ -26,14 +27,22 @@ export const formatBytes = (bytes: number, decimals = 2) => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-export const getFileIcon = (fileName: string) => {
+// Passamos o accentTheme para que os ícones sem cor definida puxem a configuração
+export const getFileIcon = (fileName: string, accentTheme?: 'primary' | 'secondary') => {
     const ext = fileName.split('.').pop()?.toLowerCase()
-    if (ext === 'pdf') return <FileText className="w-5 h-5 text-red-500" />
-    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-    return <FileIcon className="w-5 h-5 text-blue-600" />
+    const themeAccentText = accentTheme === 'secondary' ? 'text-secondary' : 'text-primary'
+
+    if (ext === 'pdf') return <FileText className="w-5 h-5 text-destructive" />
+    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return <FileSpreadsheet className="w-5 h-5 text-success" />
+    if (['doc', 'docx'].includes(ext || '')) return <FilePenLine className="w-5 h-5 text-info" />
+    return <FileIcon className={cn("w-5 h-5", themeAccentText)} />
 }
 
 export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames }: FileUploadModalProps) {
+    const { accentTheme } = useWhiteLabelTheme() // <- HOOK ADICIONADO
+    const themeAccentText = accentTheme === 'secondary' ? 'text-secondary' : 'text-primary'
+    const themeAccentDrag = accentTheme === 'secondary' ? 'border-secondary bg-secondary/10' : 'border-primary bg-primary/10'
+
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -107,7 +116,6 @@ export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames 
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            {/* Modal principal com altura travada e overflow escondido para não gerar scroll externo */}
             <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
                 
                 <DialogHeader className="p-6 pb-4 border-b shrink-0">
@@ -117,14 +125,12 @@ export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames 
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Corpo do modal: Flex-1 para ocupar o meio, min-h-0 para o scroll interno funcionar corretamente */}
                 <div className="flex-1 flex flex-col min-h-0 p-6 space-y-4">
                     
-                    {/* DROPZONE - Bem achatada, margens e ícones reduzidos, shrink-0 para não amassar */}
                     <div 
                         className={cn(
                             "shrink-0 border-2 border-dashed rounded-xl py-4 px-6 flex flex-col items-center justify-center text-center transition-colors cursor-pointer",
-                            isDragging ? "border-blue-500 bg-blue-50" : "border-slate-300 hover:bg-slate-50 bg-slate-50/50"
+                            isDragging ? themeAccentDrag : "border-slate-300 hover:bg-slate-50 bg-slate-50/50"
                         )}
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
@@ -139,7 +145,7 @@ export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames 
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.csv"
                             onChange={(e) => e.target.files && handleAddFiles(e.target.files)}
                         />
-                        <div className="w-12 h-12 bg-white border shadow-sm rounded-full flex items-center justify-center mb-2 text-blue-600">
+                        <div className={cn("w-12 h-12 bg-white border shadow-sm rounded-full flex items-center justify-center mb-2", themeAccentText)}>
                             <UploadCloud className="w-6 h-6" />
                         </div>
                         <h3 className="font-bold text-slate-700 text-base">Clique ou arraste os arquivos aqui</h3>
@@ -148,25 +154,23 @@ export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames 
                         </p>
                     </div>
 
-                    {/* LISTA PREVIEW - Flex-1 e min-h-0 garantem que apenas ela crie barra de rolagem */}
                     {selectedFiles.length > 0 && (
                         <div className="flex-1 flex flex-col border rounded-lg overflow-hidden bg-white min-h-0">
                             <div className="bg-slate-50 px-4 py-2 border-b text-xs font-bold text-slate-500 uppercase tracking-wider flex justify-between shrink-0">
                                 <span>{selectedFiles.length} Arquivo(s) Selecionado(s)</span>
                             </div>
                             
-                            {/* É AQUI que a rolagem mágica acontece! */}
                             <ul className="flex-1 overflow-y-auto divide-y">
                                 {selectedFiles.map((file, idx) => (
                                     <li key={idx} className="flex items-center justify-between p-3 hover:bg-slate-50">
                                         <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="shrink-0">{getFileIcon(file.name)}</div>
+                                            <div className="shrink-0">{getFileIcon(file.name, accentTheme)}</div>
                                             <div className="truncate">
                                                 <p className="text-sm font-bold text-slate-700 truncate" title={file.name}>{file.name}</p>
                                                 <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 shrink-0" onClick={() => removeFile(file.name)}>
+                                        <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive shrink-0" onClick={() => removeFile(file.name)}>
                                             <X className="w-4 h-4" />
                                         </Button>
                                     </li>
@@ -178,7 +182,7 @@ export function FileUploadModal({ isOpen, onClose, onConfirm, existingFileNames 
 
                 <DialogFooter className="p-4 bg-slate-50 border-t shrink-0">
                     <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleConfirm} disabled={selectedFiles.length === 0} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleConfirm} disabled={selectedFiles.length === 0}>
                         Confirmar Envio
                     </Button>
                 </DialogFooter>

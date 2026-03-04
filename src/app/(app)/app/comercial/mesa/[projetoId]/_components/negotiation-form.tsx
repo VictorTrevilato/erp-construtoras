@@ -192,20 +192,20 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
         <div className="space-y-6">
             
             {/* === LINHA 1: CABEÇALHO === */}
-            <Card className="border-l-4 border-l-blue-600 shadow-sm">
+            <Card className="border-l-4 border-l-primary shadow-sm">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         {/* Coluna Unidade (4 cols) */}
                         <div className="md:col-span-4 space-y-4 border-r pr-6">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><RefreshCw className="w-5 h-5"/></div>
-                                <h3 className="font-bold text-lg text-gray-800">1. Seleção da Unidade</h3>
+                                <div className="p-2 bg-primary/20 rounded-lg text-primary"><RefreshCw className="w-5 h-5"/></div>
+                                <h3 className="font-bold text-lg text-foreground">1. Seleção da Unidade</h3>
                             </div>
                             
                             <div className="space-y-2">
                                 <Label>Unidade Disponível</Label>
                                 <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
-                                    <SelectTrigger className="h-11 text-base">
+                                    <SelectTrigger className="h-11 text-base bg-background">
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -221,14 +221,14 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                             </div>
 
                             {selectedUnit && (
-                                <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 p-3 rounded border">
+                                <div className="grid grid-cols-2 gap-2 text-sm bg-muted/50 p-3 rounded border">
                                     <div>
                                         <p className="text-xs text-muted-foreground">Área Privativa</p>
-                                        <p className="font-bold">{selectedUnit.areaPrivativa} m²</p>
+                                        <p className="font-bold text-foreground">{selectedUnit.areaPrivativa} m²</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Valor Tabela</p>
-                                        <p className="font-bold text-blue-700">{fmtCurrency(selectedUnit.valorTabela)}</p>
+                                        <p className="font-bold text-primary">{fmtCurrency(selectedUnit.valorTabela)}</p>
                                     </div>
                                 </div>
                             )}
@@ -237,8 +237,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                         {/* Coluna Lead (8 cols) */}
                         <div className="md:col-span-8 pl-2">
                             <div className="flex items-center gap-2 mb-4">
-                                <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Wallet className="w-5 h-5"/></div>
-                                <h3 className="font-bold text-lg text-gray-800">2. Dados do Comprador</h3>
+                                <div className="p-2 bg-primary/20 rounded-lg text-primary"><Wallet className="w-5 h-5"/></div>
+                                <h3 className="font-bold text-lg text-foreground">2. Dados do Comprador</h3>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -247,7 +247,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <Input 
                                         value={lead.nome} 
                                         onChange={e => updateLead('nome', e.target.value)} 
-                                        className="h-10" 
+                                        className="h-10 bg-background" 
                                         placeholder="Preencha o nome do cliente..." 
                                     />
                                 </div>
@@ -256,7 +256,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <Input 
                                         value={lead.telefone} 
                                         onChange={e => updateLead('telefone', e.target.value)} 
-                                        className="h-10" 
+                                        className="h-10 bg-background" 
                                         placeholder="Preencha o telefone..." 
                                     />
                                 </div>
@@ -265,14 +265,14 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <Input 
                                         value={lead.email} 
                                         onChange={e => updateLead('email', e.target.value)} 
-                                        className="h-10" 
+                                        className="h-10 bg-background" 
                                         placeholder="Preencha o email..." 
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <Label>Origem</Label>
                                     <Select value={lead.origem} onValueChange={v => updateLead('origem', v)}>
-                                        <SelectTrigger className="h-10">
+                                        <SelectTrigger className="h-10 bg-background">
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -292,7 +292,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* COLUNA ESQUERDA: CONDIÇÃO PADRÃO */}
-                <Card className="lg:col-span-4 bg-slate-50 border-slate-200">
+                <Card className="lg:col-span-4 bg-muted/20 border-border">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-base text-muted-foreground flex items-center gap-2">
                             <Calculator className="w-4 h-4"/>
@@ -305,10 +305,10 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                         ) : (
                             <>
                                 {standardFlow.map((flow, idx) => (
-                                    <div key={idx} className="bg-white p-3 rounded border text-sm shadow-sm">
+                                    <div key={idx} className="bg-background p-3 rounded border text-sm shadow-sm">
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="font-bold text-slate-700">{flow.tipo}</span>
-                                            <span className="font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs">
+                                            <span className="font-bold text-foreground">{flow.tipo}</span>
+                                            <span className="font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs">
                                                 {Number(flow.percentual).toFixed(2)}%
                                             </span>
                                         </div>
@@ -322,8 +322,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                 ))}
                                 <Separator />
                                 <div className="flex justify-between items-center pt-2">
-                                    <span className="text-sm font-bold text-slate-600">TOTAL DA TABELA</span>
-                                    <span className="text-sm font-bold text-slate-900">{selectedUnit ? fmtCurrency(selectedUnit.valorTabela) : '-'}</span>
+                                    <span className="text-sm font-bold text-muted-foreground">TOTAL DA TABELA</span>
+                                    <span className="text-sm font-bold text-foreground">{selectedUnit ? fmtCurrency(selectedUnit.valorTabela) : '-'}</span>
                                 </div>
                             </>
                         )}
@@ -331,22 +331,22 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                 </Card>
 
                 {/* COLUNA DIREITA: PROPOSTA PERSONALIZADA */}
-                <Card className="lg:col-span-8 border-blue-200 shadow-md">
-                    <CardHeader className="bg-blue-50/50 pb-4 border-b border-blue-100">
+                <Card className="lg:col-span-8 border-primary/20 shadow-md">
+                    <CardHeader className="bg-primary/5 pb-4 border-b border-primary/10">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                            <CardTitle className="text-blue-900 flex items-center gap-2">
+                            <CardTitle className="text-primary flex items-center gap-2">
                                 <Save className="w-5 h-5"/> 3. Proposta Personalizada
                             </CardTitle>
                             
-                            <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-lg border border-blue-200 shadow-sm">
-                                <label className="text-xs font-bold uppercase text-blue-800">Valor Fechamento</label>
-                                <div className="h-6 w-px bg-slate-200"></div>
+                            <div className="flex items-center gap-3 bg-background p-2 px-4 rounded-lg border border-primary/20 shadow-sm">
+                                <label className="text-xs font-bold uppercase text-primary">Valor Fechamento</label>
+                                <div className="h-6 w-px bg-border"></div>
                                 <div className="flex items-center gap-1">
-                                    <span className="text-sm font-bold text-slate-500">R$</span>
+                                    <span className="text-sm font-bold text-muted-foreground">R$</span>
                                     <MoneyInput 
                                         value={targetPrice} 
                                         onChange={setTargetPrice} 
-                                        className="w-32 border-none shadow-none h-8 text-lg text-blue-700 focus-visible:ring-0 p-0"
+                                        className="w-32 border-none shadow-none h-8 text-lg text-primary focus-visible:ring-0 p-0"
                                     />
                                 </div>
                             </div>
@@ -355,22 +355,22 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                         <div className="mt-4 flex justify-between items-center text-sm">
                             <div>
                                 <span className="text-muted-foreground mr-2">Total Distribuído:</span>
-                                <span className="font-bold text-slate-700">{fmtCurrency(totalDistributed)}</span>
+                                <span className="font-bold text-foreground">{fmtCurrency(totalDistributed)}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className={cn("text-xs font-bold uppercase px-2 py-1 rounded", 
-                                    isClosed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                    isClosed ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
                                 )}>
                                     {isClosed ? "OK" : isPositive ? "A COMPLETAR" : "EXCEDENTE"}
                                 </span>
-                                <span className={cn("font-bold text-lg", isClosed ? "text-green-600" : "text-red-600")}>
+                                <span className={cn("font-bold text-lg", isClosed ? "text-success" : "text-destructive")}>
                                     {fmtCurrency(Math.abs(remaining))}
                                 </span>
                             </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-4 bg-slate-50/50">
+                    <CardContent className="p-4 bg-muted/10">
                         {/* Grid de 3 Colunas (Buckets) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                             {ALLOWED_TYPES.map((type) => {
@@ -378,10 +378,10 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                 
                                 return (
                                     <div key={type} className="flex flex-col gap-2">
-                                        <div className="flex justify-between items-center pb-1 border-b border-slate-200">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">{type}</span>
+                                        <div className="flex justify-between items-center pb-1 border-b border-border">
+                                            <span className="text-xs font-bold text-muted-foreground uppercase">{type}</span>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addCondition(type)}>
-                                                <Plus className="w-3 h-3 text-blue-600" />
+                                                <Plus className="w-3 h-3 text-primary" />
                                             </Button>
                                         </div>
 
@@ -391,10 +391,10 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                 const percentItem = targetPrice > 0 ? (totalItem / targetPrice) * 100 : 0
                                                 
                                                 return (
-                                                    <div key={cond.id} className="bg-white border rounded-md p-2 shadow-sm relative group">
+                                                    <div key={cond.id} className="bg-background border rounded-md p-2 shadow-sm relative group">
                                                         <button 
                                                             onClick={() => removeCondition(cond.id)}
-                                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-400 hover:text-red-600"
+                                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-destructive/70 hover:text-destructive"
                                                         >
                                                             <Trash2 className="w-3 h-3" />
                                                         </button>
@@ -405,7 +405,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                                     <label className="text-[9px] text-muted-foreground uppercase font-bold">Vencimento</label>
                                                                     <Input 
                                                                         type="date" 
-                                                                        className="h-7 text-xs px-1"
+                                                                        className="h-7 text-xs px-1 bg-background"
                                                                         value={cond.vencimento}
                                                                         onChange={e => updateCondition(cond.id, 'vencimento', e.target.value)}
                                                                     />
@@ -414,7 +414,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                                     <label className="text-[9px] text-muted-foreground uppercase font-bold">Parcelas</label>
                                                                     <Input 
                                                                         type="number" 
-                                                                        className="h-7 text-xs px-1 text-center"
+                                                                        className="h-7 text-xs px-1 text-center bg-background"
                                                                         value={cond.qtdeParcelas}
                                                                         onChange={e => updateCondition(cond.id, 'qtdeParcelas', Number(e.target.value))}
                                                                     />
@@ -425,12 +425,12 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                                 <MoneyInput 
                                                                     value={cond.valorParcela}
                                                                     onChange={v => updateCondition(cond.id, 'valorParcela', v)}
-                                                                    className="h-7 text-xs font-bold"
+                                                                    className="h-7 text-xs font-bold bg-background"
                                                                 />
                                                             </div>
                                                             <div className="text-[10px] text-right text-muted-foreground border-t pt-1 mt-1 flex justify-between">
                                                                 <span>Total: {fmtCurrency(totalItem)}</span>
-                                                                <span className="font-bold text-blue-600">({percentItem.toFixed(1)}%)</span>
+                                                                <span className="font-bold text-primary">({percentItem.toFixed(1)}%)</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -438,8 +438,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                             })}
                                             
                                             {typeConditions.length === 0 && (
-                                                <div className="border-2 border-dashed border-slate-100 rounded-md p-4 text-center">
-                                                    <span className="text-[10px] text-slate-300">Sem itens</span>
+                                                <div className="border-2 border-dashed border-border rounded-md p-4 text-center">
+                                                    <span className="text-[10px] text-muted-foreground/50">Sem itens</span>
                                                 </div>
                                             )}
                                         </div>
@@ -459,14 +459,14 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
 
                     </CardContent>
                     
-                    <div className="p-4 border-t bg-white flex justify-end gap-3">
+                    <div className="p-4 border-t bg-background flex justify-end gap-3">
                         <Button variant="outline" onClick={handleResetToStandard}>
                             <RotateCcw className="mr-2 h-4 w-4" /> Tabela Padrão
                         </Button>
-                        <Button variant="outline" onClick={handleClear} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <Button variant="outline" onClick={handleClear} className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" /> Limpar Tudo
                         </Button>
-                        <Button className="bg-green-600 hover:bg-green-700 w-48" onClick={handleSave}>
+                        <Button className="w-48" onClick={handleSave}>
                             <Save className="mr-2 h-4 w-4" /> Salvar Proposta
                         </Button>
                     </div>

@@ -19,9 +19,9 @@ export default async function ProjectsPage() {
 
   // Lógica Estrita: O usuário DEVE ter a permissão explícita.
   // Não há exceção para e-mail ou cargo "ADMIN" genérico aqui.
-  const canCreate = userPermissions.includes("PROJETOS_CRIAR")
-  const canEdit = userPermissions.includes("PROJETOS_EDITAR")
-  const canDelete = userPermissions.includes("PROJETOS_EXCLUIR")
+  const canCreate = userPermissions.includes("PROJETOS_CRIAR") //PROJETOS_CRIAR
+  const canEdit = userPermissions.includes("PROJETOS_EDITAR") //PROJETOS_EDITAR
+  const canDelete = userPermissions.includes("PROJETOS_EXCLUIR") //PROJETOS_EXCLUIR
 
   const permissions = { canCreate, canEdit, canDelete }
 
@@ -29,7 +29,7 @@ export default async function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projetos e Obras</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Projetos e Obras</h1>
           <p className="text-muted-foreground">
             Gestão de empreendimentos, canteiros de obra e SPEs.
           </p>
@@ -69,7 +69,7 @@ export default async function ProjectsPage() {
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
-                        <span>{project.nome}</span>
+                        <span className="text-foreground">{project.nome}</span>
                         {project.cnpj && <span className="text-[10px] text-muted-foreground">CNPJ: {project.cnpj}</span>}
                       </div>
                     </TableCell>

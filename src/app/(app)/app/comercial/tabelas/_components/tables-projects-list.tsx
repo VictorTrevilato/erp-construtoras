@@ -15,20 +15,20 @@ interface ProjectSummary {
   cidade: string
   uf: string
   totalTabelas: number
-  totalBlocos: number    // [NOVO]
-  totalUnidades: number  // [NOVO]
+  totalBlocos: number    
+  totalUnidades: number  
 }
 
 export function TablesProjectsList({ projects }: { projects: ProjectSummary[] }) {
   
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      LANCAMENTO: "bg-blue-100 text-blue-800 border-blue-200",
-      PLANTA: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      OBRAS: "bg-orange-100 text-orange-800 border-orange-200",
-      ENTREGUE: "bg-green-100 text-green-800 border-green-200",
+      LANCAMENTO: "bg-primary/10 text-primary border-primary/20",
+      PLANTA: "bg-info/10 text-info border-info/20",
+      OBRAS: "bg-warning/10 text-warning border-warning/20",
+      ENTREGUE: "bg-success/10 text-success border-success/20",
     }
-    return styles[status] || "bg-slate-100 text-slate-800"
+    return styles[status] || "bg-muted text-muted-foreground border-border"
   }
 
   return (
@@ -40,10 +40,8 @@ export function TablesProjectsList({ projects }: { projects: ProjectSummary[] })
               <TableHead>Empreendimento</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
-              {/* [NOVO] Colunas adicionadas para padronização */}
               <TableHead className="text-center">Blocos</TableHead>
               <TableHead className="text-center">Unidades</TableHead>
-              {/* [AJUSTE] Renomeado de "Campanhas Ativas" para "Campanhas" */}
               <TableHead className="text-center">Campanhas</TableHead>
               <TableHead className="text-right">Ação</TableHead>
             </TableRow>
@@ -57,11 +55,11 @@ export function TablesProjectsList({ projects }: { projects: ProjectSummary[] })
               </TableRow>
             ) : (
               projects.map((project) => (
-                <TableRow key={project.id} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-base flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold text-base flex items-center gap-2 text-foreground">
+                        <Building2 className="w-4 h-4 text-muted-foreground" />
                         {project.nome}
                       </span>
                       {(project.cidade || project.uf) && (
@@ -82,7 +80,6 @@ export function TablesProjectsList({ projects }: { projects: ProjectSummary[] })
                     </Badge>
                   </TableCell>
 
-                  {/* [NOVO] Coluna Blocos */}
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1 text-muted-foreground">
                        <Layers className="w-4 h-4" />
@@ -90,7 +87,6 @@ export function TablesProjectsList({ projects }: { projects: ProjectSummary[] })
                     </div>
                   </TableCell>
 
-                  {/* [NOVO] Coluna Unidades */}
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1 text-muted-foreground">
                        <DoorOpen className="w-4 h-4" />
@@ -106,7 +102,6 @@ export function TablesProjectsList({ projects }: { projects: ProjectSummary[] })
                   </TableCell>
 
                   <TableCell className="text-right">
-                    {/* [CORREÇÃO] Removida classe bg-slate-900 para voltar a ser Azul (default) */}
                     <Button asChild size="sm" variant="default" className="gap-2">
                       <Link href={`/app/comercial/tabelas/${project.id}`}>
                         Gerenciar Tabelas <ArrowRight className="w-4 h-4" />

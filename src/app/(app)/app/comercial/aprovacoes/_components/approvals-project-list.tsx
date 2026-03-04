@@ -12,12 +12,12 @@ export function ApprovalsProjectList({ projects }: { projects: ApprovalProjectSu
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      LANCAMENTO: "bg-blue-100 text-blue-800 border-blue-200",
-      PLANTA: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      OBRAS: "bg-orange-100 text-orange-800 border-orange-200",
-      ENTREGUE: "bg-green-100 text-green-800 border-green-200",
+      LANCAMENTO: "bg-primary/10 text-primary border-primary/20",
+      PLANTA: "bg-info/10 text-info border-info/20",
+      OBRAS: "bg-warning/10 text-warning border-warning/20",
+      ENTREGUE: "bg-success/10 text-success border-success/20",
     }
-    return styles[status] || "bg-slate-100 text-slate-800"
+    return styles[status] || "bg-muted text-muted-foreground border-border"
   }
 
   return (
@@ -25,7 +25,7 @@ export function ApprovalsProjectList({ projects }: { projects: ApprovalProjectSu
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
               <TableHead>Empreendimento</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
@@ -39,16 +39,16 @@ export function ApprovalsProjectList({ projects }: { projects: ApprovalProjectSu
             {projects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  Nenhum projeto com propostas encontrado.
+                  Nenhum projeto encontrado.
                 </TableCell>
               </TableRow>
             ) : (
               projects.map((project) => (
-                <TableRow key={project.id} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-base flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold text-base flex items-center gap-2 text-foreground">
+                        <Building2 className="w-4 h-4 text-muted-foreground" />
                         {project.nome}
                       </span>
                       {(project.cidade || project.uf) && (
@@ -85,13 +85,12 @@ export function ApprovalsProjectList({ projects }: { projects: ApprovalProjectSu
 
                   <TableCell className="text-center">
                     {project.totalPendentes > 0 ? (
-                        <div className="flex items-center justify-center gap-1 text-amber-700 font-bold bg-amber-50 py-1 px-3 rounded-full w-fit mx-auto border border-amber-200">
+                        <div className="flex items-center justify-center gap-1 text-warning font-bold bg-warning/20 py-1 px-3 rounded-full w-fit mx-auto border border-warning/30">
                            <AlertTriangle className="w-4 h-4" />
                            <span>{project.totalPendentes}</span>
                         </div>
                     ) : (
-                        // [CORREÇÃO] Removida opacity-60 para ficar nítido igual Mesa
-                        <div className="flex items-center justify-center gap-1 text-emerald-600 font-bold bg-emerald-50 py-1 px-3 rounded-full w-fit mx-auto border border-emerald-100">
+                        <div className="flex items-center justify-center gap-1 text-success font-bold bg-success/20 py-1 px-3 rounded-full w-fit mx-auto border border-success/30">
                            <CheckCircle2 className="w-4 h-4" />
                            <span>0</span>
                         </div>

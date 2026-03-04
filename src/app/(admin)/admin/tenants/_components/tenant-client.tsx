@@ -2,7 +2,6 @@
 
 import { useState, useActionState, useTransition, useEffect } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-// [CORREÇÃO] Importar ActionState
 import { createTenant, updateTenant, deleteTenant, createTenantMasterAccess, getTenantMaster, ActionState } from '@/app/actions/admin'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,7 +81,6 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
 
   // Server Action: Create/Update Tenant
-  // [CORREÇÃO] Tipagem ActionState e inicialização não-nula
   const [state, formAction, isSaving] = useActionState(async (prev: ActionState, formData: FormData) => {
     let result;
     if (editingTenant) {
@@ -110,7 +108,6 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
   }, { success: false, message: '' })
 
   // Server Action: Wizard Master
-  // [CORREÇÃO] Removemos a variável '_wizardState' deixando apenas a vírgula
   const [, wizardAction, isWizardSaving] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await createTenantMasterAccess(prev, formData)
     if (result.success) {
@@ -127,9 +124,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
   // Lógica Inteligente do Botão UserPlus
   const handleMasterClick = async (tenant: Tenant) => {
     setIsCheckingMaster(true)
-    
     const check = await getTenantMaster(tenant.id)
-    
     setIsCheckingMaster(false)
 
     if (check.success && check.data) {
@@ -142,7 +137,6 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
 
   const openWizard = (tenant: Tenant) => {
     setNewTenantData(tenant)
-    
     const cleanName = tenant.nome
       .toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
@@ -202,7 +196,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Empresas</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Empresas</h1>
             <p className="text-muted-foreground">Gestão das empresas e construtoras do sistema.</p>
           </div>
           
@@ -221,12 +215,12 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                 <div className="grid gap-2">
                   <Label htmlFor="nome">Nome Empresarial</Label>
                   <Input id="nome" name="nome" defaultValue={editingTenant?.nome || ''} placeholder="Ex: Construtora Silva" required />
-                  {state?.errors?.nome && <p className="text-sm text-red-500">{state.errors.nome}</p>}
+                  {state?.errors?.nome && <p className="text-sm text-destructive">{state.errors.nome}</p>}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="cnpj">CNPJ (Somente Números)</Label>
                   <Input id="cnpj" name="cnpj" value={cnpjValue} onChange={handleCnpjChange} placeholder="00000000000199" required />
-                  {state?.errors?.cnpj && <p className="text-sm text-red-500">{state.errors.cnpj}</p>}
+                  {state?.errors?.cnpj && <p className="text-sm text-destructive">{state.errors.cnpj}</p>}
                 </div>
                 
                 {/* TOOLTIP: UPLOAD DESABILITADO */}
@@ -277,11 +271,10 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
           <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-purple-700">
+                <DialogTitle className="flex items-center gap-2 text-primary">
                   <UserPlus className="h-5 w-5" /> Configurar Acesso Master
                 </DialogTitle>
                 <DialogDescription>
-                  {/* [CORREÇÃO] Aspas escapadas */}
                   A empresa <strong>{newTenantData?.nome}</strong> está pronta. <br/>
                   Defina o usuário &quot;Administrador Master&quot;.
                 </DialogDescription>
@@ -325,7 +318,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setIsWizardOpen(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={isWizardSaving} className="bg-purple-600 hover:bg-purple-700 text-white">{isWizardSaving ? 'Vinculando...' : 'Criar Acesso Master'}</Button>
+                  <Button type="submit" disabled={isWizardSaving}>{isWizardSaving ? 'Vinculando...' : 'Criar Acesso Master'}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -334,7 +327,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
           <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-emerald-700">
+                <DialogTitle className="flex items-center gap-2 text-success">
                   <UserCheck className="h-5 w-5" /> Admin Encontrado
                 </DialogTitle>
                 <DialogDescription>
@@ -342,14 +335,14 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="bg-muted/50 p-4 rounded-md border space-y-3">
+              <div className="bg-muted/50 p-4 rounded-md border border-border space-y-3">
                 <div className="grid gap-1">
                   <Label className="text-xs text-muted-foreground">Nome do Administrador</Label>
-                  <p className="font-medium">{existingMaster?.nome}</p>
+                  <p className="font-medium text-foreground">{existingMaster?.nome}</p>
                 </div>
                 <div className="grid gap-1">
                   <Label className="text-xs text-muted-foreground">E-mail de Acesso</Label>
-                  <p className="font-mono text-sm">{existingMaster?.email}</p>
+                  <p className="font-mono text-sm text-foreground">{existingMaster?.email}</p>
                 </div>
               </div>
 
@@ -366,10 +359,10 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Buscar por nome ou CNPJ..." className="pl-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <Button variant="secondary" onClick={handleSearch} disabled={isPending}>Buscar</Button>
+          <Button onClick={handleSearch} disabled={isPending}>Buscar</Button>
         </div>
 
-        <div className="border rounded-md relative">
+        <div className="border border-border rounded-md relative bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -398,12 +391,12 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                   <TableRow key={tenant.id}>
                     <TableCell className="text-muted-foreground text-xs">{tenant.id}</TableCell>
                     <TableCell>
-                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center border"><ImageIcon className="h-4 w-4 text-muted-foreground/50" /></div>
+                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center border border-border"><ImageIcon className="h-4 w-4 text-muted-foreground/50" /></div>
                     </TableCell>
                     <TableCell className="font-medium">{tenant.nome}</TableCell>
                     <TableCell className="text-sm">{tenant.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}</TableCell>
                     <TableCell>
-                      {tenant.ativo ? <Badge className="bg-emerald-600 hover:bg-emerald-700">Ativo</Badge> : <Badge variant="destructive" className="bg-rose-600 hover:bg-rose-700">Inativo</Badge>}
+                      {tenant.ativo ? <Badge className="bg-success text-white hover:bg-success/90">Ativo</Badge> : <Badge variant="destructive">Inativo</Badge>}
                     </TableCell>
                     
                     {/* CORES COM TOOLTIP */}
@@ -441,7 +434,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-purple-600 hover:text-purple-700 transition-colors"
+                              className="text-primary hover:text-primary/80 transition-colors"
                               disabled={isCheckingMaster} 
                               onClick={() => handleMasterClick(tenant)}
                             >
@@ -474,7 +467,7 @@ export function TenantClient({ initialData, meta }: { initialData: Tenant[], met
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors" 
+                              className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors" 
                               onClick={() => setDeleteId(tenant.id)}
                             >
                               <Trash2 className="h-4 w-4" />

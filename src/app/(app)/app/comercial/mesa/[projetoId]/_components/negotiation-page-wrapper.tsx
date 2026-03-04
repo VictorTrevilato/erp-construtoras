@@ -23,19 +23,19 @@ function NegotiationTabs({ units, flows }: { units: NegotiationUnit[], flows: Se
             <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
                 <TabsTrigger 
                     value="espelho" 
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
                 >
                     1. Espelho de Vendas
                 </TabsTrigger>
                 <TabsTrigger 
                     value="tabela" 
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
                 >
                     2. Tabela de Preços
                 </TabsTrigger>
                 <TabsTrigger 
                     value="negociacao" 
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground"
                 >
                     3. Negociação
                 </TabsTrigger>

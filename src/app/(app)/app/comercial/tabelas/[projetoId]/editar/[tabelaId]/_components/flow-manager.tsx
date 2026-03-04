@@ -48,7 +48,7 @@ function FlowInput({ value, onChange, decimals, suffix }: FlowInputProps) {
     return (
         <div className="relative w-full">
             <Input 
-                className="h-9 bg-white border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-right pr-8"
+                className="h-9 bg-background border-input focus:border-primary focus:ring-1 focus:ring-primary text-right pr-8"
                 value={displayValue}
                 onChange={handleChange}
                 onFocus={(e) => e.target.select()}
@@ -114,7 +114,7 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Condições de Pagamento Padrão</h3>
-                <div className={`flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full ${isValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full ${isValid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
                     {isValid ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     Total: {totalPercent.toFixed(4).replace('.', ',')}%
                 </div>
@@ -140,13 +140,11 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                                         value={flow.tipo} 
                                         onValueChange={v => updateFlow(flow.localId, 'tipo', v)}
                                     >
-                                        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                                         
-                                        {/* [CORREÇÃO] Removidas as classes de scroll/altura para mostrar tudo */}
                                         <SelectContent>
                                             <SelectItem value="ENTRADA">Entrada / Sinal</SelectItem>
                                             <SelectItem value="MENSAL">Mensais</SelectItem>
-                                            {/* [CORREÇÃO] Valor alterado para INTERMEDIARIAS para salvar corretamente */}
                                             <SelectItem value="INTERMEDIARIAS">Intermediárias</SelectItem>
                                             <SelectItem value="ANUAL">Anuais</SelectItem>
                                             <SelectItem value="CHAVES">Chaves</SelectItem>
@@ -160,7 +158,7 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                                         type="date" 
                                         value={flow.dataPrimeiroVencimento} 
                                         onChange={e => updateFlow(flow.localId, 'dataPrimeiroVencimento', e.target.value)}
-                                        className="bg-white"
+                                        className="bg-background"
                                     />
                                 </TableCell>
                                 <TableCell>
@@ -168,9 +166,8 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                                         value={flow.periodicidade.toString()} 
                                         onValueChange={v => updateFlow(flow.localId, 'periodicidade', Number(v))}
                                     >
-                                        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                                         
-                                        {/* [CORREÇÃO] Removidas as classes de scroll/altura */}
                                         <SelectContent>
                                             <SelectItem value="0">Única</SelectItem>
                                             <SelectItem value="7">Semanal</SelectItem>
@@ -188,7 +185,7 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                                         type="number" 
                                         value={flow.qtdeParcelas} 
                                         onChange={e => updateFlow(flow.localId, 'qtdeParcelas', Number(e.target.value))}
-                                        className="bg-white"
+                                        className="bg-background"
                                     />
                                 </TableCell>
                                 <TableCell>
@@ -201,7 +198,7 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => removeFlow(flow.localId)}>
-                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                        <Trash2 className="w-4 h-4 text-destructive" />
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -214,7 +211,7 @@ export function FlowManager({ tabelaId, initialFlows }: { tabelaId: string, init
                 <Button variant="outline" onClick={addFlow}>
                     <Plus className="mr-2 h-4 w-4" /> Adicionar Parcela
                 </Button>
-                <Button onClick={handleSave} disabled={isSaving || !isValid} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleSave} disabled={isSaving || !isValid}>
                     {isSaving ? "Salvando..." : "Salvar Fluxo"}
                 </Button>
             </div>

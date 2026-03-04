@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { getCampaigns } from "@/app/actions/commercial-prices"
 import { getProjectById } from "@/app/actions/projects"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Building2 } from "lucide-react" // [REMOVIDO] Calculator
+import { ArrowLeft, Building2 } from "lucide-react" 
 import Link from "next/link"
 import { CampaignsTable } from "./_components/campaigns-table"
 import { Card } from "@/components/ui/card"
@@ -36,57 +36,52 @@ export default async function CampaignsPage({ params }: Props) {
     start.setUTCHours(0,0,0,0)
     end.setUTCHours(23,59,59,999)
 
-    if (today >= start && today <= end) {
-        activeCount++
-    } else if (today < start) {
+    if (end < today) {
+        expiredCount++
+    } else if (start > today) {
         scheduledCount++
     } else {
-        expiredCount++
+        activeCount++
     }
   })
 
   return (
     <div className="space-y-6">
       
-      {/* Header e Navegação */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-           <Link href="/app/comercial/tabelas">
-              <Button variant="ghost" size="sm"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
-           </Link>
+      {/* Header com KPIs */}
+      <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6">
+        <div className="flex flex-col gap-2">
+            <Button variant="ghost" size="sm" asChild className="w-fit -ml-3 text-muted-foreground hover:text-foreground">
+                <Link href="/app/comercial/tabelas">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+                </Link>
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <Building2 className="w-8 h-8 text-muted-foreground" />
+                {project.nome}
+            </h1>
+            <p className="text-muted-foreground">
+                Campanhas de venda e precificação.
+            </p>
         </div>
-
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <Building2 className="h-8 w-8 text-gray-700" />
-                    {project.nome}
-                </h1>
-                <p className="text-muted-foreground">
-                    Campanhas de venda e precificação.
-                </p>
-            </div>
-            
-            {/* Cards de Status */}
-            <div className="flex gap-4">
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-green-50 border-green-200">
-                    <span className="text-[10px] text-green-700 uppercase font-bold">Vigentes</span>
-                    <span className="text-2xl font-bold text-green-700">{activeCount}</span>
-                </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-blue-50 border-blue-200">
-                    <span className="text-[10px] text-blue-700 uppercase font-bold">Futuras</span>
-                    <span className="text-2xl font-bold text-blue-700">{scheduledCount}</span>
-                </Card>
-                <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-slate-50 border-slate-200">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">Histórico</span>
-                    <span className="text-2xl font-bold text-slate-600">{expiredCount}</span>
-                </Card>
-            </div>
+        
+        {/* Cards de Status */}
+        <div className="flex gap-4">
+            <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-success/10 border-success/20">
+                <span className="text-[10px] text-success uppercase font-bold">Vigentes</span>
+                <span className="text-2xl font-bold text-success">{activeCount}</span>
+            </Card>
+            <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-info/10 border-info/20">
+                <span className="text-[10px] text-info uppercase font-bold">Futuras</span>
+                <span className="text-2xl font-bold text-info">{scheduledCount}</span>
+            </Card>
+            <Card className="p-4 flex flex-col items-center justify-center min-w-[100px] bg-muted border-border">
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">Histórico</span>
+                <span className="text-2xl font-bold text-muted-foreground">{expiredCount}</span>
+            </Card>
         </div>
       </div>
 
-      {/* [ALTERAÇÃO] Removido o botão solto daqui. Ele agora vive dentro do componente abaixo. */}
-      
       <CampaignsTable campaigns={campaigns} projetoId={projetoId} />
     </div>
   )

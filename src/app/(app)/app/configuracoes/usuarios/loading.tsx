@@ -78,8 +78,8 @@ export default function UsersLoading() {
                   {/* Coluna Ações */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Skeleton className="h-8 w-8 rounded-md" /> {/* Botão Editar */}
-                      <Skeleton className="h-8 w-8 rounded-md" /> {/* Botão Excluir */}
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-md" />
                     </div>
                   </TableCell>
                 </TableRow>

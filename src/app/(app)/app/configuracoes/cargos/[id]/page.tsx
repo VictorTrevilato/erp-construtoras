@@ -8,10 +8,6 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
   const { id } = await params
 
   // 1. Verificação de Segurança (Permissões)
-  // Nota: Não precisamos mais checar login/tenant aqui manualmente, 
-  // pois as actions getUserPermissions e getRoleById já validam isso internamente
-  // e retornam null/vazio, o que trataremos abaixo.
-
   const userPermissions = await getUserPermissions()
   const canEdit = userPermissions.includes("CARGOS_EDITAR")
   const canView = userPermissions.includes("CARGOS_VER")

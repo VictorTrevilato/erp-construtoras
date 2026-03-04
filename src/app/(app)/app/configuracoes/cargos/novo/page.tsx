@@ -7,12 +7,10 @@ export default async function NewRolePage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  // Busca todas as permissões do sistema para exibir no form
   const permissions = await prisma.ycPermissoes.findMany({
     orderBy: { categoria: 'asc' }
   })
 
-  // Serializa BigInt para String
   const serializedPermissions = permissions.map(p => ({
     id: p.id.toString(),
     codigo: p.codigo,

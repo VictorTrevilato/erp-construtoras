@@ -48,9 +48,7 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
     const [isPending, setIsPending] = useState(false)
     const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null)
     
-    // Trava de Segurança
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    // Se está formalizando, NUNCA destrava. Se está aprovado, destrava se o usuário clicar.
     const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
 
     const handleAddFiles = (files: File[]) => {
@@ -90,7 +88,6 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
         setIsPending(false)
     }
 
-    // --- MOCKUPS DE DOWNLOAD ---
     const handleDownloadAll = () => {
         toast.info("Iniciando download do pacote .zip com todos os arquivos... (Simulação)")
     }
@@ -111,7 +108,6 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                 existingFileNames={existingNames}
             />
 
-            {/* Modal Confirmação de Exclusão */}
             <AlertDialog open={!!attachmentToDelete} onOpenChange={(open) => !open && setAttachmentToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -122,47 +118,47 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmRemoveAttachment} className="bg-red-600 hover:bg-red-700">Sim, remover</AlertDialogAction>
+                        <AlertDialogAction onClick={confirmRemoveAttachment} variant="destructive">Sim, remover</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* ALERTAS DE BLOQUEIO */}
             {isFormalizing ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-red-100 rounded-full h-fit text-red-600">
+                        <div className="p-2 bg-destructive/20 rounded-full h-fit text-destructive">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-800 text-sm">Edição Bloqueada</h4>
-                            <p className="text-sm text-red-700 mt-0.5">
+                            <h4 className="font-bold text-destructive text-sm">Edição Bloqueada</h4>
+                            <p className="text-sm text-destructive/80 mt-0.5">
                                 A proposta está em fase de formalização/assinatura. Nenhuma edição pode ser feita.
                             </p>
                         </div>
                     </div>
                 </div>
             ) : proposal.status === 'APROVADO' && !isUnlocked && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-amber-100 rounded-full h-fit text-amber-600">
+                        <div className="p-2 bg-warning/20 rounded-full h-fit text-warning">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-amber-800 text-sm">Proposta Aprovada</h4>
-                            <p className="text-sm text-amber-700 mt-0.5">
+                            <h4 className="font-bold text-warning text-sm">Proposta Aprovada</h4>
+                            <p className="text-sm text-warning/80 mt-0.5">
                                 Os dados estão bloqueados. Edições alterarão o status de volta para &quot;Em Análise&quot;.
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-white border-amber-300 text-amber-700 hover:bg-amber-100" onClick={() => setIsUnlocked(true)}>
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
                         <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
                     </Button>
                 </div>
             )}
 
             {isUnlocked && proposal.status === 'APROVADO' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 flex items-center gap-2 font-medium">
+                <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info flex items-center gap-2 font-medium">
                     <AlertTriangle className="w-4 h-4" />
                     Atenção: Ao salvar as alterações, o status retornará para &quot;Em Análise&quot; automaticamente.
                 </div>
@@ -171,17 +167,17 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
             {/* HEADER DE AÇÕES */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Paperclip className="w-5 h-5 text-blue-600" /> Anexos e Documentos
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <Paperclip className="w-5 h-5 text-primary" /> Anexos e Documentos
                     </h2>
                     <p className="text-sm text-muted-foreground">Adicione e classifique os documentos comprobatórios das partes.</p>
                 </div>
                 
                 <div className="flex gap-2">
-                    <Button variant="outline" className="bg-white" disabled={attachments.length === 0} onClick={handleDownloadAll}>
+                    <Button variant="outline" className="bg-background" disabled={attachments.length === 0} onClick={handleDownloadAll}>
                         <Download className="w-4 h-4 mr-2" /> Baixar Todos
                     </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!isUnlocked} onClick={() => setIsUploadModalOpen(true)}>
+                    <Button disabled={!isUnlocked} onClick={() => setIsUploadModalOpen(true)}>
                         <UploadCloud className="w-4 h-4 mr-2" /> Adicionar Arquivos
                     </Button>
                 </div>
@@ -189,16 +185,16 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
 
             {/* EMPTY STATE */}
             {attachments.length === 0 ? (
-                <Card className="border-dashed border-2 shadow-none bg-slate-50/50">
+                <Card className="border-dashed border-2 shadow-none bg-muted/30">
                     <CardContent className="flex flex-col items-center justify-center py-12">
-                        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
                             <Paperclip className="w-8 h-8" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-700 mb-1">Nenhum arquivo anexado</h3>
-                        <p className="text-sm text-slate-500 mb-6 max-w-md text-center">
+                        <h3 className="text-lg font-bold text-foreground mb-1">Nenhum arquivo anexado</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-md text-center">
                             Você precisa anexar os documentos dos compradores e intermediadores para seguir com a análise de crédito.
                         </p>
-                        <Button onClick={() => setIsUploadModalOpen(true)} disabled={!isUnlocked} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button onClick={() => setIsUploadModalOpen(true)} disabled={!isUnlocked}>
                             <UploadCloud className="w-4 h-4 mr-2" /> Adicionar Arquivos
                         </Button>
                     </CardContent>
@@ -206,19 +202,19 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
             ) : (
                 <div className="space-y-3 mt-4">
                     {attachments.map((attachment) => (
-                        <Card key={attachment.id} className={cn("shadow-sm border-slate-200 overflow-visible", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
+                        <Card key={attachment.id} className={cn("shadow-sm border-border overflow-visible", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
                             <CardContent className="p-4 flex flex-col md:flex-row gap-6 items-start md:items-center">
                                 
                                 {/* Info do Arquivo */}
                                 <div className="flex items-center gap-4 flex-1 min-w-[250px] overflow-hidden">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center shrink-0 border border-slate-200">
+                                    <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 border border-border">
                                         {getFileIcon(attachment.fileName)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-slate-700 truncate" title={attachment.fileName}>
+                                        <p className="font-bold text-foreground truncate" title={attachment.fileName}>
                                             {attachment.fileName}
                                         </p>
-                                        <p className="text-xs font-medium text-slate-400 mt-0.5">
+                                        <p className="text-xs font-medium text-muted-foreground mt-0.5">
                                             {formatBytes(attachment.fileSize)}
                                         </p>
                                     </div>
@@ -227,13 +223,13 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                                 {/* Classificação e Observação */}
                                 <div className="flex flex-wrap md:flex-nowrap items-center gap-4 flex-1 w-full">
                                     <div className="grid gap-1.5 w-full md:w-[220px]">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Classificação <span className="text-red-500">*</span></Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Classificação <span className="text-destructive">*</span></Label>
                                         <Select 
                                             value={attachment.tipoDocumento} 
                                             onValueChange={(v) => updateAttachment(attachment.id, 'tipoDocumento', v)}
                                             disabled={!isUnlocked}
                                         >
-                                            <SelectTrigger className={!attachment.tipoDocumento && isUnlocked ? "border-amber-400 bg-amber-50" : "bg-white"}>
+                                            <SelectTrigger className={!attachment.tipoDocumento && isUnlocked ? "border-warning bg-warning/10" : "bg-background"}>
                                                 <SelectValue placeholder="Selecione o Tipo..." />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -243,9 +239,9 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                                     </div>
 
                                     <div className="grid gap-1.5 flex-1 w-full min-w-[200px]">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Observação / Descrição</Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Observação / Descrição</Label>
                                         <Input 
-                                            className="bg-white placeholder:text-slate-300"
+                                            className="bg-background placeholder:text-muted-foreground/50"
                                             placeholder="Ex: CNH do Cônjuge, Atualizado 2024..."
                                             value={attachment.observacao}
                                             onChange={e => updateAttachment(attachment.id, 'observacao', e.target.value)}
@@ -259,7 +255,7 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                                     <TooltipProvider delayDuration={300}>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleDownloadSingle(attachment.fileName)}>
+                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => handleDownloadSingle(attachment.fileName)}>
                                                     <Download className="w-4 h-4" />
                                                 </Button>
                                             </TooltipTrigger>
@@ -269,7 +265,7 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                                         {isUnlocked && (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setAttachmentToDelete(attachment.id)}>
+                                                    <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={() => setAttachmentToDelete(attachment.id)}>
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 </TooltipTrigger>
@@ -286,9 +282,9 @@ export function ProposalAttachmentsTab({ proposal }: Props) {
                     {isUnlocked && (
                         <div className="flex justify-between items-center pt-4">
                             <div className="text-sm text-muted-foreground font-medium">
-                                <span className="text-slate-800">{attachments.length}</span> documento(s) listado(s).
+                                <span className="text-foreground">{attachments.length}</span> documento(s) listado(s).
                             </div>
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 min-w-[200px]" onClick={handleSave} disabled={isPending}>
+                            <Button size="lg" className="min-w-[200px]" onClick={handleSave} disabled={isPending}>
                                 {isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                                 {isPending ? "Processando..." : "Salvar e Enviar Arquivos"}
                             </Button>

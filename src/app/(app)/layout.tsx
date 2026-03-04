@@ -1,20 +1,33 @@
-import { Sidebar } from "@/components/sidebar"
+import { SidebarLayout } from "@/components/sidebar"
 import { ThemeWrapper } from "@/components/theme-wrapper"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { PermissionProvider } from "@/providers/permission-provider"
 import { getUserPermissions } from "@/app/actions/permissions"
+import { getCurrentTenantId } from "@/lib/get-current-tenant"
 
-// Força dinâmica para evitar cache de usuário deslogado
 export const dynamic = "force-dynamic"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
-  
-  // Busca as permissões no servidor. 
-  // Se falhar (race condition), virá vazio, mas o Provider vai lidar com isso.
-  // Se funcionar (o que o log indicou), virá preenchido.
   const permissions = await getUserPermissions()
+
+  const tenantIdStr = await getCurrentTenantId()
+  let tenantData = null
+
+  if (tenantIdStr) {
+    tenantData = await prisma.ycEmpresas.findUnique({
+      where: { id: BigInt(tenantIdStr) },
+      select: { 
+        nome: true, logo: true, logoMini: true,
+        corPrimaria: true, corSecundaria: true,
+        sidebarTheme: true, sidebarNavTheme: true,
+        tooltipsTheme: true, buttonsTheme: true,
+        subButtonsTheme: true, accentTheme: true,
+        topbarTheme: true
+      }
+    })
+  }
 
   const tenantCount = await prisma.ycUsuariosEmpresas.count({
     where: {
@@ -23,25 +36,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ycEmpresas: { ativo: true }
     }
   })
-
   const showSwitch = tenantCount > 1
 
+  const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
+  const logoUrl = tenantData?.logo ? `${baseUrl}/${tenantData.logo}` : null
+  const logoMiniUrl = tenantData?.logoMini ? `${baseUrl}/${tenantData.logoMini}` : null
+
   return (
-    <ThemeWrapper theme="theme-app">
+    <ThemeWrapper 
+      theme="theme-app"
+      primaryColor={tenantData?.corPrimaria}
+      secondaryColor={tenantData?.corSecundaria}
+      buttonsTheme={tenantData?.buttonsTheme}
+      subButtonsTheme={tenantData?.subButtonsTheme}
+      tooltipsTheme={tenantData?.tooltipsTheme}
+      accentTheme={tenantData?.accentTheme}
+    >
       <PermissionProvider initialPermissions={permissions}>
-        <div className="flex h-screen bg-gray-50">
-          <Sidebar 
-            title="YouCon" 
-            color="bg-blue-700" 
-            profile="erp" 
-            showTenantSwitch={showSwitch} 
-          />
-          <main className="flex-1 ml-72 p-8 overflow-y-auto">
-            <div className="mx-auto max-w-6xl">
-              {children}
-            </div>
-          </main>
-        </div>
+        <SidebarLayout 
+          title={tenantData?.nome || "YouCon"} 
+          logoUrl={logoUrl}
+          logoMiniUrl={logoMiniUrl}
+          profile="erp" 
+          showTenantSwitch={showSwitch}
+          sidebarTheme={tenantData?.sidebarTheme}
+          sidebarNavTheme={tenantData?.sidebarNavTheme}
+          tooltipsTheme={tenantData?.tooltipsTheme}
+          topbarTheme={tenantData?.topbarTheme}
+        >
+          {children}
+        </SidebarLayout>
       </PermissionProvider>
     </ThemeWrapper>
   )

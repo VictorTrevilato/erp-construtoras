@@ -27,7 +27,7 @@ interface Props {
 function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstallments, initialParties, initialCommissions, initialHistory }: Props) {
     const { activeTab, setActiveTab } = useProposal()
 
-    const triggerClass = "rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground whitespace-nowrap"
+    const triggerClass = "rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground whitespace-nowrap"
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -36,7 +36,7 @@ export default async function ProjectMesaPage({ params }: Props) {
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             {header.nome}
                             {header.tabelaCodigo && (
-                                <span className="text-sm font-normal text-muted-foreground bg-slate-100 px-2 py-0.5 rounded border">
+                                <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded border">
                                     {header.tabelaCodigo}
                                 </span>
                             )}

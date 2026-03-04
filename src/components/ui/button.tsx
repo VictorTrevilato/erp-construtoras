@@ -1,8 +1,11 @@
+"use client" // Obrigatório por causa do Contexto
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { useWhiteLabelTheme } from "@/components/theme-wrapper" // Nosso motor
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -41,11 +44,27 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant = "default", size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    
+    // Puxando as regras de White-label
+    const { buttonsTheme, subButtonsTheme } = useWhiteLabelTheme()
+    
+    // O Tradutor:
+    let finalVariant = variant
+    
+    // Se o desenvolvedor pediu um botão principal (default), checamos a regra do buttonsTheme
+    if (variant === "default" || variant === null || variant === undefined) {
+      finalVariant = buttonsTheme === "secondary" ? "secondary" : "default"
+    } 
+    // Se o desenvolvedor pediu um botão secundário (secondary), checamos a regra do subButtonsTheme
+    else if (variant === "secondary") {
+      finalVariant = subButtonsTheme === "secondary" ? "secondary" : "default"
+    }
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant: finalVariant, size, className }))}
         ref={ref}
         {...props}
       />

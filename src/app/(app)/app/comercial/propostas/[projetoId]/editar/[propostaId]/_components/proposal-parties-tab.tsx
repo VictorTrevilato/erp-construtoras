@@ -46,9 +46,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
     
     // --- ESTADOS PRINCIPAIS ---
     const [parties, setParties] = useState<ProposalPartyItem[]>(initialParties)
-    // Trava de Segurança
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    // Se está formalizando, NUNCA destrava. Se está aprovado, destrava se o usuário clicar.
     const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
     const [isPending, setIsPending] = useState(false)
     
@@ -67,7 +65,6 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
             groups[p.numGrupo].push(p)
         })
 
-        // Ordena os cards dentro de cada grupo em tempo real
         Object.keys(groups).forEach(key => {
             groups[Number(key)].sort((a, b) => {
                 const pesoA = ORDEM_QUALIFICACAO[a.tipoParticipacao] || 99
@@ -100,13 +97,13 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
     const lookupColumns: LookupColumn<{ id: string, nome: string, documento: string, tipo: string }>[] = [
         { key: 'nome', label: 'Nome / Razão Social', render: (item) => (
             <div className="flex items-center gap-2">
-                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-indigo-600 bg-indigo-50' : 'text-emerald-600 bg-emerald-50'}>
+                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-primary bg-primary/10 border-primary/20' : 'text-info bg-info/10 border-info/20'}>
                     {item.tipo}
                 </Badge>
-                <span className="font-medium text-slate-800">{item.nome}</span>
+                <span className="font-medium text-foreground">{item.nome}</span>
             </div>
         )},
-        { key: 'documento', label: 'CPF / CNPJ', render: (item) => <span className="text-slate-500 text-sm">{item.documento}</span> }
+        { key: 'documento', label: 'CPF / CNPJ', render: (item) => <span className="text-muted-foreground text-sm">{item.documento}</span> }
     ]
 
     const handleSyncEntities = (selectedFromModal: { id: string, nome: string, documento: string, tipo: string }[]) => {
@@ -115,10 +112,8 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
         let newParties = [...parties]
         const selectedIds = selectedFromModal.map(s => s.id)
         
-        // 1. Remove quem foi desmarcado no modal
         newParties = newParties.filter(p => selectedIds.includes(p.entidadeId))
 
-        // 2. Adiciona os novos
         const existingEntityIds = newParties.map(p => p.entidadeId)
         const added = selectedFromModal.filter(s => !existingEntityIds.includes(s.id))
 
@@ -139,7 +134,6 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
         setParties(normalizeGroups([...newParties, ...addedParties]))
     }
 
-    // Para o modal saber quem já está marcado
     const currentMappedParties = parties.map(p => ({
         id: p.entidadeId,
         nome: p.nome,
@@ -151,7 +145,6 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
     const updateParty = (id: string, field: keyof ProposalPartyItem, value: string | number | boolean) => {
         if (!isUnlocked) return
         
-        // Regra de Ouro: Apenas 1 responsável principal por grupo
         if (field === 'isResponsavel' && value === true) {
             const partyTarget = parties.find(p => p.id === id)
             if (!partyTarget) return
@@ -165,38 +158,31 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
             return
         }
 
-        // NOVA REGRA: Se mudou de grupo, perde a flag de responsável e compacta a numeração
         if (field === 'numGrupo') {
-            // "as number" garante ao compilador que este valor será numérico
             const updated = parties.map(p => p.id === id ? { ...p, numGrupo: value as number, isResponsavel: false } : p)
             setParties(normalizeGroups(updated)) 
             return
         }
 
-        // "as ProposalPartyItem" garante que o objeto resultante tem a tipagem perfeita
         setParties(parties.map(p => p.id === id ? ({ ...p, [field]: value } as ProposalPartyItem) : p))
     }
 
-    // Executa a exclusão após o Alert
     const confirmRemoveParty = async () => {
         if (!partyToDelete || !isUnlocked) return
         
         let newParties = parties.filter(p => p.id !== partyToDelete)
-        newParties = normalizeGroups(newParties) // <-- Normaliza a lista após excluir
+        newParties = normalizeGroups(newParties) 
         
         setParties(newParties)
         setPartyToDelete(null)
 
-        // Lógica: Se excluiu a última, Auto-Save pra efetivar no banco
         if (newParties.length === 0) {
-            //toast.info("Última parte removida. Atualizando dados...")
             await performSave(newParties)
         }
     }
 
     // --- VALIDAÇÃO E SALVAMENTO ---
     const performSave = async (payloadToSave: ProposalPartyItem[]) => {
-        // Soma a participação de TODOS os vínculos, independente da qualificação
         const totalPerc = payloadToSave
             .reduce((acc, curr) => acc + Number(curr.percParticipacao), 0)
 
@@ -229,7 +215,6 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
     return (
         <div className="space-y-4">
             
-            {/* Modal de Busca (Lookup) */}
             <DataLookupModal 
                 isOpen={isLookupOpen}
                 onClose={() => setIsLookupOpen(false)}
@@ -242,23 +227,19 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                 initialSelected={currentMappedParties}
             />
 
-            {/* Modal de Cadastro/Edição Rápida */}
             <EntityFormModal 
                 isOpen={isCreateOpen}
                 onClose={() => { setIsCreateOpen(false); setEntityIdToEdit(null); }}
                 entityIdToEdit={entityIdToEdit}
                 onSuccess={(newEntity) => {
                     if (entityIdToEdit) {
-                        // Atualiza a visualização da tela se foi edição
                         setParties(parties.map(p => p.entidadeId === newEntity.id ? { ...p, nome: newEntity.nome } : p))
                     } else {
-                        // Se foi novo cadastro, vincula ele na tela
                         handleSyncEntities([...currentMappedParties, newEntity])
                     }
                 }}
             />
 
-            {/* Modal Confirmação de Exclusão */}
             <AlertDialog open={!!partyToDelete} onOpenChange={(open) => !open && setPartyToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -269,47 +250,47 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmRemoveParty} className="bg-red-600 hover:bg-red-700">Sim, remover</AlertDialogAction>
+                        <AlertDialogAction onClick={confirmRemoveParty} variant="destructive">Sim, remover</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* ALERTAS DE BLOQUEIO */}
             {isFormalizing ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-red-100 rounded-full h-fit text-red-600">
+                        <div className="p-2 bg-destructive/20 rounded-full h-fit text-destructive">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-800 text-sm">Edição Bloqueada</h4>
-                            <p className="text-sm text-red-700 mt-0.5">
+                            <h4 className="font-bold text-destructive text-sm">Edição Bloqueada</h4>
+                            <p className="text-sm text-destructive/80 mt-0.5">
                                 A proposta está em fase de formalização/assinatura. Nenhuma edição pode ser feita.
                             </p>
                         </div>
                     </div>
                 </div>
             ) : proposal.status === 'APROVADO' && !isUnlocked && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-amber-100 rounded-full h-fit text-amber-600">
+                        <div className="p-2 bg-warning/20 rounded-full h-fit text-warning">
                             <Lock className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-amber-800 text-sm">Proposta Aprovada</h4>
-                            <p className="text-sm text-amber-700 mt-0.5">
+                            <h4 className="font-bold text-warning text-sm">Proposta Aprovada</h4>
+                            <p className="text-sm text-warning/80 mt-0.5">
                                 Os dados estão bloqueados. Edições alterarão o status de volta para &quot;Em Análise&quot;.
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-white border-amber-300 text-amber-700 hover:bg-amber-100" onClick={() => setIsUnlocked(true)}>
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
                         <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
                     </Button>
                 </div>
             )}
 
             {isUnlocked && proposal.status === 'APROVADO' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 flex items-center gap-2 font-medium">
+                <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info flex items-center gap-2 font-medium">
                     <AlertTriangle className="w-4 h-4" />
                     Atenção: Ao salvar, o status retornará para &quot;Em Análise&quot; automaticamente.
                 </div>
@@ -318,17 +299,17 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
             {/* HEADER DE AÇÕES */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-600" /> Qualificação das Partes
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <Users className="w-5 h-5 text-primary" /> Qualificação das Partes
                     </h2>
                     <p className="text-sm text-muted-foreground">Adicione e configure a participação de cada cliente na aquisição.</p>
                 </div>
                 
                 <div className="flex gap-2">
-                    <Button variant="outline" className="bg-white" disabled={!isUnlocked} onClick={() => setIsLookupOpen(true)}>
+                    <Button variant="outline" className="bg-background" disabled={!isUnlocked} onClick={() => setIsLookupOpen(true)}>
                         <Link2 className="w-4 h-4 mr-2" /> Vincular Existente
                     </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700" disabled={!isUnlocked} onClick={() => setIsCreateOpen(true)}>
+                    <Button disabled={!isUnlocked} onClick={() => setIsCreateOpen(true)}>
                         <UserPlus className="w-4 h-4 mr-2" /> Cadastrar Novo
                     </Button>
                 </div>
@@ -336,17 +317,17 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
 
             {/* EMPTY STATE */}
             {parties.length === 0 ? (
-                <Card className="border-dashed border-2 shadow-none bg-slate-50/50">
+                <Card className="border-dashed border-2 shadow-none bg-muted/30">
                     <CardContent className="flex flex-col items-center justify-center py-12">
-                        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
                             <Users className="w-8 h-8" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-700 mb-1">Nenhum comprador vinculado</h3>
-                        <p className="text-sm text-slate-500 mb-6 max-w-md text-center">
+                        <h3 className="text-lg font-bold text-foreground mb-1">Nenhum comprador vinculado</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-md text-center">
                             Você precisa vincular as partes envolvidas (Compradores, Cônjuges, Avalistas) para prosseguir com a emissão do contrato.
                         </p>
                         <div className="flex gap-2">
-                            <Button disabled={!isUnlocked} onClick={() => setIsLookupOpen(true)} variant="outline" className="bg-white">
+                            <Button disabled={!isUnlocked} onClick={() => setIsLookupOpen(true)} variant="outline" className="bg-background">
                                 <Link2 className="w-4 h-4 mr-2" /> Vincular Existente
                             </Button>
                             <Button disabled={!isUnlocked} onClick={() => setIsCreateOpen(true)}>
@@ -359,26 +340,26 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                 <div className="space-y-6 mt-4">
                     {/* LISTA DE GRUPOS */}
                     {Object.entries(groupedParties).map(([numGrupo, grupoPartes]) => (
-                        <Card key={numGrupo} className={cn("shadow-sm transition-all overflow-visible", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
-                            <CardHeader className="py-3 px-4 border-b bg-slate-50 flex flex-row items-center justify-between">
-                                <CardTitle className="text-sm font-bold text-slate-700 uppercase">
+                        <Card key={numGrupo} className={cn("shadow-sm transition-all overflow-visible border-border", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
+                            <CardHeader className="py-3 px-4 border-b bg-muted/30 flex flex-row items-center justify-between">
+                                <CardTitle className="text-sm font-bold text-foreground uppercase">
                                     Grupo Econômico {numGrupo}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-0 divide-y">
+                            <CardContent className="p-0 divide-y divide-border">
                                 {grupoPartes.map(party => (
-                                    <div key={party.id} className="p-4 flex flex-col xl:flex-row gap-6 items-start xl:items-center hover:bg-slate-50/50 transition-colors">
+                                    <div key={party.id} className="p-4 flex flex-col xl:flex-row gap-6 items-start xl:items-center hover:bg-muted/30 transition-colors">
                                         
                                         {/* Avatar e Identificação */}
                                         <div className="flex items-center gap-4 flex-1 min-w-[250px]">
                                             <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm", 
-                                                party.tipoEntidade === 'PJ' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'
+                                                party.tipoEntidade === 'PJ' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-info/20 text-info border border-info/30'
                                             )}>
                                                 {party.tipoEntidade}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-slate-800 leading-tight truncate">{party.nome}</p>
-                                                <p className="text-xs text-slate-500 mt-1 uppercase">Doc: {formatDoc(party.documento, party.tipoEntidade)}</p>
+                                                <p className="font-bold text-foreground leading-tight truncate">{party.nome}</p>
+                                                <p className="text-xs text-muted-foreground mt-1 uppercase">Doc: {formatDoc(party.documento, party.tipoEntidade)}</p>
                                             </div>
                                         </div>
 
@@ -386,26 +367,26 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                                         <div className="flex flex-wrap md:flex-nowrap items-center gap-4 flex-1">
                                             
                                             <div className="grid gap-1 w-[80px]">
-                                                <Label className="text-[10px] uppercase text-slate-500">Grupo</Label>
+                                                <Label className="text-[10px] uppercase text-muted-foreground">Grupo</Label>
                                                 <Select 
                                                     value={String(party.numGrupo)} 
                                                     onValueChange={v => updateParty(party.id, 'numGrupo', Number(v))} 
                                                     disabled={!isUnlocked}
                                                 >
-                                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                                     <SelectContent>
                                                         {allGroupNumbers.map(n => (
                                                             <SelectItem key={n} value={String(n)}>G{n}</SelectItem>
                                                         ))}
-                                                        <SelectItem value={String(maxGroupNumber + 1)} className="text-blue-600 font-bold">Novo (+)</SelectItem>
+                                                        <SelectItem value={String(maxGroupNumber + 1)} className="text-primary font-bold">Novo (+)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
 
                                             <div className="grid gap-1 w-[160px]">
-                                                <Label className="text-[10px] uppercase text-slate-500">Qualificação</Label>
+                                                <Label className="text-[10px] uppercase text-muted-foreground">Qualificação</Label>
                                                 <Select value={party.tipoParticipacao} onValueChange={v => updateParty(party.id, 'tipoParticipacao', v)} disabled={!isUnlocked}>
-                                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                                     <SelectContent>
                                                         {PARTICIPACAO_OPCOES.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                                                     </SelectContent>
@@ -413,11 +394,11 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                                             </div>
 
                                             <div className="grid gap-1 w-[100px]">
-                                                <Label className="text-[10px] uppercase text-slate-500">Participação</Label>
+                                                <Label className="text-[10px] uppercase text-muted-foreground">Participação</Label>
                                                 <div className="relative">
                                                     <Input 
                                                         type="number" 
-                                                        className="h-9 pr-6" 
+                                                        className="h-9 pr-6 bg-background" 
                                                         value={party.percParticipacao}
                                                         onChange={e => updateParty(party.id, 'percParticipacao', Number(e.target.value))}
                                                         disabled={!isUnlocked}
@@ -433,7 +414,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                                                     onCheckedChange={c => updateParty(party.id, 'isResponsavel', c)}
                                                     disabled={!isUnlocked}
                                                 />
-                                                <Label htmlFor={`resp-${party.id}`} className="text-xs font-semibold cursor-pointer leading-tight">
+                                                <Label htmlFor={`resp-${party.id}`} className="text-xs font-semibold cursor-pointer leading-tight text-foreground">
                                                     Responsável<br/>Principal
                                                 </Label>
                                             </div>
@@ -445,7 +426,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                                                 {isUnlocked && (
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => { setEntityIdToEdit(party.entidadeId); setIsCreateOpen(true); }}>
+                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => { setEntityIdToEdit(party.entidadeId); setIsCreateOpen(true); }}>
                                                                 <UserCog className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -455,7 +436,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                                                 {isUnlocked && (
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setPartyToDelete(party.id)}>
+                                                            <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={() => setPartyToDelete(party.id)}>
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -476,7 +457,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                             <div className="text-sm text-muted-foreground">
                                 Lembre-se: A soma das participações dos Compradores deve fechar em 100%.
                             </div>
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 min-w-[200px]" onClick={handleSave} disabled={isPending}>
+                            <Button size="lg" className="min-w-[200px]" onClick={handleSave} disabled={isPending}>
                                 {isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                                 {isPending ? "Salvando..." : "Salvar Qualificações"}
                             </Button>

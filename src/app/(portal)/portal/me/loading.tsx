@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function MeLoading() {
   return (
@@ -50,9 +50,6 @@ export default function MeLoading() {
             </div>
 
           </CardContent>
-          <CardFooter className="flex justify-end">
-             <Skeleton className="h-10 w-40" />
-          </CardFooter>
         </Card>
       </div>
     </div>

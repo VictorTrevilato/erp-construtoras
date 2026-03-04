@@ -142,7 +142,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 required 
                 minLength={3}
               />
-              {state.errors?.nome && <p className="text-xs text-red-500">{state.errors.nome}</p>}
+              {/* Cor de erro semântica */}
+              {state.errors?.nome && <p className="text-xs text-destructive">{state.errors.nome}</p>}
             </div>
 
             <div className="space-y-2">
@@ -185,7 +186,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <button
                       type="button"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >
                       {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -206,13 +207,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >
                       {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {state.errors?.newPassword && <p className="text-xs text-red-500">{state.errors.newPassword}</p>}
+                  {/* Cor de erro semântica */}
+                  {state.errors?.newPassword && <p className="text-xs text-destructive">{state.errors.newPassword}</p>}
                 </div>
               </div>
             )}

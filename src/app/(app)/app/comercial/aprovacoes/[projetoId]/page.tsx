@@ -1,7 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getProposals } from "@/app/actions/commercial-approvals"
-import { getNegotiationHeader } from "@/app/actions/commercial-negotiation" // Reuso da função de header
+import { getNegotiationHeader } from "@/app/actions/commercial-negotiation" 
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -36,7 +36,7 @@ export default async function ApprovalOutlookPage({ params }: Props) {
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             {header.nome}
-                            <span className="text-sm font-normal text-muted-foreground bg-slate-100 px-2 py-0.5 rounded border">
+                            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded border">
                                 Aprovações
                             </span>
                         </h1>
