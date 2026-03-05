@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getSalesMirrorData, getNegotiationHeader, getProjectActiveFlows } from "@/app/actions/commercial-negotiation"
+import { getTenantSettings } from "@/app/actions/tenant-settings" // [NOVO] Importação para buscar configurações da empresa
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -21,13 +22,19 @@ export default async function ProjectMesaPage({ params }: Props) {
 
     const { projetoId } = await params
   
-    const [header, units, flows] = await Promise.all([
+    // [NOVO] Adicionado getTenantSettings na mesma promessa para carregar em paralelo
+    const [header, units, flows, tenant] = await Promise.all([
         getNegotiationHeader(projetoId),
         getSalesMirrorData(projetoId),
-        getProjectActiveFlows(projetoId)
+        getProjectActiveFlows(projetoId),
+        getTenantSettings() 
     ])
 
     if (!header) return <div>Projeto não encontrado</div>
+
+    // [NOVO] Monta a URL completa da Logo para passar ao gerador de PDF
+    const baseUrl = process.env.STORAGE_BASE_URL?.replace(/\/$/, '') || ''
+    const logoUrl = tenant?.logoMini ? `${baseUrl}/${tenant.logoMini}` : null
 
     return (
         <div className="space-y-6 pb-10">
@@ -53,8 +60,14 @@ export default async function ProjectMesaPage({ params }: Props) {
                 </div>
             </div>
 
-            {/* [NOVO] Renderiza o Wrapper Cliente que tem o Contexto */}
-            <NegotiationPageWrapper units={units} flows={flows} />
+            {/* [NOVO] Renderiza o Wrapper repassando os dados do Cabeçalho e Logo */}
+            <NegotiationPageWrapper 
+                units={units} 
+                flows={flows} 
+                projetoNome={header.nome}
+                tabelaCodigo={header.tabelaCodigo}
+                logoUrl={logoUrl}
+            />
         </div>
     )
 }

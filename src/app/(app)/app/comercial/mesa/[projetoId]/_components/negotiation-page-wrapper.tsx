@@ -15,7 +15,16 @@ type ServerFlow = {
     periodicidade: number 
 }
 
-function NegotiationTabs({ units, flows }: { units: NegotiationUnit[], flows: ServerFlow[] }) {
+// [NOVO] Tipagem para incluir as propriedades visuais do PDF
+type WrapperProps = {
+    units: NegotiationUnit[]
+    flows: ServerFlow[]
+    projetoNome?: string
+    tabelaCodigo?: string | null
+    logoUrl?: string | null
+}
+
+function NegotiationTabs({ units, flows, projetoNome, tabelaCodigo, logoUrl }: WrapperProps) {
     const { activeTab, setActiveTab } = useNegotiation()
 
     return (
@@ -47,8 +56,14 @@ function NegotiationTabs({ units, flows }: { units: NegotiationUnit[], flows: Se
                 </TabsContent>
                 
                 <TabsContent value="tabela" className="focus-visible:ring-0 focus-visible:outline-none">
-                    {/* [CORREÇÃO] Passando flows diretamente agora que a tipagem bate */}
-                    <PriceListView units={units} flows={flows} />
+                    {/* [NOVO] Repassando as propriedades para a Tabela que agora cuidará do PDF */}
+                    <PriceListView 
+                        units={units} 
+                        flows={flows} 
+                        projetoNome={projetoNome}
+                        tabelaCodigo={tabelaCodigo}
+                        logoUrl={logoUrl}
+                    />
                 </TabsContent>
                 
                 <TabsContent value="negociacao" className="focus-visible:ring-0 focus-visible:outline-none">
@@ -59,10 +74,17 @@ function NegotiationTabs({ units, flows }: { units: NegotiationUnit[], flows: Se
     )
 }
 
-export function NegotiationPageWrapper({ units, flows }: { units: NegotiationUnit[], flows: ServerFlow[] }) {
+// [NOVO] Wrapper atualizado para receber e repassar as propriedades de contexto do PDF
+export function NegotiationPageWrapper({ units, flows, projetoNome, tabelaCodigo, logoUrl }: WrapperProps) {
     return (
         <NegotiationProvider>
-            <NegotiationTabs units={units} flows={flows} />
+            <NegotiationTabs 
+                units={units} 
+                flows={flows} 
+                projetoNome={projetoNome}
+                tabelaCodigo={tabelaCodigo}
+                logoUrl={logoUrl}
+            />
         </NegotiationProvider>
     )
 }

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { useState } from "react"
+import { ExportPdfButton } from "./export-pdf-button"
 
 // Tipos auxiliares
 type Flow = {
@@ -13,6 +14,14 @@ type Flow = {
     percentual: number
     qtdeParcelas: number
     periodicidade: number
+}
+
+type PriceListViewProps = {
+    units: NegotiationUnit[]
+    flows: Flow[]
+    projetoNome?: string
+    tabelaCodigo?: string | null
+    logoUrl?: string | null
 }
 
 // Helpers
@@ -41,7 +50,7 @@ const formatStatusLabel = (status: string) => {
     return map[status] || status
 }
 
-export function PriceListView({ units, flows }: { units: NegotiationUnit[], flows: Flow[] }) {
+export function PriceListView({ units, flows, projetoNome, tabelaCodigo, logoUrl }: PriceListViewProps) {
     const [filter, setFilter] = useState("")
 
     // Filtra e Ordena (Bloco > Unidade)
@@ -55,14 +64,25 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
 
     return (
         <div className="space-y-4">
-            {/* Barra de Busca */}
-            <div className="relative max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Filtrar por unidade ou bloco..." 
-                    className="pl-8 bg-background"
-                    value={filter}
-                    onChange={e => setFilter(e.target.value)}
+            {/* Barra de Busca e Botão PDF (Delegado) */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Filtrar por unidade ou bloco..." 
+                        className="pl-8 bg-background"
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                    />
+                </div>
+                
+                {/* O botão recebe apenas a lista FILTRADA, garantindo que o PDF saia igual a tela */}
+                <ExportPdfButton 
+                    units={filteredAndSorted} 
+                    flows={flows} 
+                    projetoNome={projetoNome}
+                    tabelaCodigo={tabelaCodigo}
+                    logoUrl={logoUrl}
                 />
             </div>
 
@@ -72,8 +92,6 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                     <TableHeader className="sticky top-0 z-20">
                         <TableRow className="hover:bg-transparent">
                             {/* === BLOCO 1: DADOS DO IMÓVEL === */}
-                            
-                            {/* Unidade & Bloco (Sticky Left) */}
                             <TableHead className="w-32 font-bold text-foreground sticky left-0 z-30 bg-background border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm pl-4">
                                 Unidade
                             </TableHead>
@@ -82,12 +100,11 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                             <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Priv.</TableHead>
                             <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Com.</TableHead>
                             
-                            {/* Valor Tabela (Destaque) */}
                             <TableHead className="text-right text-sm w-36 text-foreground font-semibold bg-background border-y border-r rounded-r-lg h-12">
                                 Valor Tabela
                             </TableHead>
                             
-                            {/* === DIVISÓRIA (RIO) === */}
+                            {/* === DIVISÓRIA === */}
                             <TableHead className="w-4 min-w-[1rem] bg-transparent border-none"></TableHead>
                             
                             {/* === BLOCO 2: CONDIÇÕES === */}
@@ -116,25 +133,16 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                         {filteredAndSorted.map((unit) => {
                             const valFinal = unit.valorTabela
 
-                            // --- INÍCIO DA LÓGICA DE CORREÇÃO DE CENTAVOS ---
+                            // --- CÁLCULO DE CORREÇÃO ---
                             let sumReal = 0
-                            
-                            // 1. Calcula as parcelas da forma exata que o banco de dados vai receber
                             const correctedFlows = flows.map(f => {
                                 const totalCondicao = valFinal * (Number(f.percentual) / 100)
                                 const valorParcela = Number((totalCondicao / f.qtdeParcelas).toFixed(2))
                                 const valorTotalReal = valorParcela * f.qtdeParcelas
-                                
                                 sumReal += valorTotalReal
-                                
-                                return {
-                                    ...f,
-                                    valorParcela,
-                                    valorTotalReal
-                                }
+                                return { ...f, valorParcela, valorTotalReal }
                             })
 
-                            // 2. Verifica a diferença e aplica na Entrada
                             const diff = Number((valFinal - sumReal).toFixed(2))
                             if (Math.abs(diff) > 0 && correctedFlows.length > 0) {
                                 let target = correctedFlows.find(f => f.tipo.toUpperCase() === 'ENTRADA' && f.qtdeParcelas === 1)
@@ -146,13 +154,9 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                     target.valorTotalReal = target.valorParcela
                                 }
                             }
-                            // --- FIM DA LÓGICA DE CORREÇÃO ---
 
                             return (
                                 <TableRow key={unit.id} className="group hover:bg-transparent">
-                                    {/* === BLOCO 1 === */}
-                                    
-                                    {/* Unidade & Bloco (Sticky) */}
                                     <TableCell className="border-y border-l sticky left-0 z-10 bg-background group-hover:bg-muted/50 py-2 rounded-l-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-4">
                                         <div className="flex flex-col">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">{unit.blocoNome}</span>
@@ -177,10 +181,8 @@ export function PriceListView({ units, flows }: { units: NegotiationUnit[], flow
                                         {valFinal > 0 ? fmtCurrency(valFinal) : <span className="text-muted-foreground text-xs">Sob Consulta</span>}
                                     </TableCell>
 
-                                    {/* === DIVISÓRIA (RIO) === */}
                                     <TableCell className="bg-transparent border-none"></TableCell>
 
-                                    {/* === BLOCO 2 (RENDERIZANDO COM OS DADOS CORRIGIDOS) === */}
                                     {correctedFlows.map((flow, idx) => {
                                         const isFirst = idx === 0
                                         const isLast = idx === correctedFlows.length - 1
