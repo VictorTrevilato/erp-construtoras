@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function Loading() {
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto pb-10 space-y-8">
       {/* Header Skeleton */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-5 w-96 max-w-[80vw]" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-32" />
         </div>
@@ -18,33 +18,51 @@ export default function Loading() {
 
       {/* Info Básica */}
       <Card>
-        <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-full" />
+        <CardHeader className="space-y-2">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Grid de Permissões */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="h-64">
-             <CardHeader className="border-b border-border bg-muted/50">
-               <Skeleton className="h-5 w-32" />
-             </CardHeader>
-             <CardContent className="pt-4 space-y-3">
-               <Skeleton className="h-4 w-full" />
-               <Skeleton className="h-4 w-3/4" />
-               <Skeleton className="h-4 w-5/6" />
-             </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardHeader className="border-b border-border bg-muted/50 py-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-9 rounded-full" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div key={j} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-[70%]" />
+                    <Skeleton className="h-5 w-5 rounded-md" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -50,14 +50,13 @@ export default function LoadingProjectStock() {
           {/* Tabela */}
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-[180px]">Bloco & Unidade</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead>Unidade</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Andar</TableHead>
-                <TableHead className="text-right">Vagas</TableHead>
                 <TableHead className="text-right">Área Priv.</TableHead>
-                <TableHead className="text-right">Área Comum</TableHead>
+                <TableHead className="text-right">Área Com.</TableHead>
+                <TableHead className="text-right">Área Total</TableHead>
                 <TableHead className="text-right">Fração Ideal</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -65,7 +64,7 @@ export default function LoadingProjectStock() {
             <TableBody>
               {Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}>
-                  {/* Bloco e Unidade */}
+                  {/* Unidade */}
                   <TableCell>
                     <div className="space-y-1">
                        <Skeleton className="h-3 w-12" /> 
@@ -80,8 +79,7 @@ export default function LoadingProjectStock() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   
                   {/* Numéricos */}
-                  <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-8" /></div></TableCell>
-                  <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-8" /></div></TableCell>
+                  <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-12" /></div></TableCell>
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-12" /></div></TableCell>
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-12" /></div></TableCell>
                   <TableCell><div className="flex justify-end"><Skeleton className="h-4 w-16" /></div></TableCell>
