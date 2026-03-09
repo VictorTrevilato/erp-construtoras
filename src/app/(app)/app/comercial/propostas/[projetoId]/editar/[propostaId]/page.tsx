@@ -6,7 +6,8 @@ import {
     getProposalInstallments,
     getProposalParties,
     getProposalCommissions,
-    getProposalHistory
+    getProposalHistory,
+    getProposalAttachments // <- NOVO IMPORT
 } from "@/app/actions/commercial-proposals"
 import { calculateStandardFlow } from "@/app/actions/commercial-negotiation"
 import { Button } from "@/components/ui/button"
@@ -34,7 +35,7 @@ export default async function ProposalEditorPage({ params }: Props) {
   if (!proposal) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-            <h2 className="text-2xl font-bold text-foreground">Proposta não encontrada</h2>
+            <h2 className="text-2xl font-bold text-foreground">Proposta nao encontrada</h2>
             <Button asChild variant="outline">
                 <Link href={`/app/comercial/propostas/${projetoId}`}>Voltar para a lista</Link>
             </Button>
@@ -42,14 +43,15 @@ export default async function ProposalEditorPage({ params }: Props) {
     )
   }
 
-  // Busca TUDO em paralelo
-  const [conditions, standardFlow, installments, parties, commissions, history] = await Promise.all([
+  // Busca TUDO em paralelo (Agora incluindo os anexos)
+  const [conditions, standardFlow, installments, parties, commissions, history, attachments] = await Promise.all([
       getProposalConditions(propostaId),
       calculateStandardFlow(proposal.unidade.id, proposal.valorTabelaOriginal),
       getProposalInstallments(propostaId),
       getProposalParties(propostaId),
       getProposalCommissions(propostaId),
-      getProposalHistory(propostaId)
+      getProposalHistory(propostaId),
+      getProposalAttachments(propostaId) // <- NOVA CHAMADA
   ])
 
   return (
@@ -66,7 +68,7 @@ export default async function ProposalEditorPage({ params }: Props) {
                       Proposta Comercial
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                      Resumo e formalização da intenção de compra
+                      Resumo e formalizacao da intencao de compra
                   </p>
               </div>
           </div>
@@ -81,6 +83,7 @@ export default async function ProposalEditorPage({ params }: Props) {
           initialParties={parties}
           initialCommissions={commissions}
           initialHistory={history}
+          initialAttachments={attachments} // <- NOVA PROP PASSADA
       />
       
     </div>

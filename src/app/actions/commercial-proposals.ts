@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { revalidatePath } from "next/cache"
+import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl } from "@/lib/azure-storage"
 
 // ==========================================
 // 1. TYPES & INTERFACES
@@ -129,6 +130,15 @@ export type ProposalHistoryItem = {
     usuarioNome: string
 }
 
+export type ProposalAttachmentItem = {
+    id: string
+    nomeArquivo: string
+    classificacao: string
+    descricao: string | null
+    urlArquivo: string
+    fileSize?: number 
+}
+
 // ==========================================
 // 2. SERVER ACTIONS (HUBS E PROPOSTAS)
 // ==========================================
@@ -242,24 +252,37 @@ export async function deleteProposal(id: string) {
     if (!session) return { success: false, message: "Não autorizado" }
     
     try {
-        const prop = await prisma.ycPropostas.findUnique({ where: { id: BigInt(id) } })
+        const pId = BigInt(id)
+        const prop = await prisma.ycPropostas.findUnique({ where: { id: pId } })
         if (!prop) return { success: false, message: "Proposta não encontrada" }
         
         if (prop.status !== 'RASCUNHO') {
             return { success: false, message: "Apenas propostas em Rascunho podem ser excluídas." }
         }
 
+        // 1. Busca todos os anexos atrelados a esta proposta
+        const anexos = await prisma.ycPropostasAnexos.findMany({
+            where: { propostaId: pId }
+        })
+
+        // 2. Apaga fisicamente os arquivos do Azure Blob Storage (Zero Órfãos)
+        for (const anexo of anexos) {
+            await deleteFileFromAzureByPath(anexo.urlArquivo)
+        }
+
+        // 3. Exclui os registros em cascata no banco de dados
         await prisma.$transaction([
-            prisma.ycPropostasHistorico.deleteMany({ where: { propostaId: BigInt(id) } }),
-            prisma.ycPropostasCondicoes.deleteMany({ where: { propostaId: BigInt(id) } }),
-            prisma.ycPropostasParcelas.deleteMany({ where: { propostaId: BigInt(id) } }),
-            prisma.ycPropostasPartes.deleteMany({ where: { propostaId: BigInt(id) } }),
-            prisma.ycPropostasComissoes.deleteMany({ where: { propostaId: BigInt(id) } }),
-            prisma.ycPropostas.delete({ where: { id: BigInt(id) } })
+            prisma.ycPropostasHistorico.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostasCondicoes.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostasParcelas.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostasPartes.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostasComissoes.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostasAnexos.deleteMany({ where: { propostaId: pId } }), // <-- NOVO
+            prisma.ycPropostas.delete({ where: { id: pId } })
         ])
 
         revalidatePath('/app/comercial/propostas')
-        return { success: true, message: "Proposta excluída com sucesso." }
+        return { success: true, message: "Proposta e arquivos excluídos com sucesso." }
     } catch(e) {
         console.error(e)
         return { success: false, message: "Erro ao excluir proposta." }
@@ -1064,5 +1087,196 @@ export async function submitProposalForAnalysis(propostaId: string) {
     } catch (error) {
         console.error("Erro ao submeter proposta:", error)
         return { success: false, message: "Erro interno ao submeter proposta." }
+    }
+}
+
+// --- 16. BUSCAR ANEXOS DA PROPOSTA (ABA 6) ---
+export async function getProposalAttachments(propostaId: string): Promise<ProposalAttachmentItem[]> {
+    const session = await auth()
+    if (!session) return []
+
+    try {
+        const anexos = await prisma.ycPropostasAnexos.findMany({
+            where: { propostaId: BigInt(propostaId) },
+            orderBy: { sysCreatedAt: 'asc' }
+        })
+
+        return anexos.map(a => ({
+            id: a.id.toString(),
+            nomeArquivo: a.nomeArquivo,
+            classificacao: a.classificacao,
+            descricao: a.descricao,
+            urlArquivo: a.urlArquivo,
+            fileSize: 0 // Como não salvamos no banco, retornamos 0 para evitar quebras no front
+        }))
+    } catch (error) {
+        console.error("Erro ao buscar anexos da proposta:", error)
+        return []
+    }
+}
+
+// --- 17.A. PEDIR LINKS DE UPLOAD DIRETO PRO AZURE ---
+export async function getDirectUploadUrls(propostaId: string, fileNames: string[]) {
+    const session = await auth()
+    if (!session) return { success: false, data: [] }
+
+    try {
+        const tenantIdStr = await getCurrentTenantId()
+        if (!tenantIdStr) return { success: false, data: [] }
+        
+        const containerName = 'private-docs'
+        const folderPath = `tenant-${tenantIdStr}/proposta-${propostaId}`
+
+        const urls = await Promise.all(fileNames.map(async (fileName) => {
+            const { uploadUrl, relativePath } = await getUploadSasUrl(containerName, folderPath, fileName)
+            return { fileName, uploadUrl, relativePath }
+        }))
+
+        return { success: true, data: urls }
+    } catch (error) {
+        console.error("Erro ao gerar links de upload:", error)
+        return { success: false, data: [] }
+    }
+}
+
+// --- 17.B. SALVAR METADADOS NO BANCO APÓS O UPLOAD ---
+export async function saveAttachmentsMetadata(propostaId: string, attachmentsData: Array<{fileName: string, classificacao: string, observacao: string, relativePath: string}>) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado." }
+
+    try {
+        const pId = BigInt(propostaId)
+        const tenantId = BigInt(await getCurrentTenantId() || 0)
+        const userId = BigInt(session.user.id)
+
+        const proposta = await prisma.ycPropostas.findUnique({ where: { id: pId } })
+        if (!proposta) return { success: false, message: "Proposta não encontrada." }
+
+        // Mapeia e salva todos de uma vez
+        const savePromises = attachmentsData.map(data => {
+            return prisma.ycPropostasAnexos.create({
+                data: {
+                    sysTenantId: tenantId,
+                    sysUserId: userId,
+                    escopoId: proposta.escopoId,
+                    propostaId: pId,
+                    nomeArquivo: data.fileName,
+                    classificacao: data.classificacao,
+                    descricao: data.observacao,
+                    urlArquivo: data.relativePath
+                }
+            })
+        })
+
+        const savedAttachments = await Promise.all(savePromises)
+
+        // Devolve no formato que o Front-end precisa para UI Otimista
+        const newItems = savedAttachments.map(a => ({
+            id: a.id.toString(),
+            nomeArquivo: a.nomeArquivo,
+            classificacao: a.classificacao,
+            descricao: a.descricao,
+            urlArquivo: a.urlArquivo,
+            fileSize: 0
+        }))
+
+        return { success: true, message: `${savedAttachments.length} arquivo(s) salvo(s)!`, data: newItems }
+    } catch (error) {
+        console.error("Erro ao salvar metadados dos anexos:", error)
+        return { success: false, message: "Erro ao registrar arquivos no banco de dados." }
+    }
+}
+
+// --- 18. EXCLUIR UM ANEXO ESPECÍFICO (ABA 6) ---
+export async function deleteProposalAttachment(anexoId: string, urlArquivo: string) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado." }
+
+    try {
+        const idBase = BigInt(anexoId)
+        
+        // Verifica se o anexo existe antes de tentar deletar
+        const anexo = await prisma.ycPropostasAnexos.findUnique({ where: { id: idBase } })
+        if (!anexo) return { success: false, message: "Anexo não encontrado no banco." }
+
+        // 1. Deleta fisicamente do Azure (Garante Zero Órfãos)
+        await deleteFileFromAzureByPath(urlArquivo)
+
+        // 2. Deleta do banco de dados
+        await prisma.ycPropostasAnexos.delete({ where: { id: idBase } })
+
+        return { success: true, message: "Anexo removido com sucesso." }
+    } catch (error) {
+        console.error("Erro ao deletar anexo:", error)
+        return { success: false, message: "Erro interno ao excluir arquivo." }
+    }
+}
+
+// --- 19. GERAR LINK DE DOWNLOAD SEGURO (ABA 6) ---
+export async function getAttachmentDownloadUrl(urlArquivo: string, originalName: string) {
+    const session = await auth()
+    if (!session) return { success: false, url: null }
+
+    try {
+        const url = await getFileDownloadUrl(urlArquivo, originalName)
+        return { success: true, url }
+    } catch (error) {
+        console.error("Erro ao gerar link de download:", error)
+        return { success: false, url: null }
+    }
+}
+
+// --- 20. DESBLOQUEAR PROPOSTA PARA EDIÇÃO (ABA 6) ---
+export async function unlockProposalEdit(propostaId: string) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado." }
+
+    try {
+        const pId = BigInt(propostaId)
+        const tenantIdStr = await getCurrentTenantId()
+        if (!tenantIdStr) return { success: false, message: "Tenant não encontrado." }
+        const tenantId = BigInt(tenantIdStr)
+        const userId = BigInt(session.user.id)
+
+        const proposta = await prisma.ycPropostas.findUnique({ where: { id: pId } })
+        if (!proposta) return { success: false, message: "Proposta não encontrada." }
+
+        if (proposta.status !== 'APROVADO' && proposta.status !== 'REPROVADO') {
+            return { success: false, message: "A proposta não está em um status que permite desbloqueio." }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Volta o status para Análise e limpa os dados do decisor
+            await tx.ycPropostas.update({
+                where: { id: pId },
+                data: {
+                    status: 'EM_ANALISE',
+                    dataDecisao: null,
+                    usuarioDecisaoId: null,
+                    motivoRejeicao: null,
+                    observacaoDecisao: null
+                }
+            })
+
+            // 2. Registra na tabela de Histórico
+            await tx.ycPropostasHistorico.create({
+                data: {
+                    sysTenantId: tenantId,
+                    sysUserId: userId,
+                    escopoId: proposta.escopoId,
+                    propostaId: pId,
+                    statusAnterior: proposta.status,
+                    statusNovo: 'EM_ANALISE',
+                    acao: 'REVISAO',
+                    observacao: 'Edição de Anexos: Proposta desbloqueada e retornou para análise'
+                }
+            })
+        })
+
+        revalidatePath('/app/comercial/propostas') 
+        return { success: true, message: "Proposta desbloqueada para edição!" }
+    } catch (error) {
+        console.error("Erro ao desbloquear proposta:", error)
+        return { success: false, message: "Erro interno ao desbloquear proposta." }
     }
 }

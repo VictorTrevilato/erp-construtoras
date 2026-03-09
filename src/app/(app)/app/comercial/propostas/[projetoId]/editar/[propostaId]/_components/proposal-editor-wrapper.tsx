@@ -2,7 +2,8 @@
 
 import { ProposalProvider, useProposal } from "./proposal-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ProposalFullDetail, ProposalConditionItem, ProposalInstallmentItem, ProposalPartyItem, ProposalCommissionItem, ProposalHistoryItem } from "@/app/actions/commercial-proposals"
+// ADICIONADO ProposalAttachmentItem NO IMPORT ABAIXO:
+import { ProposalFullDetail, ProposalConditionItem, ProposalInstallmentItem, ProposalPartyItem, ProposalCommissionItem, ProposalHistoryItem, ProposalAttachmentItem } from "@/app/actions/commercial-proposals"
 import { StandardFlow } from "@/app/actions/commercial-negotiation"
 import { ProposalSummaryTab } from "./proposal-summary-tab"
 import { ProposalConditionsTab } from "./proposal-conditions-tab"
@@ -22,9 +23,10 @@ interface Props {
   initialParties: ProposalPartyItem[]
   initialCommissions: ProposalCommissionItem[]
   initialHistory: ProposalHistoryItem[]
+  initialAttachments: ProposalAttachmentItem[] // <- NOVA PROP
 }
 
-function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstallments, initialParties, initialCommissions, initialHistory }: Props) {
+function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstallments, initialParties, initialCommissions, initialHistory, initialAttachments }: Props) {
     const { activeTab, setActiveTab } = useProposal()
 
     const triggerClass = "rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 px-6 text-muted-foreground data-[state=active]:text-foreground whitespace-nowrap"
@@ -34,13 +36,13 @@ function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstal
             <div className="overflow-x-auto overflow-y-hidden">
                 <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto flex-nowrap">
                     <TabsTrigger value="resumo" className={triggerClass}>1. Proposta</TabsTrigger>
-                    <TabsTrigger value="condicoes" className={triggerClass}>2. Condições</TabsTrigger>
+                    <TabsTrigger value="condicoes" className={triggerClass}>2. Condicoes</TabsTrigger>
                     <TabsTrigger value="parcelas" className={triggerClass}>3. Parcelas</TabsTrigger>
                     <TabsTrigger value="partes" className={triggerClass}>4. Partes</TabsTrigger>
-                    <TabsTrigger value="comissoes" className={triggerClass}>5. Comissões</TabsTrigger>
+                    <TabsTrigger value="comissoes" className={triggerClass}>5. Comissoes</TabsTrigger>
                     <TabsTrigger value="anexos" className={triggerClass}>6. Anexos</TabsTrigger>
-                    <TabsTrigger value="efetivacao" className={triggerClass}>7. Efetivação</TabsTrigger>
-                    <TabsTrigger value="historico" className={triggerClass}>8. Histórico</TabsTrigger>
+                    <TabsTrigger value="efetivacao" className={triggerClass}>7. Efetivacao</TabsTrigger>
+                    <TabsTrigger value="historico" className={triggerClass}>8. Historico</TabsTrigger>
                 </TabsList>
             </div>
 
@@ -79,7 +81,10 @@ function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstal
                 </TabsContent>
 
                 <TabsContent value="anexos" className="focus-visible:outline-none focus-visible:ring-0">
-                    <ProposalAttachmentsTab proposal={proposal} />
+                    <ProposalAttachmentsTab 
+                        proposal={proposal} 
+                        initialAttachments={initialAttachments} // <- REPASSANDO A PROP PARA A ABA
+                    />
                 </TabsContent>
 
                 <TabsContent value="efetivacao" className="focus-visible:outline-none focus-visible:ring-0">
@@ -94,7 +99,7 @@ function ProposalTabs({ proposal, initialConditions, standardFlow, initialInstal
     )
 }
 
-export function ProposalEditorWrapper({ proposal, projetoId, initialConditions, standardFlow, initialInstallments, initialParties, initialCommissions, initialHistory }: Props) {
+export function ProposalEditorWrapper({ proposal, projetoId, initialConditions, standardFlow, initialInstallments, initialParties, initialCommissions, initialHistory, initialAttachments }: Props) {
     return (
         <ProposalProvider>
             <ProposalTabs 
@@ -106,6 +111,7 @@ export function ProposalEditorWrapper({ proposal, projetoId, initialConditions, 
                 initialParties={initialParties}
                 initialCommissions={initialCommissions}
                 initialHistory={initialHistory}
+                initialAttachments={initialAttachments} // <- REPASSANDO NO WRAPPER
             />
         </ProposalProvider>
     )
