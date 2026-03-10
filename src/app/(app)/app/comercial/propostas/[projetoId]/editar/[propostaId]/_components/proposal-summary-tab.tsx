@@ -13,11 +13,13 @@ import {
   CheckCircle2, XCircle, Info, Megaphone, Send, Loader2
 } from "lucide-react"
 
+// Adicionamos a capacidade de atualizar o Pai
 interface Props {
   proposal: ProposalFullDetail
+  setProposal: React.Dispatch<React.SetStateAction<ProposalFullDetail>>
 }
 
-export function ProposalSummaryTab({ proposal }: Props) {
+export function ProposalSummaryTab({ proposal, setProposal }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,6 +46,10 @@ export function ProposalSummaryTab({ proposal }: Props) {
     const res = await submitProposalForAnalysis(proposal.id)
     if (res.success) {
         toast.success(res.message)
+        
+        // UI OTIMISTA: Avisa o Pai que o status mudou. Reflete instantaneamente em todas as abas.
+        setProposal(prev => ({ ...prev, status: 'EM_ANALISE' }))
+
         startTransition(() => {
             router.refresh()
         })
@@ -85,14 +91,14 @@ export function ProposalSummaryTab({ proposal }: Props) {
                     </div>
 
                     {/* BOTÃO DE SUBMETER */}
-                    {proposal.status === 'RASCUNHO' && (
+                    {['RASCUNHO', 'REPROVADO'].includes(proposal.status) && (
                         <Button 
                             className="w-full font-bold h-11"
                             onClick={handleSubmitForAnalysis}
                             disabled={isSubmitting || isPending}
                         >
                             {isSubmitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
-                            {isSubmitting ? "Enviando..." : "Enviar para Análise"}
+                            {isSubmitting ? "Enviando..." : (proposal.status === 'REPROVADO' ? "Reenviar para Análise" : "Enviar para Análise")}
                         </Button>
                     )}
                 </div>

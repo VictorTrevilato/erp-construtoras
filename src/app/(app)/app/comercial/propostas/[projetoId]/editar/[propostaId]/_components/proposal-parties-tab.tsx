@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { ProposalFullDetail, ProposalPartyItem, saveProposalParties } from "@/app/actions/commercial-proposals"
+import { useState, useMemo, useTransition } from "react"
+import { ProposalFullDetail, ProposalPartyItem, saveProposalParties, unlockProposalEdit } from "@/app/actions/commercial-proposals"
 import { getEntitiesPaginated } from "@/app/actions/entities"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -22,7 +22,9 @@ import { EntityFormModal } from "@/components/shared/entity-form-modal"
 
 interface Props {
   proposal: ProposalFullDetail
-  initialParties: ProposalPartyItem[]
+  setProposal: React.Dispatch<React.SetStateAction<ProposalFullDetail>>
+  parties: ProposalPartyItem[]
+  setParties: React.Dispatch<React.SetStateAction<ProposalPartyItem[]>>
 }
 
 const PARTICIPACAO_OPCOES = [
@@ -41,20 +43,37 @@ const ORDEM_QUALIFICACAO: Record<string, number> = {
     'PROCURADOR': 5,
 }
 
-export function ProposalPartiesTab({ proposal, initialParties }: Props) {
+export function ProposalPartiesTab({ proposal, setProposal, parties, setParties }: Props) {
     const router = useRouter()
+    const [isPendingTrans, startTransition] = useTransition()
     
     // --- ESTADOS PRINCIPAIS ---
-    const [parties, setParties] = useState<ProposalPartyItem[]>(initialParties)
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
+    const isUnlocked = proposal.status !== 'APROVADO' && !isFormalizing
     const [isPending, setIsPending] = useState(false)
+    const [isUnlocking, setIsUnlocking] = useState(false)
     
     // --- ESTADOS DOS MODAIS ---
     const [isLookupOpen, setIsLookupOpen] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [entityIdToEdit, setEntityIdToEdit] = useState<string | null>(null)
     const [partyToDelete, setPartyToDelete] = useState<string | null>(null)
+
+    const handleUnlock = async () => {
+        setIsUnlocking(true)
+        const res = await unlockProposalEdit(proposal.id, "Edição de Partes")
+        setIsUnlocking(false)
+
+        if (res.success) {
+            toast.success(res.message)
+            setProposal(prev => ({ ...prev, status: 'EM_ANALISE' }))
+            startTransition(() => {
+                router.refresh()
+            })
+        } else {
+            toast.error(res.message)
+        }
+    }
 
     // Agrupa e calcula informações globais
     const groupedParties = useMemo(() => {
@@ -97,7 +116,7 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
     const lookupColumns: LookupColumn<{ id: string, nome: string, documento: string, tipo: string }>[] = [
         { key: 'nome', label: 'Nome / Razão Social', render: (item) => (
             <div className="flex items-center gap-2">
-                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-primary bg-primary/10 border-primary/20' : 'text-info bg-info/10 border-info/20'}>
+                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-secondary bg-secondary/10 border-secondary/20' : 'text-primary bg-primary/10 border-primary/20'}>
                     {item.tipo}
                 </Badge>
                 <span className="font-medium text-foreground">{item.nome}</span>
@@ -197,12 +216,13 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
         }
 
         setIsPending(true)
-        const unlockTriggered = proposal.status === 'APROVADO' && isUnlocked
-        const res = await saveProposalParties(proposal.id, payloadToSave, unlockTriggered)
+        const res = await saveProposalParties(proposal.id, payloadToSave, false)
         
         if (res.success) {
             toast.success(res.message)
-            router.refresh()
+            startTransition(() => {
+                router.refresh()
+            })
         } else {
             toast.error(res.message)
         }
@@ -283,8 +303,9 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
-                        <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={handleUnlock} disabled={isUnlocking}>
+                        {isUnlocking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlock className="w-4 h-4 mr-2" />} 
+                        {isUnlocking ? "Desbloqueando..." : "Habilitar Edição"}
                     </Button>
                 </div>
             )}
@@ -457,9 +478,9 @@ export function ProposalPartiesTab({ proposal, initialParties }: Props) {
                             <div className="text-sm text-muted-foreground">
                                 Lembre-se: A soma das participações dos Compradores deve fechar em 100%.
                             </div>
-                            <Button size="lg" className="min-w-[200px]" onClick={handleSave} disabled={isPending}>
-                                {isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                                {isPending ? "Salvando..." : "Salvar Qualificações"}
+                            <Button size="lg" className="min-w-[200px]" onClick={handleSave} disabled={isPending || isPendingTrans}>
+                                {isPending || isPendingTrans ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                                {isPending || isPendingTrans ? "Salvando..." : "Salvar Qualificações"}
                             </Button>
                         </div>
                     )}

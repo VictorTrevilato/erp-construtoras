@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ProposalFullDetail, ProposalCommissionItem, saveProposalCommissions } from "@/app/actions/commercial-proposals"
+import { useState, useTransition } from "react"
+import { ProposalFullDetail, ProposalCommissionItem, saveProposalCommissions, unlockProposalEdit } from "@/app/actions/commercial-proposals"
 import { getEntitiesPaginated } from "@/app/actions/entities"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -55,19 +55,29 @@ function BlurredMoneyInput({ value, onChange, disabled }: BlurredMoneyInputProps
 }
 
 // --- MAIN COMPONENT ---
+// Exportação adicionada para não quebrar o import do Wrapper
+export type CommissionItem = ProposalCommissionItem;
+
 interface Props {
   proposal: ProposalFullDetail
-  initialCommissions: ProposalCommissionItem[]
+  setProposal: React.Dispatch<React.SetStateAction<ProposalFullDetail>>
+  commissions: ProposalCommissionItem[]
+  setCommissions: React.Dispatch<React.SetStateAction<ProposalCommissionItem[]>>
+  percComissaoTotal: number
+  setPercComissaoTotal: React.Dispatch<React.SetStateAction<number>>
+  valorComissaoTotal: number
+  setValorComissaoTotal: React.Dispatch<React.SetStateAction<number>>
 }
 
-export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) {
+export function ProposalCommissionsTab({ proposal, setProposal, commissions, setCommissions }: Props) {
     const router = useRouter()
+    const [isPendingTrans, startTransition] = useTransition()
     
     // --- ESTADOS PRINCIPAIS ---
-    const [commissions, setCommissions] = useState<ProposalCommissionItem[]>(initialCommissions)
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
+    const isUnlocked = proposal.status !== 'APROVADO' && !isFormalizing
     const [isPending, setIsPending] = useState(false)
+    const [isUnlocking, setIsUnlocking] = useState(false)
     
     // --- ESTADOS DOS MODAIS ---
     const [isLookupOpen, setIsLookupOpen] = useState(false)
@@ -79,6 +89,36 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
     const valorComissaoTotal = proposal.valorComissaoTotal || 0
     const currentTotalRateio = commissions.reduce((acc, curr) => acc + Number(curr.percRateio), 0)
     const currentTotalValor = commissions.reduce((acc, curr) => acc + Number(curr.valor), 0)
+
+    const handleUnlock = async () => {
+        setIsUnlocking(true)
+        const res = await unlockProposalEdit(proposal.id, "Edição de Comissões")
+        setIsUnlocking(false)
+
+        if (res.success) {
+            toast.success(res.message)
+            setProposal(prev => ({ ...prev, status: 'EM_ANALISE' }))
+            startTransition(() => {
+                router.refresh()
+            })
+        } else {
+            toast.error(res.message)
+        }
+    }
+
+    // Adaptador para corrigir o erro de TS do DataLookupModal (total vs totalPages)
+    const fetchEntities = async (search: string, page: number, limit: number) => {
+        const res = await getEntitiesPaginated(search, page, limit)
+        return {
+            data: res.data.map(e => ({
+                id: e.id,
+                nome: e.nome,
+                documento: e.documento,
+                tipo: e.tipo
+            })),
+            total: res.total || 0
+        }
+    }
 
     // --- MÁSCARA DE EXIBIÇÃO ---
     const formatDoc = (doc: string, tipo: string) => {
@@ -92,7 +132,7 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
     const lookupColumns: LookupColumn<{ id: string, nome: string, documento: string, tipo: string }>[] = [
         { key: 'nome', label: 'Nome / Razão Social', render: (item) => (
             <div className="flex items-center gap-2">
-                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-primary bg-primary/10 border-primary/20' : 'text-info bg-info/10 border-info/20'}>
+                <Badge variant="outline" className={item.tipo === 'PJ' ? 'text-secondary bg-secondary/10 border-secondary/20' : 'text-primary bg-primary/10 border-primary/20'}>
                     {item.tipo}
                 </Badge>
                 <span className="font-medium text-foreground">{item.nome}</span>
@@ -199,12 +239,13 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
         }
 
         setIsPending(true)
-        const unlockTriggered = proposal.status === 'APROVADO' && isUnlocked
-        const res = await saveProposalCommissions(proposal.id, payloadToSave, unlockTriggered)
+        const res = await saveProposalCommissions(proposal.id, payloadToSave, false)
         
         if (res.success) {
             toast.success(res.message)
-            router.refresh()
+            startTransition(() => {
+                router.refresh()
+            })
         } else {
             toast.error(res.message)
         }
@@ -215,11 +256,11 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
     return (
         <div className="space-y-4">
             
-            <DataLookupModal 
+            <DataLookupModal<{ id: string, nome: string, documento: string, tipo: string }>
                 isOpen={isLookupOpen}
                 onClose={() => setIsLookupOpen(false)}
                 onConfirm={handleSyncEntities}
-                fetchData={getEntitiesPaginated}
+                fetchData={fetchEntities}
                 columns={lookupColumns}
                 title="Vincular Corretores / Imobiliárias"
                 description="Busque e selecione os intermediadores desta proposta."
@@ -283,8 +324,9 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
-                        <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={handleUnlock} disabled={isUnlocking}>
+                        {isUnlocking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlock className="w-4 h-4 mr-2" />} 
+                        {isUnlocking ? "Desbloqueando..." : "Habilitar Edição"}
                     </Button>
                 </div>
             )}
@@ -466,9 +508,9 @@ export function ProposalCommissionsTab({ proposal, initialCommissions }: Props) 
                                 </div>
                             </div>
 
-                            <Button size="lg" className="min-w-[200px]" onClick={() => performSave(commissions)} disabled={isPending}>
-                                {isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                                {isPending ? "Salvando..." : "Salvar Intermediação"}
+                            <Button size="lg" className="min-w-[200px]" onClick={() => performSave(commissions)} disabled={isPending || isPendingTrans}>
+                                {isPending || isPendingTrans ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                                {isPending || isPendingTrans ? "Salvando..." : "Salvar Intermediação"}
                             </Button>
                         </div>
                     )}

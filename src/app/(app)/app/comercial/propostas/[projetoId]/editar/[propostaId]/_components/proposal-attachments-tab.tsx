@@ -26,31 +26,21 @@ export type AttachmentItem = {
 }
 
 const TIPOS_DOCUMENTO = [
-    "CNH",
-    "RG",
-    "CPF",
-    "Comprovante de Residência",
-    "Certidão de Nascimento",
-    "Certidão de Casamento",
-    "Cartão CNPJ",
-    "Contrato Social",
-    "Procuração",
-    "Comprovante de Renda",
-    "Ficha de Cadastro",
-    "Outro"
+    "CNH", "RG", "CPF", "Comprovante de Residência", "Certidão de Nascimento",
+    "Certidão de Casamento", "Cartão CNPJ", "Contrato Social", "Procuração",
+    "Comprovante de Renda", "Ficha de Cadastro", "Outro"
 ]
 
 interface Props {
   proposal: ProposalFullDetail
-  initialAttachments: ProposalAttachmentItem[]
+  attachments: ProposalAttachmentItem[]
+  setAttachments: React.Dispatch<React.SetStateAction<ProposalAttachmentItem[]>>
 }
 
-export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) {
+export function ProposalAttachmentsTab({ proposal, attachments, setAttachments }: Props) {
     const router = useRouter()
     const [isPendingTrans, startTransition] = useTransition()
     
-    // Estados separados: Arquivos já salvos e Arquivos pendentes de upload
-    const [existingAttachments, setExistingAttachments] = useState<ProposalAttachmentItem[]>(initialAttachments)
     const [pendingAttachments, setPendingAttachments] = useState<AttachmentItem[]>([])
     
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -60,19 +50,16 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
     
     const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
     const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
-
     const [isUnlocking, setIsUnlocking] = useState(false)
 
     const handleUnlock = async () => {
         setIsUnlocking(true)
-        const res = await unlockProposalEdit(proposal.id)
+        const res = await unlockProposalEdit(proposal.id, "Edição de Anexos")
         setIsUnlocking(false)
 
         if (res.success) {
             toast.success(res.message)
             setIsUnlocked(true)
-            
-            // Recarrega a rota silenciosamente para as outras abas pegarem o novo status
             startTransition(() => {
                 router.refresh()
             })
@@ -115,8 +102,7 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
 
             if (res.success) {
                 toast.success(res.message)
-                // UI OTIMISTA: Remove da tela na hora
-                setExistingAttachments(existingAttachments.filter(a => a.id !== attachmentToDelete.id))
+                setAttachments(attachments.filter(a => a.id !== attachmentToDelete.id))
             } else {
                 toast.error(res.message)
             }
@@ -135,7 +121,6 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
         const toastId = toast.loading("Iniciando upload direto para a nuvem...")
 
         try {
-            // 1. Pede permissão e links para o Azure
             const fileNames = pendingAttachments.map(a => a.fileName)
             const sasRes = await getDirectUploadUrls(proposal.id, fileNames)
 
@@ -145,12 +130,10 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
 
             toast.loading("Enviando arquivos... Por favor aguarde.", { id: toastId })
 
-            // 2. Faz o Upload FÍSICO (Navegador -> Azure) ignorando o Next.js
             const uploadPromises = pendingAttachments.map(async (att) => {
                 const sasData = sasRes.data.find(d => d.fileName === att.fileName)
                 if (!sasData) throw new Error(`Link não encontrado para ${att.fileName}`)
 
-                // PUT Direto pro Azure
                 const res = await fetch(sasData.uploadUrl, {
                     method: 'PUT',
                     body: att.fileObj,
@@ -172,14 +155,13 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
 
             const metadataToSave = await Promise.all(uploadPromises)
 
-            // 3. Arquivos já estão seguros no Azure. Agora só avisamos nosso Banco de Dados!
             toast.loading("Registrando arquivos na proposta...", { id: toastId })
             
             const dbRes = await saveAttachmentsMetadata(proposal.id, metadataToSave)
 
             if (dbRes.success && dbRes.data) {
                 toast.success(dbRes.message, { id: toastId })
-                setExistingAttachments([...existingAttachments, ...dbRes.data])
+                setAttachments([...attachments, ...dbRes.data])
                 setPendingAttachments([]) 
             } else {
                 toast.error(dbRes.message, { id: toastId })
@@ -195,15 +177,14 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
     }
 
     const handleDownloadAll = async () => {
-        if (existingAttachments.length === 0) return;
+        if (attachments.length === 0) return;
         
         const toastId = toast.loading("Baixando e compactando arquivos... Por favor, aguarde.");
         
         try {
             const zip = new JSZip();
             
-            // Baixa os arquivos individualmente em memória e joga no ZIP
-            for (const att of existingAttachments) {
+            for (const att of attachments) {
                 const res = await getAttachmentDownloadUrl(att.urlArquivo, att.nomeArquivo);
                 if (res.success && res.url) {
                     const blob = await fetch(res.url).then(r => r.blob());
@@ -211,11 +192,9 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
                 }
             }
             
-            // Gera o arquivo .zip final
             const zipContent = await zip.generateAsync({ type: "blob" });
             const url = window.URL.createObjectURL(zipContent);
             
-            // Dispara o download
             const link = document.createElement('a');
             link.href = url;
             link.download = `Anexos_Proposta_${proposal.id}.zip`;
@@ -236,7 +215,6 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
         
         const toastId = toast.loading(`Iniciando download de ${fileName}...`)
         
-        // Passamos o fileName para a action forçar o cabeçalho correto no Azure
         const res = await getAttachmentDownloadUrl(url, fileName)
         
         if (res.success && res.url) {
@@ -252,13 +230,12 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
         }
     }
 
-    // Combina os nomes para não permitir enviar arquivos com o mesmo nome
     const existingNames = [
-        ...existingAttachments.map(a => a.nomeArquivo),
+        ...attachments.map(a => a.nomeArquivo),
         ...pendingAttachments.map(a => a.fileName)
     ]
 
-    const hasNoFiles = existingAttachments.length === 0 && pendingAttachments.length === 0
+    const hasNoFiles = attachments.length === 0 && pendingAttachments.length === 0
 
     return (
         <div className="space-y-4">
@@ -334,7 +311,7 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
                 </div>
                 
                 <div className="flex gap-2">
-                    <Button variant="outline" className="bg-background" disabled={existingAttachments.length === 0} onClick={handleDownloadAll}>
+                    <Button variant="outline" className="bg-background" disabled={attachments.length === 0} onClick={handleDownloadAll}>
                         <Download className="w-4 h-4 mr-2" /> Baixar Todos
                     </Button>
                     <Button disabled={!isUnlocked} onClick={() => setIsUploadModalOpen(true)}>
@@ -363,7 +340,7 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
                 <div className="space-y-3 mt-4">
                     
                     {/* ARQUIVOS JÁ SALVOS NO BANCO/AZURE */}
-                    {existingAttachments.map((attachment) => (
+                    {attachments.map((attachment: ProposalAttachmentItem) => (
                         <Card key={attachment.id} className={cn("shadow-sm border-border overflow-visible bg-slate-50/50", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
                             <CardContent className="p-4 flex flex-col md:flex-row gap-6 items-start md:items-center">
                                 
@@ -429,7 +406,7 @@ export function ProposalAttachmentsTab({ proposal, initialAttachments }: Props) 
                     ))}
 
                     {/* ARQUIVOS PENDENTES DE UPLOAD */}
-                    {pendingAttachments.map((attachment) => (
+                    {pendingAttachments.map((attachment: AttachmentItem) => (
                         <Card key={attachment.id} className={cn("shadow-sm border-primary/30 bg-primary/5 overflow-visible", !isUnlocked && "opacity-80 grayscale-[0.2]")}>
                             <CardContent className="p-4 flex flex-col md:flex-row gap-6 items-start md:items-center">
                                 

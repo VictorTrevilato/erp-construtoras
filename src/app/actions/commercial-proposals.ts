@@ -1059,10 +1059,29 @@ export async function submitProposalForAnalysis(propostaId: string) {
         const proposta = await prisma.ycPropostas.findUnique({ where: { id: pId } })
         if (!proposta) return { success: false, message: "Proposta não encontrada." }
 
-        if (proposta.status !== 'RASCUNHO') {
-            return { success: false, message: "Apenas propostas em rascunho podem ser submetidas." }
+        if (proposta.status !== 'RASCUNHO' && proposta.status !== 'REPROVADO') {
+            return { success: false, message: "Apenas propostas em rascunho ou reprovadas podem ser submetidas." }
         }
 
+        // --- NOVA VALIDAÇÃO: TRAVA DE CONCORRÊNCIA (DUPLICIDADE) ---
+        const propostaConcorrente = await prisma.ycPropostas.findFirst({
+            where: {
+                sysTenantId: tenantId,
+                unidadeId: proposta.unidadeId,
+                id: { not: pId }, // Ignora a própria proposta que estamos submetendo
+                status: {
+                    in: ['EM_ANALISE', 'APROVADO', 'FORMALIZADA', 'EM_ASSINATURA', 'ASSINADO']
+                }
+            }
+        })
+
+        if (propostaConcorrente) {
+            return { 
+                success: false, 
+                message: `Operação bloqueada! Já existe outra proposta (${propostaConcorrente.status.replace(/_/g, ' ')}) em andamento para esta mesma unidade.` 
+            }
+        }
+        
         await prisma.$transaction(async (tx) => {
             await tx.ycPropostas.update({
                 where: { id: pId },
@@ -1075,15 +1094,17 @@ export async function submitProposalForAnalysis(propostaId: string) {
                     sysUserId: userId,
                     escopoId: proposta.escopoId,
                     propostaId: pId,
-                    statusAnterior: 'RASCUNHO',
+                    statusAnterior: proposta.status, 
                     statusNovo: 'EM_ANALISE',
                     acao: 'SUBMETEU',
-                    observacao: 'Proposta submetida para análise da diretoria.'
+                    observacao: proposta.status === 'REPROVADO' 
+                        ? 'Proposta revisada e reenviada para análise da diretoria.' 
+                        : 'Proposta submetida para análise da diretoria.'
                 }
             })
         })
 
-        return { success: true, message: "Proposta submetida para análise!" }
+        return { success: true, message: "Proposta enviada para análise!" }
     } catch (error) {
         console.error("Erro ao submeter proposta:", error)
         return { success: false, message: "Erro interno ao submeter proposta." }
@@ -1226,8 +1247,8 @@ export async function getAttachmentDownloadUrl(urlArquivo: string, originalName:
     }
 }
 
-// --- 20. DESBLOQUEAR PROPOSTA PARA EDIÇÃO (ABA 6) ---
-export async function unlockProposalEdit(propostaId: string) {
+// --- 20. DESBLOQUEAR PROPOSTA PARA EDIÇÃO ---
+export async function unlockProposalEdit(propostaId: string, origemEdicao: string = "Edição de Dados") {
     const session = await auth()
     if (!session) return { success: false, message: "Não autorizado." }
 
@@ -1268,7 +1289,7 @@ export async function unlockProposalEdit(propostaId: string) {
                     statusAnterior: proposta.status,
                     statusNovo: 'EM_ANALISE',
                     acao: 'REVISAO',
-                    observacao: 'Edição de Anexos: Proposta desbloqueada e retornou para análise'
+                    observacao: `${origemEdicao}: Proposta desbloqueada e retornou para análise`
                 }
             })
         })

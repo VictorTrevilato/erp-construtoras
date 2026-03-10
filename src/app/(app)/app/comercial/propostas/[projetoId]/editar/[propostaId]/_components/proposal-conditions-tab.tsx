@@ -1,21 +1,21 @@
 "use client"
 
-import { useState } from "react"
-import { ProposalFullDetail, ProposalConditionItem, saveProposalConditions } from "@/app/actions/commercial-proposals"
+import { useState, useTransition } from "react"
+import { ProposalFullDetail, ProposalConditionItem, saveProposalConditions, unlockProposalEdit, getProposalInstallments, ProposalInstallmentItem } from "@/app/actions/commercial-proposals"
 import { StandardFlow } from "@/app/actions/commercial-negotiation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Save, Calculator, RotateCcw, Lock, Unlock, AlertTriangle } from "lucide-react"
+import { Plus, Trash2, Save, Calculator, RotateCcw, Lock, Unlock, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-
 import { ProposalAnalysis } from "./proposal-analysis"
+import { GridInstallment } from "./proposal-installments-tab" // <- IMPORT DA ABA GÊMEA
 
 // --- TIPOS E CONSTANTES ---
-type CustomCondition = {
+export type CustomCondition = {
     id: string
     tipo: string
     periodicidade: string
@@ -68,33 +68,51 @@ function MoneyInput({ value, onChange, className, disabled }: MoneyInputProps) {
 // --- COMPONENTE PRINCIPAL ---
 interface Props {
   proposal: ProposalFullDetail
+  setProposal: React.Dispatch<React.SetStateAction<ProposalFullDetail>>
   initialConditions: ProposalConditionItem[]
   standardFlow: StandardFlow[]
+  conditions: CustomCondition[]
+  setConditions: React.Dispatch<React.SetStateAction<CustomCondition[]>>
+  targetPrice: number
+  setTargetPrice: React.Dispatch<React.SetStateAction<number>>
+  setInstallments: React.Dispatch<React.SetStateAction<GridInstallment[]>>
 }
 
-export function ProposalConditionsTab({ proposal, initialConditions, standardFlow }: Props) {
+export function ProposalConditionsTab({ 
+    proposal, setProposal, initialConditions, standardFlow, 
+    conditions, setConditions, targetPrice, setTargetPrice,
+    setInstallments // <- E AQUI
+}: Props) {
     const router = useRouter()
-
-    const getMappedInitial = () => initialConditions.map(c => ({
-        id: c.id,
-        tipo: c.tipo,
-        periodicidade: "MENSAL",
-        qtdeParcelas: c.qtdeParcelas,
-        valorParcela: c.valorParcela,
-        vencimento: new Date(c.dataVencimento).toISOString().split('T')[0]
-    }))
-
-    const [conditions, setConditions] = useState<CustomCondition[]>(getMappedInitial())
-    const [targetPrice, setTargetPrice] = useState(proposal.valorProposta)
+    const [isPendingTrans, startTransition] = useTransition()
     
-    const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
-    const [isUnlocked, setIsUnlocked] = useState(proposal.status !== 'APROVADO' && !isFormalizing)
     const [isPending, setIsPending] = useState(false)
+    const [isUnlocking, setIsUnlocking] = useState(false)
+
+    const isFormalizing = ['EM_ASSINATURA', 'ASSINADO', 'FORMALIZADA'].includes(proposal.status)
+    const isUnlocked = proposal.status !== 'APROVADO' && !isFormalizing
 
     const totalDistributed = conditions.reduce((acc, curr) => acc + (curr.valorParcela * curr.qtdeParcelas), 0)
     const remaining = targetPrice - totalDistributed
     const isClosed = isZero(remaining)
     const isPositive = remaining > 0.01
+
+    const handleUnlock = async () => {
+        setIsUnlocking(true)
+        const res = await unlockProposalEdit(proposal.id, "Edição de Condições")
+        setIsUnlocking(false)
+
+        if (res.success) {
+            toast.success(res.message)
+            // Atualiza o estado global na hora
+            setProposal(prev => ({ ...prev, status: 'EM_ANALISE' }))
+            startTransition(() => {
+                router.refresh()
+            })
+        } else {
+            toast.error(res.message)
+        }
+    }
 
     const addCondition = (type: string) => {
         if (!isUnlocked) return
@@ -125,7 +143,15 @@ export function ProposalConditionsTab({ proposal, initialConditions, standardFlo
 
     const handleRestoreSaved = () => {
         if (!isUnlocked) return
-        setConditions(getMappedInitial())
+        const restored = initialConditions.map(c => ({
+            id: c.id,
+            tipo: c.tipo,
+            periodicidade: "MENSAL",
+            qtdeParcelas: c.qtdeParcelas,
+            valorParcela: c.valorParcela,
+            vencimento: new Date(c.dataVencimento).toISOString().split('T')[0]
+        }))
+        setConditions(restored)
         setTargetPrice(proposal.valorProposta)
         toast.info("Condições restauradas para o último salvamento.")
     }
@@ -159,13 +185,27 @@ export function ProposalConditionsTab({ proposal, initialConditions, standardFlo
             valorTotal: c.valorParcela * c.qtdeParcelas
         }))
 
-        const unlockTriggered = proposal.status === 'APROVADO' && isUnlocked
-
-        const res = await saveProposalConditions(proposal.id, payload, targetPrice, unlockTriggered)
+        // Passamos false pois a proposta já deve estar em status de edição (destravada) antes de salvar
+        const res = await saveProposalConditions(proposal.id, payload, targetPrice, false)
         
         if (res.success) {
             toast.success(res.message)
-            router.refresh() 
+            
+            // Atualiza o preço da proposta no pai para refletir nas outras abas
+            setProposal(prev => ({ ...prev, valorProposta: targetPrice }))
+
+            // --- Atualiza a memória da Aba 3 (Parcelas) silenciosamente ---
+            const novasParcelas = await getProposalInstallments(proposal.id)
+            setInstallments(novasParcelas.map((i: ProposalInstallmentItem) => ({
+                id: i.id,
+                tipo: i.tipo,
+                vencimento: new Date(i.vencimento).toISOString().split('T')[0],
+                valor: Number(i.valor)
+            })))
+
+            startTransition(() => {
+                router.refresh() 
+            })
         } else {
             toast.error(res.message)
         }
@@ -190,7 +230,7 @@ export function ProposalConditionsTab({ proposal, initialConditions, standardFlo
                         </div>
                     </div>
                 </div>
-            ) : proposal.status === 'APROVADO' && !isUnlocked && (
+            ) : proposal.status === 'APROVADO' && (
                 <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex gap-3">
                         <div className="p-2 bg-warning/20 rounded-full h-fit text-warning">
@@ -203,16 +243,10 @@ export function ProposalConditionsTab({ proposal, initialConditions, standardFlo
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={() => setIsUnlocked(true)}>
-                        <Unlock className="w-4 h-4 mr-2" /> Habilitar Edição
+                    <Button variant="outline" className="bg-background border-warning/50 text-warning hover:bg-warning/20" onClick={handleUnlock} disabled={isUnlocking}>
+                        {isUnlocking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlock className="w-4 h-4 mr-2" />} 
+                        {isUnlocking ? "Desbloqueando..." : "Habilitar Edição"}
                     </Button>
-                </div>
-            )}
-
-            {isUnlocked && proposal.status === 'APROVADO' && (
-                <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info flex items-center gap-2 font-medium">
-                    <AlertTriangle className="w-4 h-4" />
-                    Atenção: Ao salvar as alterações, o status retornará para &quot;Em Análise&quot; automaticamente.
                 </div>
             )}
 
@@ -408,8 +442,9 @@ export function ProposalConditionsTab({ proposal, initialConditions, standardFlo
                                 <RotateCcw className="mr-2 h-4 w-4" /> Restaurar Salvo
                             </Button>
 
-                            <Button className="w-48" onClick={handleSave} disabled={isPending}>
-                                <Save className="mr-2 h-4 w-4" /> {isPending ? "Salvando..." : "Salvar Condições"}
+                            <Button className="w-48" onClick={handleSave} disabled={isPending || isPendingTrans}>
+                                {isPending || isPendingTrans ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} 
+                                {isPending || isPendingTrans ? "Salvando..." : "Salvar Condições"}
                             </Button>
                         </div>
                     )}

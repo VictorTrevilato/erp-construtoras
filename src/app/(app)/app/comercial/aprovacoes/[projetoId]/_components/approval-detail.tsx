@@ -30,6 +30,7 @@ const formatHistoryAction = (action: string) => {
         'CRIOU': 'Criou Proposta',
         'APROVOU': 'Aprovou',
         'REJEITOU': 'Rejeitou',
+        'REVISAO': 'Revisão',
         'SUBMETEU': 'Enviou para Análise'
     }
     return map[action] || action

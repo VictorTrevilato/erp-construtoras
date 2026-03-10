@@ -15,9 +15,11 @@ import { FileUploadModal, getFileIcon, formatBytes } from "@/components/shared/f
 
 interface Props {
   proposal: ProposalFullDetail
+  // NOVO: Recebendo a função para atualizar a memória do Pai
+  setProposal: React.Dispatch<React.SetStateAction<ProposalFullDetail>>
 }
 
-export function ProposalExecutionTab({ proposal }: Props) {
+export function ProposalExecutionTab({ proposal, setProposal }: Props) {
     const router = useRouter()
     
     const [isGeneratingTermo, setIsGeneratingTermo] = useState(false)
@@ -43,6 +45,10 @@ export function ProposalExecutionTab({ proposal }: Props) {
         const res = await lockProposalForSignature(proposal.id, "Termo de Intenção", "FORMALIZADA")
         if (res.success) {
             toast.success("Termo gerado! Proposta Formalizada.")
+            
+            // NOVO: Atualiza o status no Pai instantaneamente
+            setProposal(prev => ({ ...prev, status: 'FORMALIZADA' }))
+            
             router.refresh() 
         } else {
             toast.error(res.message)
@@ -56,6 +62,10 @@ export function ProposalExecutionTab({ proposal }: Props) {
         const res = await lockProposalForSignature(proposal.id, "Contrato de Compra e Venda", "EM_ASSINATURA")
         if (res.success) {
             toast.success("Contrato gerado! Proposta enviada para assinatura.")
+            
+            // NOVO: Atualiza o status no Pai instantaneamente
+            setProposal(prev => ({ ...prev, status: 'EM_ASSINATURA' }))
+            
             router.refresh() 
         } else {
             toast.error(res.message)

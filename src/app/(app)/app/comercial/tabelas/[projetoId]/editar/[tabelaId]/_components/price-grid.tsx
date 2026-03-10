@@ -221,7 +221,7 @@ export function PriceGrid({ tabelaId, initialData }: { tabelaId: string, initial
                                 decimals={4}
                             />
                         </div>
-                        <Button onClick={applyBulk} variant="secondary" className="mb-0.5 min-w-[140px]">
+                        <Button onClick={applyBulk} className="mb-0.5 min-w-[140px]">
                             <Calculator className="mr-2 h-4 w-4" /> Aplicar aos {selectedIds.size} selecionados
                         </Button>
                         <div className="flex-1 text-right">
