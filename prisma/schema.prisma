@@ -84,6 +84,7 @@ model ycEmpresas {
   ycTabelasPreco               ycTabelasPreco[]
   ycTabelasPrecoItens          ycTabelasPrecoItens[]
   ycUnidades                   ycUnidades[]
+  ycUnidadesAnexos             ycUnidadesAnexos[]
   ycUsuariosEmpresas           ycUsuariosEmpresas[]
   ycUsuariosEmpresasEscopos    ycUsuariosEmpresasEscopos[]
   ycUsuariosEmpresasPermissoes ycUsuariosEmpresasPermissoes[]
@@ -122,6 +123,7 @@ model ycEscopos {
   ycTabelasPreco            ycTabelasPreco[]
   ycTabelasPrecoItens       ycTabelasPrecoItens[]
   ycUnidades                ycUnidades[]
+  ycUnidadesAnexos          ycUnidadesAnexos[]
   ycUsuariosEmpresasEscopos ycUsuariosEmpresasEscopos[]
 
   @@index([idPai], map: "IX_ycEscopos_idPai")
@@ -173,6 +175,7 @@ model ycUsuarios {
   ycTabelasPreco               ycTabelasPreco[]
   ycTabelasPrecoItens          ycTabelasPrecoItens[]
   ycUnidades                   ycUnidades[]
+  ycUnidadesAnexos             ycUnidadesAnexos[]
   ycUsuariosEmpresasCriadas    ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_sysUserIdToycUsuarios")
   usuariosEmpresas             ycUsuariosEmpresas[]           @relation("ycUsuariosEmpresas_usuarioIdToycUsuarios")
   ycUsuariosEmpresasEscopos    ycUsuariosEmpresasEscopos[]
@@ -480,6 +483,7 @@ model ycUnidades {
   ycEscopos                    ycEscopos             @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycEscopos")
   ycProjetos                   ycProjetos            @relation(fields: [projetoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidades_ycProjetos")
   ycUsuarios                   ycUsuarios?           @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUnidades_ycUsuarios")
+  ycUnidadesAnexos             ycUnidadesAnexos[]
 
   @@unique([sysTenantId, codigo], map: "UQ_ycUnidades_SKU")
   @@index([blocoId], map: "IX_ycUnidades_blocoId")
@@ -732,4 +736,25 @@ model ycPropostasAnexos {
 
   @@index([propostaId], map: "IX_ycPropostasAnexos_propostaId")
   @@index([sysTenantId], map: "IX_ycPropostasAnexos_sysTenantId")
+}
+
+model ycUnidadesAnexos {
+  id            BigInt      @id(map: "PK_ycUnidadesAnexos") @default(autoincrement())
+  sysCreatedAt  DateTime    @default(now(), map: "DF__ycUnidade__sysCr__1C5231C2")
+  sysUpdatedAt  DateTime?
+  sysTenantId   BigInt
+  sysUserId     BigInt?
+  escopoId      BigInt
+  unidadeId     BigInt
+  nomeArquivo   String      @db.VarChar(255)
+  classificacao String      @db.VarChar(100)
+  urlArquivo    String      @db.VarChar(1000)
+  isPublico     Boolean     @default(false, map: "DF__ycUnidade__isPub__1D4655FB")
+  ycEmpresas    ycEmpresas  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycUnidadesAnexos_ycEmpresas")
+  ycEscopos     ycEscopos   @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycUnidadesAnexos_ycEscopos")
+  ycProjetos    ycUnidades  @relation(fields: [unidadeId], references: [id], onUpdate: NoAction, map: "FK_ycUnidadesAnexos_ycUnidades")
+  ycUsuarios    ycUsuarios? @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycUnidadesAnexos_ycUsuarios")
+
+  @@index([sysTenantId], map: "IX_ycUnidadesAnexos_sysTenantId")
+  @@index([unidadeId], map: "IX_ycUnidadesAnexos_unidadeId")
 }

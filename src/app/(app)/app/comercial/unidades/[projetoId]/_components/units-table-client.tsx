@@ -7,27 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, Edit2, Plus, Trash2, Eye } from "lucide-react"
+import { Search, Edit2, Plus, Trash2, FilePlusCorner } from "lucide-react"
 import { UnitFormDialog } from "./unit-form-dialog"
+import { UnitAttachmentsModal } from "./unit-attachments-modal" // <-- IMPORT DO NOVO MODAL
 import { BlocksManager } from "./blocks-manager"
 import { deleteUnit } from "@/app/actions/commercial-units"
 import { toast } from "sonner"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 interface Block {
   id: string
@@ -86,27 +73,29 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
   const [filterBlock, setFilterBlock] = useState("ALL")
   const [filterStatus, setFilterStatus] = useState("ALL")
   
+  // Estados do Modal de Formulário
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
-  const [isReadOnly, setIsReadOnly] = useState(false)
+  
+  // Estados do Modal de Anexos
+  const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false)
+  const [attachmentsUnit, setAttachmentsUnit] = useState<{id: string, name: string} | null>(null)
+
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const handleCreate = () => {
     setEditingUnit(null)
-    setIsReadOnly(false)
     setIsModalOpen(true)
   }
 
   const handleEdit = (unit: Unit) => {
     setEditingUnit(unit)
-    setIsReadOnly(false)
     setIsModalOpen(true)
   }
 
-  const handleView = (unit: Unit) => {
-    setEditingUnit(unit)
-    setIsReadOnly(true)
-    setIsModalOpen(true)
+  const handleAttachments = (unit: Unit) => {
+    setAttachmentsUnit({ id: unit.id, name: `${unit.blocoNome} - ${unit.unidade}` })
+    setIsAttachmentsModalOpen(true)
   }
 
   const confirmDelete = async () => {
@@ -167,11 +156,9 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                {/* [ATUALIZAÇÃO] Removido width fixo */}
                 <TableHead>Unidade</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tipo</TableHead>
-                {/* [ATUALIZAÇÃO] Vagas saiu, Área Priv, Comum e Total entraram na ordem */}
                 <TableHead className="text-right">Área Priv.</TableHead>
                 <TableHead className="text-right">Área Com.</TableHead>
                 <TableHead className="text-right">Área Total</TableHead>
@@ -203,7 +190,6 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
 
                     <TableCell className="text-muted-foreground">{unit.tipo}</TableCell>
                     
-                    {/* [ATUALIZAÇÃO] Colunas de Área reordenadas e Área Total inclusa */}
                     <TableCell className="text-right text-muted-foreground">{unit.areaPrivativaTotal || "-"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{unit.areaUsoComum || "-"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{unit.areaRealTotal || "-"}</TableCell>
@@ -212,13 +198,15 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
 
                     <TableCell className="text-right">
                        <div className="flex justify-end gap-1">
+                           
+                           {/* NOVO BOTÃO DE ANEXOS */}
                            <Tooltip>
                              <TooltipTrigger asChild>
-                               <Button variant="ghost" size="icon" onClick={() => handleView(unit)}>
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                               <Button variant="ghost" size="icon" onClick={() => handleAttachments(unit)}>
+                                  <FilePlusCorner className="h-4 w-4 text-warning" />
                                </Button>
                              </TooltipTrigger>
-                             <TooltipContent>Ver Detalhes</TooltipContent>
+                             <TooltipContent>Anexos e Documentos</TooltipContent>
                            </Tooltip>
 
                            <Tooltip>
@@ -227,7 +215,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                                   <Edit2 className="h-4 w-4 text-primary" />
                                </Button>
                              </TooltipTrigger>
-                             <TooltipContent>Editar</TooltipContent>
+                             <TooltipContent>Editar Unidade</TooltipContent>
                            </Tooltip>
 
                            <Tooltip>
@@ -236,7 +224,7 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                </Button>
                              </TooltipTrigger>
-                             <TooltipContent>Excluir</TooltipContent>
+                             <TooltipContent>Excluir Unidade</TooltipContent>
                            </Tooltip>
                        </div>
                     </TableCell>
@@ -248,21 +236,31 @@ export function UnitsTableClient({ units, blocks, projetoId }: { units: Unit[], 
         </CardContent>
       </Card>
 
+      {/* MODAL DE EDIÇÃO DE UNIDADE */}
       <UnitFormDialog 
         projetoId={projetoId}
         unit={editingUnit} 
         blocks={blocks}
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        readOnly={isReadOnly}
+        readOnly={false}
       />
 
+      {/* NOVO MODAL DE ANEXOS */}
+      <UnitAttachmentsModal 
+        isOpen={isAttachmentsModalOpen}
+        onClose={() => setIsAttachmentsModalOpen(false)}
+        unitId={attachmentsUnit?.id || null}
+        unitName={attachmentsUnit?.name || ""}
+      />
+
+      {/* MODAL DE EXCLUSÃO */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Unidade?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta unidade? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir esta unidade e todos os seus anexos? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
