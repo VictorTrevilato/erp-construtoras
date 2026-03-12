@@ -28,7 +28,6 @@ type AttachmentItem = {
     isPublico: boolean
 }
 
-// TIPAGEM FORTE PARA AS PROPS DO COMPONENTE
 interface Props {
     projectId?: string | null
     attachments: ProjectAttachmentItem[]
@@ -56,7 +55,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
     const [isDeleting, setIsDeleting] = useState(false)
     const [attachmentToDelete, setAttachmentToDelete] = useState<{ id: string, type: 'pending' | 'existing', url?: string } | null>(null)
     
-    // --- ESTADOS PARA EDIÇÃO INLINE DA VISIBILIDADE ---
     const [editingAttachmentId, setEditingAttachmentId] = useState<string | null>(null)
     const [editIsPublico, setEditIsPublico] = useState(false)
     const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
@@ -74,7 +72,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
         toast.success(`${files.length} arquivo(s) adicionado(s) à fila.`)
     }
 
-    // Removido o 'any' e definido os tipos válidos para o value (string | boolean)
     const updatePendingAttachment = (id: string, field: keyof AttachmentItem, value: string | boolean) => {
         if (readOnly) return
 
@@ -92,7 +89,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
             }
         }
         
-        // Asserção de tipo segura
         setPendingAttachments(pendingAttachments.map(a => a.id === id ? ({ ...a, [field]: value } as AttachmentItem) : a))
     }
 
@@ -112,7 +108,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
 
             if (res.success) {
                 toast.success(res.message)
-                // TypeScript já infere o tipo automaticamente por causa da Props
                 setAttachments(attachments.filter(a => a.id !== attachmentToDelete.id))
             } else {
                 toast.error(res.message)
@@ -121,14 +116,12 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
         }
     }
 
-    // --- FUNÇÃO DE SALVAR A EDIÇÃO INLINE ---
     const handleSaveVisibility = async (id: string) => {
         setIsUpdatingVisibility(true)
         const res = await toggleProjectAttachmentVisibility(id, editIsPublico)
         
         if (res.success) {
             toast.success(res.message)
-            // Atualiza a lista em memória silenciosamente
             setAttachments(attachments.map(a => a.id === id ? { ...a, isPublico: editIsPublico } : a))
             setEditingAttachmentId(null)
         } else {
@@ -214,7 +207,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
         }
     }
 
-    // Removido o 'any', inferência de tipo direta
     const existingNames = [...attachments.map(a => a.nomeArquivo), ...pendingAttachments.map(a => a.fileName)]
 
     return (
@@ -315,7 +307,6 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
                                             <span className="text-muted-foreground">Enviado e salvo</span>
                                             <span className="text-border">|</span>
                                             
-                                            {/* RENDERIZAÇÃO CONDICIONAL DA VISIBILIDADE */}
                                             {editingAttachmentId === attachment.id ? (
                                                 <div className="flex items-center gap-2 bg-background border px-2 py-0.5 rounded-md shadow-sm">
                                                     <Switch 
@@ -343,6 +334,7 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
                                     </div>
                                 </div>
 
+                                {/* BLCOCO DA CLASSIFICAÇÃO COM LARGURA TRAVADA */}
                                 <div className="flex items-center w-full md:w-auto shrink-0 opacity-80 pointer-events-none">
                                     <div className="grid gap-1.5 w-full md:w-[260px]">
                                         <Label className="text-[10px] font-bold uppercase text-muted-foreground">Classificação</Label>
@@ -350,8 +342,8 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
                                     </div>
                                 </div>
 
-                                {/* AÇÕES DO ITEM EXISTENTE */}
-                                <div className="ml-auto pl-2 shrink-0 flex gap-2">
+                                {/* AÇÕES DO ITEM COM LARGURA FIXA PARA EVITAR LAYOUT SHIFT */}
+                                <div className="ml-auto pl-2 shrink-0 flex justify-end gap-2 w-[130px]">
                                     <TooltipProvider delayDuration={300}>
                                         {editingAttachmentId === attachment.id ? (
                                             <>
@@ -434,14 +426,32 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
-                                        <p className="text-xs font-medium text-muted-foreground mt-0.5">
-                                            {formatBytes(attachment.fileSize)} • <span className="text-warning">Pendente</span>
-                                        </p>
+                                        
+                                        {/* SWITCH DE VISIBILIDADE AGORA MORA NO SUBTÍTULO, IGUAL AOS SALVOS */}
+                                        <div className="text-xs font-medium mt-0.5 flex items-center gap-2">
+                                            <span className="text-muted-foreground">{formatBytes(attachment.fileSize)}</span>
+                                            <span className="text-muted-foreground">•</span>
+                                            <span className="text-warning">Pendente</span>
+                                            <span className="text-border">|</span>
+                                            
+                                            <div className="flex items-center gap-2 bg-background border px-2 py-0.5 rounded-md shadow-sm">
+                                                <Switch 
+                                                    checked={attachment.isPublico}
+                                                    onCheckedChange={c => updatePendingAttachment(attachment.id, 'isPublico', !!c)}
+                                                    disabled={readOnly || isSaving}
+                                                    className="scale-75 origin-left"
+                                                />
+                                                <span className={cn("text-[10px] font-bold uppercase", attachment.isPublico ? "text-info" : "text-muted-foreground")}>
+                                                    {attachment.isPublico ? 'Público' : 'Interno'}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap md:flex-nowrap items-center gap-4 flex-1 w-full">
-                                    <div className="grid gap-1.5 w-full md:w-[220px]">
+                                {/* BLCOCO DA CLASSIFICAÇÃO COM A MESMA LARGURA DO BLOCO SALVO */}
+                                <div className="flex items-center w-full md:w-auto shrink-0">
+                                    <div className="grid gap-1.5 w-full md:w-[260px]">
                                         <Label className="text-[10px] font-bold uppercase text-muted-foreground">Classificação <span className="text-destructive">*</span></Label>
                                         <Select 
                                             value={attachment.tipoDocumento} 
@@ -456,21 +466,10 @@ export function ProjectAttachmentsTab({ projectId, attachments, setAttachments, 
                                             </SelectContent>
                                         </Select>
                                     </div>
-
-                                    <div className="flex items-center justify-center gap-2 flex-1 pt-4 md:pt-0">
-                                        <Switch 
-                                            id={`pub-${attachment.id}`} 
-                                            checked={attachment.isPublico}
-                                            onCheckedChange={c => updatePendingAttachment(attachment.id, 'isPublico', !!c)}
-                                            disabled={readOnly || isSaving}
-                                        />
-                                        <Label htmlFor={`pub-${attachment.id}`} className="text-xs font-semibold cursor-pointer">
-                                            Tornar Público <br/><span className="text-[9px] text-muted-foreground font-normal">(Visível a Corretores)</span>
-                                        </Label>
-                                    </div>
                                 </div>
 
-                                <div className="ml-auto pl-2 shrink-0 flex gap-2">
+                                {/* AÇÕES DO ITEM PENDENTE ALINHADO COM O BLOCO SALVO */}
+                                <div className="ml-auto pl-2 shrink-0 flex justify-end gap-2 w-[130px]">
                                     <TooltipProvider delayDuration={300}>
                                         {!readOnly && (
                                             <Tooltip>
