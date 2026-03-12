@@ -273,10 +273,49 @@ export async function saveProject(
 
 export async function deleteProject(projectId: string) {
     try {
-        await prisma.ycProjetos.delete({ where: { id: BigInt(projectId) } })
+        const pId = BigInt(projectId)
+
+        // 1. Verifica se existem unidades (se houver, aí sim bloqueamos a exclusão do projeto)
+        const projeto = await prisma.ycProjetos.findUnique({
+            where: { id: pId },
+            include: {
+                _count: {
+                    select: { ycUnidades: true }
+                }
+            }
+        })
+
+        if (!projeto) return { success: false, message: "Projeto não encontrado." }
+
+        if (projeto._count.ycUnidades > 0) {
+            return { 
+                success: false, 
+                message: `Não é possível excluir: Este projeto possui ${projeto._count.ycUnidades} unidade(s) vinculada(s).` 
+            }
+        }
+
+        // 2. Busca todos os anexos atrelados a este projeto
+        const anexos = await prisma.ycProjetosAnexos.findMany({
+            where: { projetoId: pId }
+        })
+
+        // 3. Apaga fisicamente os arquivos do Azure Blob Storage (Zero Órfãos)
+        for (const anexo of anexos) {
+            if (anexo.urlArquivo) {
+                await deleteFileFromAzureByPath(anexo.urlArquivo)
+            }
+        }
+
+        // 4. Exclui os registros em cascata no banco de dados usando transação
+        await prisma.$transaction([
+            prisma.ycProjetosAnexos.deleteMany({ where: { projetoId: pId } }),
+            prisma.ycProjetos.delete({ where: { id: pId } })
+        ])
+        
         revalidatePath("/app/engenharia/projetos")
-        return { success: true, message: "Projeto excluído." }
-    } catch {
+        return { success: true, message: "Projeto e anexos excluídos com sucesso." }
+    } catch (error) {
+        console.error("Erro ao excluir projeto:", error)
         return { success: false, message: "Erro ao excluir projeto. Verifique dependências." }
     }
 }
