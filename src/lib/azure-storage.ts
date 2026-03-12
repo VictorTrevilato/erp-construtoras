@@ -63,7 +63,7 @@ export async function deleteFileFromAzureByPath(filePathOrUrl: string): Promise<
 }
 
 // getFileDownloadUrl
-export async function getFileDownloadUrl(filePath: string, originalName?: string): Promise<string> {
+export async function getFileDownloadUrl(filePath: string, originalName?: string, inline: boolean = false): Promise<string> {
   const blobServiceClient = getBlobServiceClient();
   
   let relativePath = filePath;
@@ -84,9 +84,12 @@ export async function getFileDownloadUrl(filePath: string, originalName?: string
     expiresOn: new Date(new Date().valueOf() + 3600 * 1000) // 1 hora
   };
 
-  // Força o navegador a baixar ao invés de abrir, e dita o nome do arquivo
+  // Se 'inline' for true, abre no navegador. Se for false, força o download (attachment)
   if (originalName) {
-    sasOptions.contentDisposition = `attachment; filename="${encodeURIComponent(originalName)}"`;
+    const dispositionType = inline ? 'inline' : 'attachment';
+    sasOptions.contentDisposition = `${dispositionType}; filename="${encodeURIComponent(originalName)}"`;
+  } else if (inline) {
+    sasOptions.contentDisposition = 'inline';
   }
 
   const sasUrl = await blobClient.generateSasUrl(sasOptions);

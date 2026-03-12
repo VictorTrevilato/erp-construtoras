@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
+import { getFileDownloadUrl } from "@/lib/azure-storage"
 
 // --- TYPES ---
 export type NegotiationUnit = {
@@ -524,4 +525,57 @@ export async function saveProposal(data: ProposalPayload) {
     console.error(error)
     return { success: false, message: "Erro ao salvar proposta." }
   }
+}
+
+// ==========================================
+// MÓDULO DE DOCUMENTOS (MESA DE NEGOCIAÇÃO)
+// ==========================================
+
+export async function getPublicProjectDocuments(projetoId: string) {
+    try {
+        const anexos = await prisma.ycProjetosAnexos.findMany({
+            where: { projetoId: BigInt(projetoId), isPublico: true },
+            orderBy: { sysCreatedAt: 'asc' }
+        })
+        return anexos.map(a => ({
+            id: a.id.toString(),
+            nomeArquivo: a.nomeArquivo,
+            classificacao: a.classificacao,
+            urlArquivo: a.urlArquivo
+        }))
+    } catch (error) {
+        console.error("Erro ao buscar documentos do projeto:", error)
+        return []
+    }
+}
+
+export async function getPublicUnitDocuments(unidadeId: string) {
+    try {
+        const anexos = await prisma.ycUnidadesAnexos.findMany({
+            where: { unidadeId: BigInt(unidadeId), isPublico: true },
+            orderBy: { sysCreatedAt: 'asc' }
+        })
+        return anexos.map(a => ({
+            id: a.id.toString(),
+            nomeArquivo: a.nomeArquivo,
+            classificacao: a.classificacao,
+            urlArquivo: a.urlArquivo
+        }))
+    } catch (error) {
+        console.error("Erro ao buscar documentos da unidade:", error)
+        return []
+    }
+}
+
+export async function getDocumentViewUrl(urlArquivo: string, originalName: string) {
+    const session = await auth()
+    if (!session) return { success: false, url: null }
+
+    try {
+        const url = await getFileDownloadUrl(urlArquivo, originalName, true)
+        return { success: true, url }
+    } catch (error) {
+        console.error("Erro ao gerar link de visualização:", error)
+        return { success: false, url: null }
+    }
 }

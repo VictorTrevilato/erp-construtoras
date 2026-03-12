@@ -62,6 +62,7 @@ export default async function ProjectMesaPage({ params }: Props) {
 
             {/* [NOVO] Renderiza o Wrapper repassando os dados do Cabeçalho e Logo */}
             <NegotiationPageWrapper 
+                projetoId={header.id}
                 units={units} 
                 flows={flows} 
                 projetoNome={header.nome}
