@@ -1,8 +1,8 @@
 import { auth } from "@/auth"
 import { redirect, notFound } from "next/navigation"
-import { getAvailableScopes, getProjectById } from "@/app/actions/projects"
+import { getAvailableScopes, getProjectById, getProjectAttachments } from "@/app/actions/projects" // <-- IMPORT ATUALIZADO
 import { getUserPermissions } from "@/app/actions/permissions"
-import { ProjectForm } from "../_components/project-form"
+import { ProjectWrapper } from "../_components/project-wrapper" // <-- IMPORT ATUALIZADO
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -19,23 +19,24 @@ export default async function EditProjectPage({ params }: Props) {
 
   const { id } = await params
   
-  // Busca tudo em paralelo
-  const [project, scopes, userPermissions] = await Promise.all([
+  // Busca tudo em paralelo, agora com anexos
+  const [project, scopes, userPermissions, attachments] = await Promise.all([
     getProjectById(id),
     getAvailableScopes(),
-    getUserPermissions()
+    getUserPermissions(),
+    getProjectAttachments(id) // <-- NOVO
   ])
 
   if (!project) notFound()
 
-  // Regra de ReadOnly: Se NÃO tiver permissão de editar, ativa o modo leitura.
   const canEdit = userPermissions.includes("PROJETOS_EDITAR")
 
   return (
-    <ProjectForm 
+    <ProjectWrapper 
       initialData={project} 
       availableScopes={scopes} 
       readOnly={!canEdit}
+      initialAttachments={attachments} // <-- NOVO
     />
   )
 }

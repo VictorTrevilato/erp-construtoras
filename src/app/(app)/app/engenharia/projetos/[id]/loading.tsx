@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 export default function Loading() {
   return (
-    <div className="w-full pb-10 space-y-6">
+    <div className="w-full pb-10">
       
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+      {/* CABEÇALHO GLOBAL */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="space-y-2">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-5 w-96 max-w-[80vw]" />
@@ -13,13 +14,20 @@ export default function Loading() {
         
         <div className="flex items-center gap-2">
           <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-32" />
         </div>
       </div>
 
+      {/* NAVEGAÇÃO DAS ABAS */}
+      <div className="border-b mb-6 flex gap-6 px-1">
+        <Skeleton className="h-10 w-40 rounded-none rounded-t-md" />
+        <Skeleton className="h-10 w-48 rounded-none rounded-t-md" />
+      </div>
+
+      {/* CONTEÚDO DA ABA (SIMULANDO O FORMULÁRIO) */}
       <div className="space-y-6">
         
-        <Card>
+        {/* CARD 1: IDENTIFICAÇÃO */}
+        <Card className="shadow-sm border-border">
           <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
                <Skeleton className="h-5 w-5 rounded-full" />
@@ -61,7 +69,8 @@ export default function Loading() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* CARD 2: LOCALIZAÇÃO */}
+        <Card className="shadow-sm border-border">
           <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
                <Skeleton className="h-5 w-5 rounded-full" />
@@ -96,7 +105,8 @@ export default function Loading() {
           </CardContent>
         </Card>
         
-        <Card>
+        {/* CARD 3: DADOS LEGAIS (AGORA COM 4 COLUNAS) */}
+        <Card className="shadow-sm border-border">
            <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
                <Skeleton className="h-5 w-5 rounded-full" />
@@ -104,11 +114,7 @@ export default function Loading() {
             </div>
            </CardHeader>
            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-3 gap-6">
-                 <div className="space-y-2">
-                   <Skeleton className="h-4 w-20" />
-                   <Skeleton className="h-10 w-full" />
-                 </div>
+              <div className="grid md:grid-cols-4 gap-6">
                  <div className="space-y-2">
                    <Skeleton className="h-4 w-20" />
                    <Skeleton className="h-10 w-full" />
@@ -117,9 +123,22 @@ export default function Loading() {
                    <Skeleton className="h-4 w-24" />
                    <Skeleton className="h-10 w-full" />
                  </div>
+                 <div className="space-y-2">
+                   <Skeleton className="h-4 w-24" />
+                   <Skeleton className="h-10 w-full" />
+                 </div>
+                 <div className="space-y-2">
+                   <Skeleton className="h-4 w-32" />
+                   <Skeleton className="h-10 w-full" />
+                 </div>
               </div>
            </CardContent>
         </Card>
+
+        {/* RODAPÉ DE AÇÃO */}
+        <div className="flex justify-end pt-2">
+            <Skeleton className="h-11 w-[200px]" />
+        </div>
 
       </div>
     </div>

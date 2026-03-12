@@ -350,9 +350,18 @@ export function ProposalAttachmentsTab({ proposal, attachments, setAttachments }
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                            <p className="font-bold text-foreground truncate" title={attachment.nomeArquivo}>
-                                                {attachment.nomeArquivo}
-                                            </p>
+                                            <TooltipProvider delayDuration={300}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <p className="font-bold text-foreground truncate cursor-help">
+                                                            {attachment.nomeArquivo}
+                                                        </p>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-white text-slate-700 border border-slate-200 shadow-md font-medium px-3 py-1.5">
+                                                        {attachment.nomeArquivo}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                             <TooltipProvider delayDuration={300}>
                                                 <Tooltip>
                                                     <TooltipTrigger><CheckCircle2 className="w-4 h-4 text-success" /></TooltipTrigger>
@@ -415,9 +424,18 @@ export function ProposalAttachmentsTab({ proposal, attachments, setAttachments }
                                         {getFileIcon(attachment.fileName)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-foreground truncate" title={attachment.fileName}>
-                                            {attachment.fileName}
-                                        </p>
+                                        <TooltipProvider delayDuration={300}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <p className="font-bold text-foreground truncate cursor-help">
+                                                        {attachment.fileName}
+                                                    </p>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="bg-white text-slate-700 border border-slate-200 shadow-md font-medium px-3 py-1.5">
+                                                    {attachment.fileName}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                         <p className="text-xs font-medium text-muted-foreground mt-0.5">
                                             {formatBytes(attachment.fileSize)} • <span className="text-warning">Pendente</span>
                                         </p>

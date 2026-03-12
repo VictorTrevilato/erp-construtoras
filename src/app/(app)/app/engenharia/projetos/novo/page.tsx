@@ -1,18 +1,18 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getAvailableScopes } from "@/app/actions/projects"
-import { ProjectForm } from "../_components/project-form"
+import { ProjectWrapper } from "../_components/project-wrapper"
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Projetos",
+  title: "Novo Projeto",
 };
 
 export default async function NewProjectPage() {
   const session = await auth()
-  if (!session) redirect("/login") //Permissão
+  if (!session) redirect("/login")
 
   const scopes = await getAvailableScopes()
 
-  return <ProjectForm availableScopes={scopes} />
+  return <ProjectWrapper availableScopes={scopes} />
 }

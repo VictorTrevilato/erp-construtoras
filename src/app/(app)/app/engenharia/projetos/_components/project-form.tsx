@@ -4,15 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { saveProject, ProjectFormState } from "@/app/actions/projects"
-import { useActionState, useEffect, useState } from "react"
+import { saveProject } from "@/app/actions/projects"
+import { useState } from "react"
 import { toast } from "sonner"
-import { Loader2, MapPin, Building, FileText, ArrowLeft, Save, Lock } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Loader2, MapPin, Building, FileText, Save } from "lucide-react"
 import { ScopeSelect } from "@/components/scope-select"
 
 const BRAZIL_STATES = [
@@ -20,113 +17,157 @@ const BRAZIL_STATES = [
   "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 ]
 
+// --- TIPAGENS DO FORMULÁRIO ---
+export interface ProjectFormData {
+    escopoId: string
+    tipo: string
+    status: string
+    estado: string
+    nome: string
+    descricao: string
+    cep: string
+    logradouro: string
+    numero: string
+    complemento: string
+    bairro: string
+    cidade: string
+    cnpj: string
+    registroIncorporacao: string
+    matricula: string
+    areaTotal: string
+    percComissaoPadrao: string
+}
+
 interface ScopeOption {
-  id: string
-  nome: string
-  tipo: string
-  nivel: number
+    id: string
+    nome: string
+    tipo: string
+    nivel: number
 }
 
-interface ProjectData {
-  id: string
-  nome: string
-  tipo: string
-  status: string
-  descricao: string
-  escopoId: string
-  cep: string
-  logradouro: string
-  numero: string
-  complemento: string
-  bairro: string
-  cidade: string
-  estado: string
-  cnpj: string
-  registroIncorporacao: string
-  matricula: string
-  areaTotal: string
+interface Props {
+    initialData?: { id: string } | null
+    availableScopes: ScopeOption[]
+    readOnly?: boolean
+    formData: ProjectFormData
+    setFormData: (data: ProjectFormData) => void
+    onSaveSuccess?: (id: string) => void
 }
 
-interface ProjectFormProps {
-  initialData?: ProjectData | null
-  availableScopes: ScopeOption[]
-  readOnly?: boolean 
+// --- COMPONENTE INLINE: PERCENT INPUT MASK ---
+interface PercentInputProps {
+    value: string | number
+    onChange: (val: string) => void
+    disabled?: boolean
+    name?: string
 }
 
-const initialState: ProjectFormState = { message: "", errors: {} }
+function PercentInput({ value, onChange, disabled, name }: PercentInputProps) {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value
+    const displayValue = !isNaN(numValue) && numValue > 0 
+        ? numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+        : ""
 
-export function ProjectForm({ initialData, availableScopes, readOnly = false }: ProjectFormProps) {
-  const router = useRouter()
-  const saveWithId = saveProject.bind(null, initialData?.id || null)
-  const [state, formAction, isPending] = useActionState(saveWithId, initialState)
-  
-  const [formData, setFormData] = useState({
-    escopoId: initialData?.escopoId || "",
-    tipo: initialData?.tipo || "OBRA",
-    status: initialData?.status || "LANCAMENTO",
-    estado: initialData?.estado || ""
-  })
-
-  useEffect(() => {
-    if (state.success) {
-      toast.success(state.message)
-      router.push("/app/engenharia/projetos")
-    } else if (state.message) {
-      toast.error(state.message)
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, "")
+        if (!rawValue) { 
+            onChange("")
+            return 
+        }
+        const floatValue = parseInt(rawValue, 10) / 100
+        onChange(floatValue.toString())
     }
-  }, [state, router])
+
+    return (
+        <div className="relative w-full">
+            <Input 
+                name={name}
+                className="pr-8 bg-background"
+                value={displayValue}
+                onChange={handleChange}
+                onFocus={(e) => e.target.select()}
+                disabled={disabled}
+                placeholder="0,00"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">%</span>
+        </div>
+    )
+}
+
+// --- COMPONENTE INLINE: AREA INPUT MASK ---
+interface AreaInputProps {
+    value: string | number
+    onChange: (val: string) => void
+    disabled?: boolean
+    name?: string
+}
+
+function AreaInput({ value, onChange, disabled, name }: AreaInputProps) {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value
+    const displayValue = !isNaN(numValue) && numValue > 0 
+        ? numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+        : ""
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, "")
+        if (!rawValue) { 
+            onChange("")
+            return 
+        }
+        const floatValue = parseInt(rawValue, 10) / 100
+        onChange(floatValue.toString())
+    }
+
+    return (
+        <Input 
+            name={name}
+            className="bg-background"
+            value={displayValue}
+            onChange={handleChange}
+            onFocus={(e) => e.target.select()}
+            disabled={disabled}
+            placeholder="0,00"
+        />
+    )
+}
+
+// --- COMPONENTE PRINCIPAL ---
+export function ProjectForm({ initialData, availableScopes, readOnly = false, formData, setFormData, onSaveSuccess }: Props) {
+  const [isPending, setIsPending] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string[]>>({})
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name as keyof ProjectFormData]: e.target.value })
+  }
+
+  const handleSave = async () => {
+    setIsPending(true)
+    setErrors({})
+    
+    const fd = new FormData()
+    Object.entries(formData).forEach(([key, value]) => {
+      fd.append(key, value as string)
+    })
+
+    const res = await saveProject(initialData?.id || null, { message: "", errors: {} }, fd)
+    
+    if (res.success) {
+      toast.success(res.message)
+      if (res.dataId && onSaveSuccess) {
+          onSaveSuccess(res.dataId)
+      }
+    } else {
+      toast.error(res.message)
+      if (res.errors) setErrors(res.errors)
+    }
+    setIsPending(false)
+  }
 
   return (
-    <form action={formAction} className="w-full pb-10">
-      
-      <input type="hidden" name="escopoId" value={formData.escopoId} />
-      <input type="hidden" name="tipo" value={formData.tipo} />
-      <input type="hidden" name="status" value={formData.status} />
-      <input type="hidden" name="estado" value={formData.estado} />
-
-      {/* --- HEADER --- */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            {initialData ? `Editar Projeto` : "Novo Projeto"}
-            {readOnly && (
-              <Badge variant="outline" className="text-warning border-warning gap-1">
-                <Lock className="w-3 h-3"/> Somente Leitura
-              </Badge>
-            )}
-          </h2>
-          <p className="text-muted-foreground">
-            {initialData 
-              ? "Visualize ou altere as informações deste empreendimento." 
-              : "Preencha os dados para cadastrar um novo empreendimento."}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Link href="/app/engenharia/projetos">
-            <Button variant="outline" type="button">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-          </Link>
-          
-          {!readOnly && (
-            <Button type="submit" disabled={isPending}>
-              {isPending ? (
-                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
-              ) : (
-                 <><Save className="mr-2 h-4 w-4" /> Salvar Projeto</>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* --- CONTEÚDO --- */}
-      <div className="space-y-6">
+    <div className="w-full space-y-6">
         
         {/* CARD 1: IDENTIFICAÇÃO */}
-        <Card>
+        <Card className="shadow-sm border-border">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Building className="w-4 h-4 text-primary" /> Identificação e Vínculo
@@ -143,7 +184,7 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
                   onValueChange={(val) => setFormData({...formData, escopoId: val})}
                   options={availableScopes}
                   disabled={readOnly}
-                  error={state.errors?.escopoId?.[0]}
+                  error={errors?.escopoId?.[0]}
                 />
               </div>
 
@@ -152,11 +193,11 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
                 <Input 
                   name="nome" 
                   placeholder="Ex: Residencial Vista Alegre" 
-                  defaultValue={initialData?.nome} 
-                  required 
+                  value={formData.nome} 
+                  onChange={handleChange}
                   disabled={readOnly}
                 />
-                {state.errors?.nome && <p className="text-xs text-destructive">{state.errors.nome[0]}</p>}
+                {errors?.nome && <p className="text-xs text-destructive">{errors.nome[0]}</p>}
               </div>
             </div>
 
@@ -191,20 +232,25 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
 
               <div className="space-y-2">
                   <Label>Área Total (m²)</Label>
-                  <Input name="areaTotal" placeholder="0,00" defaultValue={initialData?.areaTotal} disabled={readOnly} />
+                  <AreaInput 
+                      name="areaTotal" 
+                      value={formData.areaTotal} 
+                      onChange={(val) => setFormData({...formData, areaTotal: val})} 
+                      disabled={readOnly} 
+                  />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Textarea name="descricao" placeholder="Detalhes adicionais..." defaultValue={initialData?.descricao} disabled={readOnly} />
+              <Textarea name="descricao" placeholder="Detalhes adicionais..." value={formData.descricao} onChange={handleChange} disabled={readOnly} />
             </div>
 
           </CardContent>
         </Card>
 
         {/* CARD 2: LOCALIZAÇÃO */}
-        <Card>
+        <Card className="shadow-sm border-border">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin className="w-4 h-4 text-warning" /> Endereço Físico
@@ -215,26 +261,26 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2 col-span-1">
                 <Label>CEP</Label>
-                <Input name="cep" placeholder="00000-000" defaultValue={initialData?.cep} disabled={readOnly} />
+                <Input name="cep" placeholder="00000-000" value={formData.cep} onChange={handleChange} disabled={readOnly} />
               </div>
               <div className="space-y-2 col-span-3">
                 <Label>Logradouro</Label>
-                <Input name="logradouro" defaultValue={initialData?.logradouro} disabled={readOnly} />
+                <Input name="logradouro" placeholder="Ex: Av. Presidente Vargas" value={formData.logradouro} onChange={handleChange} disabled={readOnly} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2 col-span-1">
                 <Label>Número</Label>
-                <Input name="numero" defaultValue={initialData?.numero} disabled={readOnly} />
+                <Input name="numero" placeholder="Ex: 1234" value={formData.numero} onChange={handleChange} disabled={readOnly} />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label>Bairro</Label>
-                <Input name="bairro" defaultValue={initialData?.bairro} disabled={readOnly} />
+                <Input name="bairro" placeholder="Ex: Jardim Sumaré" value={formData.bairro} onChange={handleChange} disabled={readOnly} />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label>Cidade</Label>
-                <Input name="cidade" defaultValue={initialData?.cidade} disabled={readOnly} />
+                <Input name="cidade" placeholder="Ex: Ribeirão Preto" value={formData.cidade} onChange={handleChange} disabled={readOnly} />
               </div>
             </div>
 
@@ -252,39 +298,57 @@ export function ProjectForm({ initialData, availableScopes, readOnly = false }: 
               </div>
               <div className="space-y-2 col-span-3">
                  <Label>Complemento</Label>
-                 <Input name="complemento" defaultValue={initialData?.complemento} disabled={readOnly} />
+                 <Input name="complemento" placeholder="Ex: Sala 1" value={formData.complemento} onChange={handleChange} disabled={readOnly} />
               </div>
             </div>
 
           </CardContent>
         </Card>
 
-        {/* CARD 3: DADOS LEGAIS */}
-        <Card>
+        {/* CARD 3: DADOS LEGAIS & COMERCIAIS */}
+        <Card className="shadow-sm border-border">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4 text-info" /> Dados Legais e Cartorários
+              <FileText className="w-4 h-4 text-info" /> Dados Legais e Comerciais
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-4 gap-6">
                 <div className="space-y-2">
                   <Label>CNPJ (SPE)</Label>
-                  <Input name="cnpj" placeholder="00.000.000/0000-00" defaultValue={initialData?.cnpj} disabled={readOnly} />
+                  <Input name="cnpj" placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={handleChange} disabled={readOnly} />
                 </div>
                 <div className="space-y-2">
                   <Label>Registro Incorp. (RI)</Label>
-                  <Input name="registroIncorporacao" defaultValue={initialData?.registroIncorporacao} disabled={readOnly} />
+                  <Input name="registroIncorporacao" placeholder="0000000000" value={formData.registroIncorporacao} onChange={handleChange} disabled={readOnly} />
                 </div>
                 <div className="space-y-2">
                   <Label>Matrícula Mãe</Label>
-                  <Input name="matricula" defaultValue={initialData?.matricula} disabled={readOnly} />
+                  <Input name="matricula" placeholder="0000000000" value={formData.matricula} onChange={handleChange} disabled={readOnly} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Comissão Padrão (%)</Label>
+                  <PercentInput 
+                      name="percComissaoPadrao" 
+                      value={formData.percComissaoPadrao} 
+                      onChange={(val) => setFormData({...formData, percComissaoPadrao: val})} 
+                      disabled={readOnly} 
+                  />
                 </div>
               </div>
           </CardContent>
         </Card>
 
-      </div>
-    </form>
+        {/* RODAPÉ DE AÇÃO */}
+        {!readOnly && (
+            <div className="flex justify-end pt-2">
+                <Button size="lg" className="min-w-[200px]" onClick={handleSave} disabled={isPending}>
+                    {isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isPending ? "Salvando..." : "Salvar Projeto"}
+                </Button>
+            </div>
+        )}
+
+    </div>
   )
 }
