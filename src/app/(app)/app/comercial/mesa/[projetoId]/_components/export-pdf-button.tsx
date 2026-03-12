@@ -13,6 +13,7 @@ type Flow = {
     percentual: number
     qtdeParcelas: number
     periodicidade: number
+    primeiroVencimento: Date | string // <--- TIPO NOVO AQUI
 }
 
 type ExportPdfButtonProps = {
@@ -26,6 +27,14 @@ type ExportPdfButtonProps = {
 // Helpers de formatação
 const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDecimal = (val: number, digits = 2) => val.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+
+// Formatação segura de Data
+const fmtDate = (d: string | Date) => {
+    if (!d) return '-'
+    const date = new Date(d)
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
+    return date.toLocaleDateString('pt-BR')
+}
 
 const formatStatusLabel = (status: string) => {
     const map: Record<string, string> = {
@@ -75,7 +84,6 @@ export function ExportPdfButton({ units, flows, projetoNome = "Projeto", tabelaC
             if (logoUrl) {
                 const img = await loadImage(logoUrl)
                 if (img) {
-                    // Logo reduzida de 30 para 22 para não ocupar tanto espaço vertical
                     const imgWidth = 22
                     const imgHeight = (img.height * imgWidth) / img.width
                     doc.addImage(img, 'PNG', 14, 10, imgWidth, imgHeight)
@@ -100,14 +108,14 @@ export function ExportPdfButton({ units, flows, projetoNome = "Projeto", tabelaC
             startY += 15 // Espaçamento antes da tabela
 
             // --- 2. PREPARAÇÃO DOS DADOS DA TABELA ---
-            // Títulos alterados para MAIÚSCULO e coluna simplificada para "UNIDADE"
+            // Adicionado o \n para quebrar linha na mesma célula da tabela PDF
             const head = [[
                 "UNIDADE",
                 "STATUS",
                 "ÁREA PRIV.",
                 "ÁREA COM.",
                 "VALOR",
-                ...flows.map((f) => `${f.tipo.toUpperCase()} (${f.qtdeParcelas}X)`)
+                ...flows.map((f) => `${f.tipo.toUpperCase()}\n${f.qtdeParcelas}x de ${Number(f.percentual).toFixed(2)}%\nem ${fmtDate(f.primeiroVencimento)}`)
             ]]
 
             const body = units.map((unit) => {
@@ -150,7 +158,7 @@ export function ExportPdfButton({ units, flows, projetoNome = "Projeto", tabelaC
                 theme: 'grid',
                 styles: { 
                     font: 'helvetica',
-                    fontSize: 8, // Fonte aumentada de 7 para 8
+                    fontSize: 8,
                     cellPadding: 3,
                     lineColor: [226, 232, 240], // Slate 200
                     lineWidth: 0.1,
@@ -160,7 +168,11 @@ export function ExportPdfButton({ units, flows, projetoNome = "Projeto", tabelaC
                     fillColor: [248, 250, 252], // Slate 50 (Cinza bem claro)
                     textColor: [15, 23, 42], // Slate 900
                     fontStyle: 'bold',
-                    halign: 'center'
+                    halign: 'center',
+                    valign: 'middle' // Adicionado para centralizar verticalmente as quebras de linha
+                },
+                bodyStyles: {
+                    fontSize: 10 // <-- Tamanho da fonte do body
                 },
                 alternateRowStyles: { 
                     fillColor: [250, 250, 250] // Linhas zebradas muito sutis

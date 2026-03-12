@@ -4,8 +4,9 @@ import { NegotiationUnit } from "@/app/actions/commercial-negotiation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
-import { useState } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { useState, useMemo } from "react"
 import { ExportPdfButton } from "./export-pdf-button"
 
 // Tipos auxiliares
@@ -14,6 +15,7 @@ type Flow = {
     percentual: number
     qtdeParcelas: number
     periodicidade: number
+    primeiroVencimento: Date | string
 }
 
 type PriceListViewProps = {
@@ -24,11 +26,22 @@ type PriceListViewProps = {
     logoUrl?: string | null
 }
 
+type SortConfig = {
+    key: keyof NegotiationUnit | ''
+    direction: 'asc' | 'desc' | null
+}
+
 // Helpers
 const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDecimal = (val: number, digits = 2) => val.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })
 
-// Cores atualizadas
+const fmtDate = (d: string | Date) => {
+    if (!d) return '-'
+    const date = new Date(d)
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
+    return date.toLocaleDateString('pt-BR')
+}
+
 const getStatusColor = (status: string) => {
     switch (status) {
       case 'DISPONIVEL': return 'bg-success/20 text-success hover:bg-success/30 border-success/30'
@@ -39,7 +52,6 @@ const getStatusColor = (status: string) => {
     }
 }
 
-// Labels em MAIÚSCULO para padronização
 const formatStatusLabel = (status: string) => {
     const map: Record<string, string> = {
         'DISPONIVEL': 'DISPONÍVEL',
@@ -51,39 +63,133 @@ const formatStatusLabel = (status: string) => {
 }
 
 export function PriceListView({ units, flows, projetoNome, tabelaCodigo, logoUrl }: PriceListViewProps) {
-    const [filter, setFilter] = useState("")
+    // Estados de Filtro
+    const [filterText, setFilterText] = useState("")
+    const [filterBlock, setFilterBlock] = useState("ALL")
+    const [filterStatus, setFilterStatus] = useState("ALL")
+    
+    // Estado de Ordenação
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: null })
 
-    // Filtra e Ordena (Bloco > Unidade)
-    const filteredAndSorted = units
-        .filter(u => u.unidade.toLowerCase().includes(filter.toLowerCase()) || u.blocoNome.toLowerCase().includes(filter.toLowerCase()))
-        .sort((a, b) => {
+    // Extrair lista única de blocos do projeto para o select
+    const uniqueBlocks = useMemo(() => {
+        return Array.from(new Set(units.map(u => u.blocoNome))).sort()
+    }, [units])
+
+    // Lógica do Tri-state Sort
+    const handleSort = (columnKey: keyof NegotiationUnit) => {
+        if (sortConfig.key === columnKey && sortConfig.direction === 'asc') {
+            setSortConfig({ key: columnKey, direction: 'desc' })
+        } else if (sortConfig.key === columnKey && sortConfig.direction === 'desc') {
+            setSortConfig({ key: '', direction: null }) // Limpa a ordenação
+        } else {
+            setSortConfig({ key: columnKey, direction: 'asc' })
+        }
+    }
+
+    // Componente renderizador do ícone de ordenação
+    const SortIcon = ({ columnKey }: { columnKey: string }) => {
+        if (sortConfig.key !== columnKey || !sortConfig.direction) {
+            return <ArrowUpDown className="ml-1 w-3 h-3 inline-block opacity-30 group-hover:opacity-100 transition-opacity" />
+        }
+        if (sortConfig.direction === 'asc') return <ArrowUp className="ml-1 w-3 h-3 inline-block text-primary" />
+        return <ArrowDown className="ml-1 w-3 h-3 inline-block text-primary" />
+    }
+
+    // Pipeline de Filtragem e Ordenação
+    const filteredAndSorted = useMemo(() => {
+        const result = [...units].filter(u => {
+            const matchesText = u.unidade.toLowerCase().includes(filterText.toLowerCase()) || u.blocoNome.toLowerCase().includes(filterText.toLowerCase())
+            const matchesBlock = filterBlock === "ALL" || u.blocoNome === filterBlock
+            const matchesStatus = filterStatus === "ALL" || u.statusComercial === filterStatus
+            return matchesText && matchesBlock && matchesStatus
+        })
+
+        result.sort((a, b) => {
+            // Se houver ordenação ativa pelo usuário
+            if (sortConfig.direction && sortConfig.key) {
+                const { key, direction } = sortConfig
+                
+                // Tratamento especial para ordenação por unidade (amarrada com o bloco)
+                if (key === 'unidade') {
+                    if (a.blocoNome !== b.blocoNome) {
+                        return direction === 'asc' 
+                            ? a.blocoNome.localeCompare(b.blocoNome, undefined, { numeric: true }) 
+                            : b.blocoNome.localeCompare(a.blocoNome, undefined, { numeric: true })
+                    }
+                    return direction === 'asc'
+                        ? a.unidade.localeCompare(b.unidade, undefined, { numeric: true })
+                        : b.unidade.localeCompare(a.unidade, undefined, { numeric: true })
+                }
+                
+                const valA = a[key]
+                const valB = b[key]
+
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+                }
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return direction === 'asc' ? valA - valB : valB - valA
+                }
+            }
+            
+            // ORDENAÇÃO PADRÃO (Se direction = null)
             const blockDiff = a.blocoNome.localeCompare(b.blocoNome, undefined, { numeric: true, sensitivity: 'base' })
             if (blockDiff !== 0) return blockDiff
             return a.unidade.localeCompare(b.unidade, undefined, { numeric: true, sensitivity: 'base' })
         })
 
+        return result
+    }, [units, filterText, filterBlock, filterStatus, sortConfig])
+
     return (
         <div className="space-y-4">
-            {/* Barra de Busca e Botão PDF (Delegado) */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Filtrar por unidade ou bloco..." 
-                        className="pl-8 bg-background"
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                    />
+            
+            {/* Barra de Busca e Filtros */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-[250px] shrink-0">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Buscar unidade..." 
+                            className="pl-8 bg-background"
+                            value={filterText}
+                            onChange={e => setFilterText(e.target.value)}
+                        />
+                    </div>
+                    <Select value={filterBlock} onValueChange={setFilterBlock}>
+                        <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                            <SelectValue placeholder="Bloco" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Todos os Blocos</SelectItem>
+                            {uniqueBlocks.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Todos Status</SelectItem>
+                            <SelectItem value="DISPONIVEL">Disponível</SelectItem>
+                            <SelectItem value="RESERVADO">Reservado</SelectItem>
+                            <SelectItem value="EM_ANALISE">Em Análise</SelectItem>
+                            <SelectItem value="VENDIDO">Vendido</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 
-                {/* O botão recebe apenas a lista FILTRADA, garantindo que o PDF saia igual a tela */}
-                <ExportPdfButton 
-                    units={filteredAndSorted} 
-                    flows={flows} 
-                    projetoNome={projetoNome}
-                    tabelaCodigo={tabelaCodigo}
-                    logoUrl={logoUrl}
-                />
+                <div className="shrink-0 w-full sm:w-auto">
+                    <ExportPdfButton 
+                        units={filteredAndSorted} 
+                        flows={flows} 
+                        projetoNome={projetoNome}
+                        tabelaCodigo={tabelaCodigo}
+                        logoUrl={logoUrl}
+                    />
+                </div>
             </div>
 
             {/* Tabela Rica */}
@@ -92,16 +198,49 @@ export function PriceListView({ units, flows, projetoNome, tabelaCodigo, logoUrl
                     <TableHeader className="sticky top-0 z-20">
                         <TableRow className="hover:bg-transparent">
                             {/* === BLOCO 1: DADOS DO IMÓVEL === */}
-                            <TableHead className="w-32 font-bold text-foreground sticky left-0 z-30 bg-background border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-sm pl-4">
-                                Unidade
+                            <TableHead 
+                                className="w-32 font-bold text-foreground sticky left-0 z-30 bg-background border-y border-l rounded-l-lg shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] h-12 text-xs uppercase pl-4 cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+                                onClick={() => handleSort('unidade')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    UNIDADE <SortIcon columnKey="unidade" />
+                                </div>
                             </TableHead>
                             
-                            <TableHead className="w-28 text-center text-muted-foreground bg-background border-y h-12">Status</TableHead>
-                            <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Priv.</TableHead>
-                            <TableHead className="w-24 text-right text-sm text-muted-foreground bg-background border-y h-12">Área Com.</TableHead>
+                            <TableHead 
+                                className="w-28 text-center font-bold text-xs uppercase text-muted-foreground bg-background border-y h-12 cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+                                onClick={() => handleSort('statusComercial')}
+                            >
+                                <div className="flex items-center justify-center gap-1">
+                                    STATUS <SortIcon columnKey="statusComercial" />
+                                </div>
+                            </TableHead>
+
+                            <TableHead 
+                                className="w-24 text-right font-bold text-xs uppercase text-muted-foreground bg-background border-y h-12 cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+                                onClick={() => handleSort('areaPrivativa')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    <SortIcon columnKey="areaPrivativa" /> ÁREA PRIV.
+                                </div>
+                            </TableHead>
+
+                            <TableHead 
+                                className="w-24 text-right font-bold text-xs uppercase text-muted-foreground bg-background border-y h-12 cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+                                onClick={() => handleSort('areaUsoComum')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    <SortIcon columnKey="areaUsoComum" /> ÁREA COM.
+                                </div>
+                            </TableHead>
                             
-                            <TableHead className="text-right text-sm w-36 text-foreground font-semibold bg-background border-y border-r rounded-r-lg h-12">
-                                Valor Tabela
+                            <TableHead 
+                                className="text-right font-bold text-xs uppercase w-36 text-foreground bg-background border-y border-r rounded-r-lg h-12 cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+                                onClick={() => handleSort('valorTabela')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    <SortIcon columnKey="valorTabela" /> VALOR TABELA
+                                </div>
                             </TableHead>
                             
                             {/* === DIVISÓRIA === */}
@@ -116,12 +255,15 @@ export function PriceListView({ units, flows, projetoNome, tabelaCodigo, logoUrl
                                 return (
                                     <TableHead 
                                         key={idx} 
-                                        className={`text-right min-w-[100px] bg-background border-y border-r-0 last:border-r h-12 ${roundedClass}`}
+                                        className={`text-right min-w-[100px] bg-background border-y border-r-0 last:border-r h-14 py-2 ${roundedClass}`}
                                     >
-                                        <div className="flex flex-col items-end py-1 px-2">
-                                            <span className="font-semibold text-xs text-foreground uppercase">{flow.tipo}</span>
-                                            <span className="text-[10px] text-muted-foreground font-normal">
+                                        <div className="flex flex-col items-end gap-0.5 px-2">
+                                            <span className="font-bold text-xs text-foreground uppercase">{flow.tipo}</span>
+                                            <span className="text-[10px] text-muted-foreground font-medium leading-none">
                                                 {flow.qtdeParcelas}x de {Number(flow.percentual).toFixed(2)}%
+                                            </span>
+                                            <span className="text-[10px] text-primary/70 font-medium leading-none">
+                                                em {fmtDate(flow.primeiroVencimento)}
                                             </span>
                                         </div>
                                     </TableHead>

@@ -206,6 +206,7 @@ export async function getProjectActiveFlows(projetoId: string) {
         tipo: f.tipo,
         percentual: Number(f.percentual),
         qtdeParcelas: f.qtdeParcelas,
+        primeiroVencimento: f.dataPrimeiroVencimento,
         periodicidade: f.periodicidade
     }))
 }

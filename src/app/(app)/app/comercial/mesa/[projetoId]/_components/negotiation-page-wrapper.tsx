@@ -7,15 +7,14 @@ import { PriceListView } from "./price-list-view"
 import { NegotiationForm } from "./negotiation-form"
 import { NegotiationUnit } from "@/app/actions/commercial-negotiation"
 
-// [CORREÇÃO] periodicidade alterada de string para number para bater com o Server Action
 type ServerFlow = {
     tipo: string
     percentual: number
     qtdeParcelas: number
     periodicidade: number 
+    primeiroVencimento: Date | string // <--- CORREÇÃO AQUI
 }
 
-// [NOVO] Tipagem para incluir as propriedades visuais do PDF
 type WrapperProps = {
     units: NegotiationUnit[]
     flows: ServerFlow[]
@@ -56,7 +55,6 @@ function NegotiationTabs({ units, flows, projetoNome, tabelaCodigo, logoUrl }: W
                 </TabsContent>
                 
                 <TabsContent value="tabela" className="focus-visible:ring-0 focus-visible:outline-none">
-                    {/* [NOVO] Repassando as propriedades para a Tabela que agora cuidará do PDF */}
                     <PriceListView 
                         units={units} 
                         flows={flows} 
@@ -74,7 +72,6 @@ function NegotiationTabs({ units, flows, projetoNome, tabelaCodigo, logoUrl }: W
     )
 }
 
-// [NOVO] Wrapper atualizado para receber e repassar as propriedades de contexto do PDF
 export function NegotiationPageWrapper({ units, flows, projetoNome, tabelaCodigo, logoUrl }: WrapperProps) {
     return (
         <NegotiationProvider>

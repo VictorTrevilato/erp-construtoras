@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { NegotiationUnit, calculateStandardFlow, saveProposal } from "@/app/actions/commercial-negotiation"
 import { useNegotiation } from "./negotiation-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw } from "lucide-react"
+import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-// [NOVO] Importação do componente de análise
+// Importação do componente de análise
 import { ProposalAnalysis } from "./proposal-analysis"
 
 // --- TIPOS ---
@@ -78,6 +78,9 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
         standardFlow, setStandardFlow
     } = useNegotiation()
 
+    // Estado de proteção contra duplo-clique
+    const [isSaving, setIsSaving] = useState(false)
+
     const selectedUnit = units.find(u => u.id === selectedUnitId)
     const availableUnits = units.filter(u => u.statusComercial === 'DISPONIVEL')
 
@@ -92,7 +95,10 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
 
     // Carregar Dados ao Selecionar Unidade
     useEffect(() => {
-        if (!selectedUnit) return
+        if (!selectedUnit) {
+            setStandardFlow([])
+            return
+        }
 
         setTargetPrice(selectedUnit.valorTabela)
         
@@ -170,21 +176,34 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
         if (!lead.nome) return toast.error("Preencha o nome do cliente")
         if (!isClosed) return toast.error(`Valores não batem. Diferença: ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)
 
-        const payload = {
-            unidadeId: selectedUnitId,
-            lead,
-            valorProposta: targetPrice,
-            condicoes: conditions
-        }
+        setIsSaving(true)
 
-        const res = await saveProposal(payload)
-        if (res.success) {
-            toast.success("Proposta salva com sucesso!")
-            handleClear()
-            setSelectedUnitId("") 
-            setLead({ nome: "", email: "", telefone: "", origem: "" })
-        } else {
-            toast.error(res.message)
+        try {
+            const payload = {
+                unidadeId: selectedUnitId,
+                lead,
+                valorProposta: targetPrice,
+                condicoes: conditions
+            }
+
+            const res = await saveProposal(payload)
+            if (res.success) {
+                toast.success("Proposta salva com sucesso!")
+                
+                // Limpa o estado de negociação
+                setConditions([])
+                setSelectedUnitId("") 
+                setLead({ nome: "", email: "", telefone: "", origem: "" })
+                setTargetPrice(0)
+                setStandardFlow([])
+            } else {
+                toast.error(res.message)
+            }
+        } catch (error) {
+            console.error("Erro ao salvar proposta:", error)
+            toast.error("Ocorreu um erro inesperado ao salvar.")
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -204,7 +223,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                             
                             <div className="space-y-2">
                                 <Label>Unidade Disponível</Label>
-                                <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                                <Select value={selectedUnitId} onValueChange={setSelectedUnitId} disabled={isSaving}>
                                     <SelectTrigger className="h-11 text-base bg-background">
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
@@ -249,6 +268,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                         onChange={e => updateLead('nome', e.target.value)} 
                                         className="h-10 bg-background" 
                                         placeholder="Preencha o nome do cliente..." 
+                                        disabled={isSaving}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -258,6 +278,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                         onChange={e => updateLead('telefone', e.target.value)} 
                                         className="h-10 bg-background" 
                                         placeholder="Preencha o telefone..." 
+                                        disabled={isSaving}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -267,11 +288,12 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                         onChange={e => updateLead('email', e.target.value)} 
                                         className="h-10 bg-background" 
                                         placeholder="Preencha o email..." 
+                                        disabled={isSaving}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <Label>Origem</Label>
-                                    <Select value={lead.origem} onValueChange={v => updateLead('origem', v)}>
+                                    <Select value={lead.origem} onValueChange={v => updateLead('origem', v)} disabled={isSaving}>
                                         <SelectTrigger className="h-10 bg-background">
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
@@ -346,7 +368,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <MoneyInput 
                                         value={targetPrice} 
                                         onChange={setTargetPrice} 
-                                        className="w-32 border-none shadow-none h-8 text-lg text-primary focus-visible:ring-0 p-0"
+                                        className="w-32 border-none shadow-none h-8 text-lg text-primary focus-visible:ring-0 p-0 disabled:opacity-50"
                                     />
                                 </div>
                             </div>
@@ -380,7 +402,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                     <div key={type} className="flex flex-col gap-2">
                                         <div className="flex justify-between items-center pb-1 border-b border-border">
                                             <span className="text-xs font-bold text-muted-foreground uppercase">{type}</span>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addCondition(type)}>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addCondition(type)} disabled={isSaving}>
                                                 <Plus className="w-3 h-3 text-primary" />
                                             </Button>
                                         </div>
@@ -394,7 +416,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                     <div key={cond.id} className="bg-background border rounded-md p-2 shadow-sm relative group">
                                                         <button 
                                                             onClick={() => removeCondition(cond.id)}
-                                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-destructive/70 hover:text-destructive"
+                                                            disabled={isSaving}
+                                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-destructive/70 hover:text-destructive disabled:opacity-50"
                                                         >
                                                             <Trash2 className="w-3 h-3" />
                                                         </button>
@@ -408,6 +431,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                                         className="h-7 text-xs px-1 bg-background"
                                                                         value={cond.vencimento}
                                                                         onChange={e => updateCondition(cond.id, 'vencimento', e.target.value)}
+                                                                        disabled={isSaving}
                                                                     />
                                                                 </div>
                                                                 <div className="col-span-1">
@@ -417,6 +441,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                                                                         className="h-7 text-xs px-1 text-center bg-background"
                                                                         value={cond.qtdeParcelas}
                                                                         onChange={e => updateCondition(cond.id, 'qtdeParcelas', Number(e.target.value))}
+                                                                        disabled={isSaving}
                                                                     />
                                                                 </div>
                                                             </div>
@@ -448,7 +473,7 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                             })}
                         </div>
 
-                        {/* [NOVO] COMPONENTE DE ANÁLISE VPL */}
+                        {/* COMPONENTE DE ANÁLISE VPL */}
                         {selectedUnit && (
                             <ProposalAnalysis 
                                 standardFlow={standardFlow} 
@@ -460,14 +485,15 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                     </CardContent>
                     
                     <div className="p-4 border-t bg-background flex justify-end gap-3">
-                        <Button variant="outline" onClick={handleResetToStandard}>
+                        <Button variant="outline" onClick={handleResetToStandard} disabled={isSaving}>
                             <RotateCcw className="mr-2 h-4 w-4" /> Tabela Padrão
                         </Button>
-                        <Button variant="outline" onClick={handleClear} className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+                        <Button variant="outline" onClick={handleClear} disabled={isSaving} className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" /> Limpar Tudo
                         </Button>
-                        <Button className="w-48" onClick={handleSave}>
-                            <Save className="mr-2 h-4 w-4" /> Salvar Proposta
+                        <Button className="w-48 transition-all" onClick={handleSave} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSaving ? "Salvando..." : "Salvar Proposta"}
                         </Button>
                     </div>
                 </Card>
