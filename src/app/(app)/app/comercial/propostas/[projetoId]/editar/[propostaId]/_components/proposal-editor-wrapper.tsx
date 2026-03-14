@@ -150,6 +150,7 @@ function ProposalTabs(props: TabsProps) {
                     <ProposalExecutionTab 
                         proposal={props.currentProposal} 
                         setProposal={props.setCurrentProposal} 
+                        projetoId={props.projetoId}
                     />
                 </TabsContent>
 

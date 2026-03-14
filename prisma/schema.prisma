@@ -62,6 +62,17 @@ model ycEmpresas {
   subButtonsTheme              String                         @default("primary", map: "DF__ycEmpresa__subBu__7FB5F314") @db.VarChar(20)
   tooltipsTheme                String                         @default("primary", map: "DF__ycEmpresa__toolt__00AA174D") @db.VarChar(20)
   accentTheme                  String                         @default("primary", map: "DF__ycEmpresa__accen__019E3B86") @db.VarChar(20)
+  cep                          String?                        @db.VarChar(8)
+  logradouro                   String?                        @db.VarChar(255)
+  numero                       String?                        @db.VarChar(50)
+  complemento                  String?                        @db.VarChar(100)
+  bairro                       String?                        @db.VarChar(100)
+  cidade                       String?                        @db.VarChar(100)
+  estado                       String?                        @db.Char(2)
+  telefoneSac                  String?                        @db.VarChar(20)
+  siteCliente                  String?                        @db.VarChar(255)
+  siteVendedora                String?                        @db.VarChar(255)
+  nomeApp                      String?                        @db.VarChar(100)
   ycBlocos                     ycBlocos[]
   ycCargos                     ycCargos[]
   ycCargosPermissoes           ycCargosPermissoes[]
@@ -276,6 +287,8 @@ model ycProjetos {
   matricula            String?            @db.VarChar(100)
   areaTotal            Decimal?           @db.Decimal(18, 2)
   percComissaoPadrao   Decimal            @default(4.0000, map: "DF__ycProjeto__percC__79FD19BE") @db.Decimal(10, 4)
+  cartorioRegistro     String?            @db.VarChar(255)
+  razaoSocial          String?            @db.VarChar(255)
   ycBlocos             ycBlocos[]
   ycLeads              ycLeads[]
   ycEmpresas           ycEmpresas         @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")

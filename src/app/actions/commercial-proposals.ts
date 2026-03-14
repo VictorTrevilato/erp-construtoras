@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { revalidatePath } from "next/cache"
 import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl } from "@/lib/azure-storage"
+import PizZip from "pizzip"
+import Docxtemplater from "docxtemplater"
+import { buildContractDictionary } from "@/lib/doc-dictionary-proposals"
 
 // ==========================================
 // 1. TYPES & INTERFACES
@@ -1299,5 +1302,99 @@ export async function unlockProposalEdit(propostaId: string, origemEdicao: strin
     } catch (error) {
         console.error("Erro ao desbloquear proposta:", error)
         return { success: false, message: "Erro interno ao desbloquear proposta." }
+    }
+}
+
+// --- 21. BUSCAR TEMPLATES DO PROJETO ---
+export async function getProjectTemplates(projetoId: string, classificacao: string) {
+    const session = await auth()
+    if (!session) return []
+
+    try {
+        const templates = await prisma.ycProjetosAnexos.findMany({
+            where: {
+                projetoId: BigInt(projetoId),
+                classificacao: classificacao
+            },
+            orderBy: { sysCreatedAt: 'desc' }
+        })
+
+        return templates.map(t => ({
+            id: t.id.toString(),
+            nomeArquivo: t.nomeArquivo,
+            urlArquivo: t.urlArquivo
+        }))
+    } catch (error) {
+        console.error("Erro ao buscar templates:", error)
+        return []
+    }
+}
+
+// --- 22. GERADOR DE CONTRATO/TERMO (DOCX TEMPLATER) ---
+export async function generateDocumentFromTemplate(propostaId: string, urlArquivoAzure: string, tipoDocumento: 'termo' | 'contrato') {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado" }
+
+    try {
+        // 1. Constrói o Dicionário completo com todas as regras de negócio
+        const dictionary = await buildContractDictionary(propostaId)
+
+        // 2. Pega a URL de Download real do Azure
+        const sasUrl = await getFileDownloadUrl(urlArquivoAzure)
+        if (!sasUrl) return { success: false, message: "Erro ao acessar o template na nuvem." }
+
+        // 3. Faz o download do DOCX original para a memória (ArrayBuffer)
+        const fileResponse = await fetch(sasUrl)
+        if (!fileResponse.ok) return { success: false, message: "Erro ao baixar o template original." }
+        
+        const arrayBuffer = await fileResponse.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        // 4. Injeta os dados usando o PizZip e o Docxtemplater
+        const zip = new PizZip(buffer)
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            delimiters: { start: '{{', end: '}}' } // Mantendo o nosso padrão de chaves duplas
+        })
+
+        doc.render(dictionary)
+
+        // 5. Gera o novo arquivo preenchido
+        const generatedBuffer = doc.getZip().generate({
+            type: "nodebuffer",
+            compression: "DEFLATE",
+        })
+
+        // 6. Retorna para o front-end em formato Base64
+        const prefix = tipoDocumento === 'termo' ? 'TERMO' : 'CCV'
+        
+        // Trata o nome do Empreendimento (Troca " - " ou espaços por "_", remove especiais)
+        const safeEmpreendimento = dictionary.NOME_EMPREENDIMENTO
+            .replace(/\s*-\s*/g, '_')      // Troca os hífens (com ou sem espaço) por '_'
+            .replace(/\s+/g, '_')          // Troca os espaços restantes por '_'
+            .replace(/[^a-zA-Z0-9_]/g, '') // Remove lixos/especiais
+            .toUpperCase()
+
+        // Trata o nome do Comprador Completo (Remove acentos, troca espaço por "_")
+        const safeName = dictionary.NOME_COMPRADOR
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos (ex: João -> Joao)
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove pontuações, mantendo os espaços
+            .trim()                         // Tira espaços do começo e do fim
+            .replace(/\s+/g, '_')           // Troca os espaços entre os nomes por '_'
+            .toUpperCase()
+
+        // Monta o nome final do arquivo
+        const fileName = `${prefix}_${safeEmpreendimento}_UN${dictionary.NUMERO_UNIDADE}_${safeName}.docx`
+
+        return { 
+            success: true, 
+            base64: generatedBuffer.toString('base64'), 
+            fileName 
+        }
+
+    } catch (error) {
+        console.error("Erro na geração do documento:", error)
+        return { success: false, message: "Falha ao processar o documento. Verifique as variáveis do Template." }
     }
 }
