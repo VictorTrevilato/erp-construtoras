@@ -33,6 +33,7 @@ const PARTICIPACAO_OPCOES = [
     { value: 'CONJUGE', label: 'Cônjuge' },
     { value: 'AVALISTA', label: 'Avalista / Fiador' },
     { value: 'PROCURADOR', label: 'Procurador' },
+    { value: 'TESTEMUNHA', label: 'Testemunha' },
 ]
 
 const ORDEM_QUALIFICACAO: Record<string, number> = {
@@ -41,6 +42,7 @@ const ORDEM_QUALIFICACAO: Record<string, number> = {
     'CONJUGE': 3,
     'AVALISTA': 4,
     'PROCURADOR': 5,
+    'TESTEMUNHA': 6,
 }
 
 export function ProposalPartiesTab({ proposal, setProposal, parties, setParties }: Props) {

@@ -171,6 +171,7 @@ export async function buildContractDictionary(propostaId: string) {
                 CEP_PARTE: maskCep(pf?.cep || pj?.cep),
                 TELEFONE_PARTE: pf?.telefone_1 || pj?.telefone_1 || "-",
                 EMAIL_PARTE: toLower(pf?.email_1 || pj?.email_1),
+                TEM_PERCENTUAL_PARTICIPACAO: percent > 0,
                 PERCENTUAL_PARTICIPACAO: fmtDecimal(percent),
                 PERCENTUAL_PARTICIPACAO_EXTENSO: safeExtenso(percent, 'porcentagem'),
                 REPRESENTANTE_LEGAL_PARTE: toUpper(pj?.representanteLegal),
@@ -183,6 +184,7 @@ export async function buildContractDictionary(propostaId: string) {
                 CONJUGE_NACIONALIDADE: toLower(cPf?.nacionalidade || "brasileiro(a)"),
                 CONJUGE_PROFISSAO: toLower(cPf?.profissao),
                 CONJUGE_DATA_NASCIMENTO: fmtDate(cPf?.dataNascimento),
+                TEM_CONJUGE_PERCENTUAL_PARTICIPACAO: percentConjuge > 0,
                 CONJUGE_PERCENTUAL_PARTICIPACAO: fmtDecimal(percentConjuge),
                 CONJUGE_PERCENTUAL_PARTICIPACAO_EXTENSO: safeExtenso(percentConjuge, 'porcentagem')
             }
@@ -282,19 +284,19 @@ export async function buildContractDictionary(propostaId: string) {
         
         TEM_AREA_PRIVATIVA_PRINCIPAL: safeParseNumber(unidade.areaPrivativaPrincipal) > 0,
         AREA_PRIVATIVA_PRINCIPAL: fmtDecimal(unidade.areaPrivativaPrincipal),
-        AREA_PRIVATIVA_PRINCIPAL_EXTENSO: safeExtenso(unidade.areaPrivativaPrincipal, 'decimal_area') + " metros quadrados",
+        AREA_PRIVATIVA_PRINCIPAL_EXTENSO: safeExtenso(unidade.areaPrivativaPrincipal, 'decimal_area'),
         
         TEM_AREA_OUTRAS_PRIVATIVAS: safeParseNumber(unidade.areaOutrasPrivativas) > 0,
         AREA_OUTRAS_PRIVATIVAS: fmtDecimal(unidade.areaOutrasPrivativas),
-        AREA_OUTRAS_PRIVATIVAS_EXTENSO: safeExtenso(unidade.areaOutrasPrivativas, 'decimal_area') + " metros quadrados",
+        AREA_OUTRAS_PRIVATIVAS_EXTENSO: safeExtenso(unidade.areaOutrasPrivativas, 'decimal_area'),
         
         TEM_AREA_PRIVATIVA_TOTAL: safeParseNumber(unidade.areaPrivativaTotal) > 0,
         AREA_PRIVATIVA_TOTAL: fmtDecimal(unidade.areaPrivativaTotal),
-        AREA_PRIVATIVA_TOTAL_EXTENSO: safeExtenso(unidade.areaPrivativaTotal, 'decimal_area') + " metros quadrados",
+        AREA_PRIVATIVA_TOTAL_EXTENSO: safeExtenso(unidade.areaPrivativaTotal, 'decimal_area'),
         
         TEM_AREA_USO_COMUM: safeParseNumber(unidade.areaUsoComum) > 0,
         AREA_USO_COMUM: fmtDecimal(unidade.areaUsoComum),
-        AREA_USO_COMUM_EXTENSO: safeExtenso(unidade.areaUsoComum, 'decimal_area') + " metros quadrados",
+        AREA_USO_COMUM_EXTENSO: safeExtenso(unidade.areaUsoComum, 'decimal_area'),
         
         TEM_COEFICIENTE_PROPORCIONALIDADE: safeParseNumber(unidade.coeficienteProporcionalidade) > 0,
         COEFICIENTE_PROPORCIONALIDADE: fmtDecimal(unidade.coeficienteProporcionalidade, 9),
@@ -311,7 +313,7 @@ export async function buildContractDictionary(propostaId: string) {
         
         TEM_DEPOSITO: safeParseNumber(unidade.areaDeposito) > 0,
         AREA_DEPOSITO: fmtDecimal(unidade.areaDeposito),
-        AREA_DEPOSITO_EXTENSO: safeExtenso(unidade.areaDeposito, 'decimal_area') + " metros quadrados",
+        AREA_DEPOSITO_EXTENSO: safeExtenso(unidade.areaDeposito, 'decimal_area'),
         TIPO_DEPOSITO: toUpper(unidade.tipoDeposito),
 
         // --- VENDEDORA (SPE/PROJETO + ENDERECO MATRIZ) ---
