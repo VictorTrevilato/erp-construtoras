@@ -270,6 +270,7 @@ export async function buildContractDictionary(propostaId: string) {
         CEP_EMPREENDIMENTO: maskCep(projeto.cep),
         CIDADE_EMPREENDIMENTO: toTitleCase(projeto.cidade),
         UF_EMPREENDIMENTO: toUpper(projeto.estado),
+        DATA_PREVISTA_CONCLUSAO: fmtDate(projeto?.dataPrevistaConclusao),
         NUMERO_REGISTRO_INCORPORACAO: projeto.registroIncorporacao || "-",
         MATRICULA_IMOVEL: projeto.matricula || "-",
         CARTORIO_REGISTRO: toTitleCase((projeto as { cartorioRegistro?: string | null }).cartorioRegistro),

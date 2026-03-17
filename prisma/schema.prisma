@@ -264,39 +264,40 @@ model ycUsuariosRefreshTokens {
 }
 
 model ycProjetos {
-  id                   BigInt             @id(map: "PK_ycProjetos") @default(autoincrement())
-  sysCreatedAt         DateTime           @default(now(), map: "DF__ycProjeto__sysCr__3C34F16F")
-  sysUpdatedAt         DateTime?
-  sysTenantId          BigInt
-  sysUserId            BigInt?
-  escopoId             BigInt
-  nome                 String             @db.VarChar(255)
-  descricao            String?            @db.VarChar(Max)
-  tipo                 String             @db.VarChar(50)
-  status               String             @db.VarChar(50)
-  logo                 String?            @db.VarChar(500)
-  cep                  String?            @db.VarChar(8)
-  logradouro           String?            @db.VarChar(255)
-  numero               String?            @db.VarChar(50)
-  complemento          String?            @db.VarChar(100)
-  bairro               String?            @db.VarChar(100)
-  cidade               String?            @db.VarChar(100)
-  estado               String?            @db.Char(2)
-  cnpj                 String?            @db.VarChar(20)
-  registroIncorporacao String?            @db.VarChar(100)
-  matricula            String?            @db.VarChar(100)
-  areaTotal            Decimal?           @db.Decimal(18, 2)
-  percComissaoPadrao   Decimal            @default(4.0000, map: "DF__ycProjeto__percC__79FD19BE") @db.Decimal(10, 4)
-  cartorioRegistro     String?            @db.VarChar(255)
-  razaoSocial          String?            @db.VarChar(255)
-  ycBlocos             ycBlocos[]
-  ycLeads              ycLeads[]
-  ycEmpresas           ycEmpresas         @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")
-  ycEscopos            ycEscopos          @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEscopos")
-  ycUsuarios           ycUsuarios?        @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycProjetos_ycUsuarios")
-  ycProjetosAnexos     ycProjetosAnexos[]
-  ycTabelasPreco       ycTabelasPreco[]
-  ycUnidades           ycUnidades[]
+  id                    BigInt             @id(map: "PK_ycProjetos") @default(autoincrement())
+  sysCreatedAt          DateTime           @default(now(), map: "DF__ycProjeto__sysCr__3C34F16F")
+  sysUpdatedAt          DateTime?
+  sysTenantId           BigInt
+  sysUserId             BigInt?
+  escopoId              BigInt
+  nome                  String             @db.VarChar(255)
+  descricao             String?            @db.VarChar(Max)
+  tipo                  String             @db.VarChar(50)
+  status                String             @db.VarChar(50)
+  logo                  String?            @db.VarChar(500)
+  cep                   String?            @db.VarChar(8)
+  logradouro            String?            @db.VarChar(255)
+  numero                String?            @db.VarChar(50)
+  complemento           String?            @db.VarChar(100)
+  bairro                String?            @db.VarChar(100)
+  cidade                String?            @db.VarChar(100)
+  estado                String?            @db.Char(2)
+  cnpj                  String?            @db.VarChar(20)
+  registroIncorporacao  String?            @db.VarChar(100)
+  matricula             String?            @db.VarChar(100)
+  areaTotal             Decimal?           @db.Decimal(18, 2)
+  percComissaoPadrao    Decimal            @default(4.0000, map: "DF__ycProjeto__percC__79FD19BE") @db.Decimal(10, 4)
+  cartorioRegistro      String?            @db.VarChar(255)
+  razaoSocial           String?            @db.VarChar(255)
+  dataPrevistaConclusao DateTime?          @db.Date
+  ycBlocos              ycBlocos[]
+  ycLeads               ycLeads[]
+  ycEmpresas            ycEmpresas         @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEmpresas")
+  ycEscopos             ycEscopos          @relation(fields: [escopoId], references: [id], onUpdate: NoAction, map: "FK_ycProjetos_ycEscopos")
+  ycUsuarios            ycUsuarios?        @relation(fields: [sysUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ycProjetos_ycUsuarios")
+  ycProjetosAnexos      ycProjetosAnexos[]
+  ycTabelasPreco        ycTabelasPreco[]
+  ycUnidades            ycUnidades[]
 
   @@index([escopoId], map: "IX_ycProjetos_escopoId")
   @@index([status], map: "IX_ycProjetos_status")
