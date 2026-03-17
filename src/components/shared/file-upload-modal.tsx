@@ -16,7 +16,7 @@ interface FileUploadModalProps {
 }
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv']
-const MAX_FILE_SIZE_MB = 10
+const MAX_FILE_SIZE_MB = 50
 
 export const formatBytes = (bytes: number, decimals = 2) => {
     if (!+bytes) return '0 Bytes'
