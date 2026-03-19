@@ -26,7 +26,7 @@ export default async function CompanySettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6 pb-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dados da Empresa</h1>
         <p className="text-muted-foreground">
