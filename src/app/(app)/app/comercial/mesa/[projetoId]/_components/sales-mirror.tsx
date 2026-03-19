@@ -11,6 +11,7 @@ import { useNegotiation } from "./negotiation-context"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
 import { toast } from "sonner"
+import { ExportPdfSalesMirrorButton } from "./export-pdf-sales-mirror"
 
 // --- HELPERS ---
 
@@ -21,7 +22,7 @@ const getUnitSuffix = (unitName: string, maxUnitValue: number) => {
   return parseInt(nums.slice(-digitsToTake))
 }
 
-export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
+export function SalesMirror({ units, projetoNome, tabelaCodigo, logoUrl }: { units: NegotiationUnit[], projetoNome?: string, tabelaCodigo?: string | null, logoUrl?: string | null }) {
   const { setSelectedUnitId, setActiveTab } = useNegotiation()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -50,7 +51,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
       a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
   )
 
-  // 4. Estilos Visuais (Cores atualizadas)
+  // 4. Estilos Visuais
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'DISPONIVEL': 
@@ -66,7 +67,6 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
     }
   }
 
-  // Helper para formatar labels (Ex: EM_ANALISE -> Em Análise)
   const formatStatusLabel = (status: string) => {
       const map: Record<string, string> = {
           'DISPONIVEL': 'Disponível',
@@ -84,7 +84,6 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Função de Refresh
   const handleRefresh = () => {
     startTransition(() => {
         router.refresh()
@@ -94,6 +93,22 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
 
   return (
     <div className="space-y-6">
+
+        {/* --- HEADER COM BOTÕES --- */}
+        <div className="flex justify-end items-center gap-3">
+            <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh} 
+                disabled={isPending}
+                className="bg-background h-9"
+            >
+                <RefreshCw className={cn("w-4 h-4 mr-2", isPending && "animate-spin")} />
+                {isPending ? "Atualizando..." : "Atualizar Status"}
+            </Button>
+
+            <ExportPdfSalesMirrorButton units={units} projetoNome={projetoNome} tabelaCodigo={tabelaCodigo} logoUrl={logoUrl} />
+        </div>
         
         {/* --- SEÇÃO 1: KPIs GLOBAIS --- */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -136,7 +151,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
 
         {/* --- SEÇÃO 2: GRID DE ESPELHOS POR BLOCO --- */}
         <div className="space-y-12 pt-4">
-            {sortedBlockNames.map((blockName, index) => {
+            {sortedBlockNames.map((blockName) => {
                 const blockUnits = blocksMap[blockName]
                 
                 const maxUnitNumber = Math.max(...blockUnits.map(u => parseInt(u.unidade.replace(/\D/g, '') || '0')))
@@ -145,27 +160,13 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
 
                 return (
                     <div key={blockName} className="space-y-4">
-                        {/* Header do Bloco com Botão na Direita */}
+                        {/* Header do Bloco */}
                         <div className="flex items-center justify-between border-b border-dashed border-border pb-2">
                             <div className="flex items-center gap-2">
                                 <Layers className="w-5 h-5 text-primary" />
                                 <h3 className="text-lg font-bold text-foreground">{blockName}</h3>
-                                <Badge variant="secondary" className="text-xs">{blockUnits.length} unidades</Badge>
+                                <Badge className="text-xs">{blockUnits.length} unidades</Badge>
                             </div>
-
-                            {/* Botão de Refresh apenas no primeiro bloco para limpar o layout */}
-                            {index === 0 && (
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={handleRefresh} 
-                                    disabled={isPending}
-                                    className="text-muted-foreground hover:text-foreground h-8"
-                                >
-                                    <RefreshCw className={cn("w-3.5 h-3.5 mr-2", isPending && "animate-spin")} />
-                                    {isPending ? "Atualizando..." : "Atualizar Status"}
-                                </Button>
-                            )}
                         </div>
 
                         <div className="overflow-x-auto pb-2">
@@ -255,7 +256,7 @@ export function SalesMirror({ units }: { units: NegotiationUnit[] }) {
                         >
                             <span className="font-bold text-lg">{unit.unidade}</span>
                             <span className="text-xs mt-1">{unit.areaPrivativa} m²</span>
-                            <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-background/50">{formatStatusLabel(unit.statusComercial)}</Badge>
+                            <Badge className="mt-2 text-[10px] h-5 bg-background/50">{formatStatusLabel(unit.statusComercial)}</Badge>
                         </div>
                     ))}
                 </div>

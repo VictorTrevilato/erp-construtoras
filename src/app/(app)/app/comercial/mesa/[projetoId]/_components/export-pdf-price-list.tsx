@@ -92,7 +92,7 @@ export function ExportPdfButton({ units, flows, projetoNome = "Projeto", tabelaC
 
             doc.setFontSize(16)
             doc.setTextColor(15, 23, 42) // Slate 900
-            doc.text("Espelho de Vendas e Tabela de Preços", textStartX, startY)
+            doc.text("Tabela de Preços", textStartX, startY)
             
             startY += 6
             doc.setFontSize(10)

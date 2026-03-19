@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { useState, useMemo } from "react"
-import { ExportPdfButton } from "./export-pdf-button"
+import { ExportPdfButton } from "./export-pdf-price-list"
 
 // Tipos auxiliares
 type Flow = {

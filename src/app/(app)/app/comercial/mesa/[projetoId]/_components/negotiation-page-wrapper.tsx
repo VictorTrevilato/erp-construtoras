@@ -43,7 +43,12 @@ function NegotiationTabs({ projetoId, units, flows, projetoNome, tabelaCodigo, l
 
             <div className="mt-6">
                 <TabsContent value="espelho" className="focus-visible:ring-0 focus-visible:outline-none">
-                    <SalesMirror units={units} />
+                    <SalesMirror
+                        units={units}
+                        projetoNome={projetoNome}
+                        tabelaCodigo={tabelaCodigo}
+                        logoUrl={logoUrl}
+                    />
                 </TabsContent>
                 
                 <TabsContent value="tabela" className="focus-visible:ring-0 focus-visible:outline-none">
