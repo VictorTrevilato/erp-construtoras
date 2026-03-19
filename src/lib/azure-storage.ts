@@ -120,3 +120,21 @@ export async function getUploadSasUrl(containerName: string, folderPath: string,
     relativePath: `${containerName}/${blobName}` 
   };
 }
+
+export async function uploadBufferToAzure(buffer: Buffer, containerName: string, filePath: string, mimeType: string) {
+    // Usa o seu helper nativo que já pega a env STORAGE_URL corretamente
+    const blobServiceClient = getBlobServiceClient()
+    const containerClient = blobServiceClient.getContainerClient(containerName)
+    
+    // Garante que o container exista
+    await containerClient.createIfNotExists()
+
+    const blockBlobClient = containerClient.getBlockBlobClient(filePath)
+
+    await blockBlobClient.uploadData(buffer, {
+        blobHTTPHeaders: { blobContentType: mimeType }
+    })
+
+    // Retorna o caminho completo (container/pastas/arquivo.docx) para o banco de dados
+    return `${containerName}/${filePath}`
+}

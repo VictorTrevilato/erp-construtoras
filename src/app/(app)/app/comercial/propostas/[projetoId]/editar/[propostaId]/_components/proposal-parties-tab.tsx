@@ -374,15 +374,26 @@ export function ProposalPartiesTab({ proposal, setProposal, parties, setParties 
                                     <div key={party.id} className="p-4 flex flex-col xl:flex-row gap-6 items-start xl:items-center hover:bg-muted/30 transition-colors">
                                         
                                         {/* Avatar e Identificação */}
-                                        <div className="flex items-center gap-4 flex-1 min-w-[250px]">
-                                            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm", 
+                                        <div className="flex items-center gap-4 flex-1 min-w-[250px] overflow-hidden">
+                                            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0", 
                                                 party.tipoEntidade === 'PJ' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-info/20 text-info border border-info/30'
                                             )}>
                                                 {party.tipoEntidade}
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-foreground leading-tight truncate">{party.nome}</p>
-                                                <p className="text-xs text-muted-foreground mt-1 uppercase">Doc: {formatDoc(party.documento, party.tipoEntidade)}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <TooltipProvider delayDuration={300}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <p className="font-bold text-foreground leading-tight truncate cursor-help">
+                                                                {party.nome}
+                                                            </p>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-white text-slate-700 border border-slate-200 shadow-md font-medium px-3 py-1.5">
+                                                            {party.nome}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                                <p className="text-xs text-muted-foreground mt-1 uppercase truncate">Doc: {formatDoc(party.documento, party.tipoEntidade)}</p>
                                             </div>
                                         </div>
 

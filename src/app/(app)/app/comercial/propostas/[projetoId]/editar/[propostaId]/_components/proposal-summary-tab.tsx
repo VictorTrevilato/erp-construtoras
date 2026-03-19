@@ -30,8 +30,8 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APROVADO': return "bg-success/20 text-success border-success/30"
-      case 'FORMALIZADA': return "bg-primary/20 text-primary border-primary/30"
-      case 'EM_ASSINATURA': return "bg-primary/20 text-primary border-primary/30"
+      case 'FORMALIZADA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      case 'EM_ASSINATURA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
       case 'ASSINADO': return "bg-success text-success-foreground border-success/30"
       case 'REPROVADO': return "bg-destructive/20 text-destructive border-destructive/30"
       case 'CANCELADO': return "bg-muted text-muted-foreground border-border"

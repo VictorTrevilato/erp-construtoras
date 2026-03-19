@@ -4,10 +4,11 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { revalidatePath } from "next/cache"
-import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl } from "@/lib/azure-storage"
+import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl, uploadBufferToAzure } from "@/lib/azure-storage"
 import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
 import { buildContractDictionary } from "@/lib/doc-dictionary-proposals"
+import { randomUUID } from "crypto"
 
 // ==========================================
 // 1. TYPES & INTERFACES
@@ -1194,6 +1195,34 @@ export async function saveAttachmentsMetadata(propostaId: string, attachmentsDat
 
         const savedAttachments = await Promise.all(savePromises)
 
+        // [NOVO] Se anexou o Contrato Assinado, muda status da Proposta e Unidade
+        const hasContratoAssinado = attachmentsData.some(a => a.classificacao === 'Contrato Assinado')
+        
+        if (hasContratoAssinado && proposta.unidadeId) {
+            await prisma.$transaction([
+                prisma.ycPropostas.update({
+                    where: { id: pId },
+                    data: { status: 'ASSINADO', sysUpdatedAt: new Date() }
+                }),
+                prisma.ycUnidades.update({
+                    where: { id: proposta.unidadeId },
+                    data: { statusComercial: 'VENDIDO' }
+                }),
+                prisma.ycPropostasHistorico.create({
+                    data: {
+                        sysTenantId: tenantId,
+                        sysUserId: userId,
+                        escopoId: proposta.escopoId,
+                        propostaId: pId,
+                        statusAnterior: proposta.status,
+                        statusNovo: 'ASSINADO',
+                        acao: 'ASSINOU',
+                        observacao: 'Contrato assinado anexado. Unidade vendida.'
+                    }
+                })
+            ])
+        }
+
         // Devolve no formato que o Front-end precisa para UI Otimista
         const newItems = savedAttachments.map(a => ({
             id: a.id.toString(),
@@ -1211,7 +1240,7 @@ export async function saveAttachmentsMetadata(propostaId: string, attachmentsDat
     }
 }
 
-// --- 18. EXCLUIR UM ANEXO ESPECÍFICO (ABA 6) ---
+// --- 18. EXCLUIR UM ANEXO ESPECÍFICO (ABA 6 E 7) ---
 export async function deleteProposalAttachment(anexoId: string, urlArquivo: string) {
     const session = await auth()
     if (!session) return { success: false, message: "Não autorizado." }
@@ -1219,15 +1248,53 @@ export async function deleteProposalAttachment(anexoId: string, urlArquivo: stri
     try {
         const idBase = BigInt(anexoId)
         
-        // Verifica se o anexo existe antes de tentar deletar
+        // 1. Verifica se o anexo existe antes de tentar deletar
         const anexo = await prisma.ycPropostasAnexos.findUnique({ where: { id: idBase } })
         if (!anexo) return { success: false, message: "Anexo não encontrado no banco." }
 
-        // 1. Deleta fisicamente do Azure (Garante Zero Órfãos)
+        // 2. Busca a proposta para ter acesso à unidade atrelada
+        const proposta = await prisma.ycPropostas.findUnique({ where: { id: anexo.propostaId } })
+
+        // 3. Deleta fisicamente do Azure (Garante Zero Órfãos)
         await deleteFileFromAzureByPath(urlArquivo)
 
-        // 2. Deleta do banco de dados
-        await prisma.ycPropostasAnexos.delete({ where: { id: idBase } })
+        // 4. Transação: Deleta do banco e aplica reversões se necessário
+        await prisma.$transaction(async (tx) => {
+            // Remove o registro do anexo
+            await tx.ycPropostasAnexos.delete({ where: { id: idBase } })
+
+            // Se o anexo apagado for o Contrato Assinado, reverte a Proposta e a Unidade
+            if ((anexo.classificacao === 'Contrato Assinado' || anexo.classificacao === 'CONTRATO_ASSINADO') && proposta) {
+                
+                // Reverte a Proposta para EM_ASSINATURA
+                await tx.ycPropostas.update({
+                    where: { id: proposta.id },
+                    data: { status: 'EM_ASSINATURA', sysUpdatedAt: new Date() }
+                })
+
+                // Reverte a Unidade para EM_ANALISE
+                if (proposta.unidadeId) {
+                    await tx.ycUnidades.update({
+                        where: { id: proposta.unidadeId },
+                        data: { statusComercial: 'EM_ANALISE' }
+                    })
+                }
+
+                // Grava a reversão no Histórico da Proposta
+                await tx.ycPropostasHistorico.create({
+                    data: {
+                        sysTenantId: anexo.sysTenantId,
+                        sysUserId: BigInt(session.user.id),
+                        escopoId: anexo.escopoId,
+                        propostaId: proposta.id,
+                        statusAnterior: proposta.status,
+                        statusNovo: 'EM_ASSINATURA',
+                        acao: 'EXCLUIU_ANEXO',
+                        observacao: 'Via assinada do contrato removida. Unidade e proposta retornaram para assinatura.'
+                    }
+                })
+            }
+        })
 
         return { success: true, message: "Anexo removido com sucesso." }
     } catch (error) {
@@ -1387,6 +1454,95 @@ export async function generateDocumentFromTemplate(propostaId: string, urlArquiv
         // Monta o nome final do arquivo
         const fileName = `${prefix}_${safeEmpreendimento}_UN${dictionary.NUMERO_UNIDADE}_${safeName}.docx`
 
+        // ============================================================================
+        // [NOVO] PASSO 6: UPLOAD PARA O AZURE BLOB (BUFFER DIRETO COM UUID)
+        // ============================================================================
+        const tenantIdStr = await getCurrentTenantId()
+        const containerName = 'private-docs'
+        const folderPath = `tenant-${tenantIdStr}/proposta-${propostaId}`
+        
+        // Gera o nome do arquivo físico no Azure com UUID para manter o padrão de segurança
+        const blobName = `${randomUUID()}.docx`
+        const relativePath = `${folderPath}/${blobName}`
+
+        // Sobe o buffer direto para o Azure
+        const fileUrl = await uploadBufferToAzure(
+            generatedBuffer, 
+            containerName,
+            relativePath, 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        
+        if (!fileUrl) {
+            return { success: false, message: "Erro ao salvar o documento na nuvem." }
+        }
+
+        // ============================================================================
+        // [NOVO] PASSO 7: TRANSAÇÃO PRISMA (Anexo + Status + Histórico)
+        // ============================================================================
+        const propostaAtual = await prisma.ycPropostas.findUnique({ 
+            where: { id: BigInt(propostaId) },
+            include: { ycUnidades: true }
+        })
+
+        if (propostaAtual) {
+            const classificacao = tipoDocumento === 'termo' ? 'Termo Gerado' : 'Contrato Gerado'
+            const novoStatus = tipoDocumento === 'termo' ? 'FORMALIZADA' : 'EM_ASSINATURA'
+            const acaoHist = tipoDocumento === 'termo' ? 'GEROU_TERMO' : 'GEROU_CONTRATO'
+            
+            // Cria a descrição amigável ("CCV - UN 102 - ALBERTO TREVILATO NETO")
+            const labelPrefix = tipoDocumento === 'termo' ? 'Termo' : 'Contrato'
+            const descricaoAmigavel = `Via do ${labelPrefix} gerada.`
+
+            await prisma.$transaction(async (tx) => {
+                // A. Salva o arquivo na tabela de Anexos da Proposta
+                await tx.ycPropostasAnexos.create({
+                    data: {
+                        sysTenantId: propostaAtual.sysTenantId,
+                        sysUserId: BigInt(session.user.id),
+                        escopoId: propostaAtual.escopoId,
+                        propostaId: BigInt(propostaId),
+                        nomeArquivo: fileName, // Mantém o nome legível no banco
+                        descricao: descricaoAmigavel, // <--- Descrição limpa adicionada
+                        classificacao: classificacao,
+                        urlArquivo: fileUrl // <--- Agora salva o caminho com UUID
+                    }
+                })
+
+                // B. Atualiza o status da Proposta travando a edição
+                await tx.ycPropostas.update({
+                    where: { id: BigInt(propostaId) },
+                    data: { status: novoStatus, sysUpdatedAt: new Date() }
+                })
+
+                // [NOVO] Atualiza o status comercial da Unidade
+                if (propostaAtual.unidadeId) {
+                    await tx.ycUnidades.update({
+                        where: { id: propostaAtual.unidadeId },
+                        data: { statusComercial: 'EM_ANALISE' }
+                    })
+                }
+
+                // C. Grava na linha do tempo (Histórico)
+                await tx.ycPropostasHistorico.create({
+                    data: {
+                        sysTenantId: propostaAtual.sysTenantId,
+                        sysUserId: BigInt(session.user.id),
+                        escopoId: propostaAtual.escopoId,
+                        propostaId: BigInt(propostaId),
+                        statusAnterior: propostaAtual.status,
+                        statusNovo: novoStatus,
+                        acao: acaoHist,
+                        observacao: `Documento (${fileName}) gerado e salvo nos anexos.`
+                    }
+                })
+            })
+        }
+
+        // Força a atualização da tela no Next.js (dispensa o F5)
+        revalidatePath(`/app/comercial/propostas/${propostaAtual?.ycUnidades.projetoId}/editar/${propostaId}`)
+
+        // 8. Retorna para o front-end em formato Base64 para disparar o Download automático
         return { 
             success: true, 
             base64: generatedBuffer.toString('base64'), 

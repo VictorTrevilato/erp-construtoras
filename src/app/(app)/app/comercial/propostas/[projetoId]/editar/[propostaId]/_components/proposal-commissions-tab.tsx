@@ -387,15 +387,26 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
                             <CardContent className="p-4 flex flex-col xl:flex-row gap-6 items-start xl:items-center">
                                 
                                 {/* Avatar e Identificação */}
-                                <div className="flex items-center gap-4 flex-1 min-w-[300px]">
-                                    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-inner border", 
+                                <div className="flex items-center gap-4 flex-1 min-w-[300px] overflow-hidden">
+                                    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-inner border shrink-0", 
                                         commission.tipoEntidade === 'PJ' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-info/10 text-info border-info/20'
                                     )}>
                                         {commission.tipoEntidade}
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-bold text-foreground leading-tight truncate">{commission.nome}</p>
-                                        <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">Doc: {formatDoc(commission.documento, commission.tipoEntidade)}</p>
+                                    <div className="min-w-0 flex-1">
+                                        <TooltipProvider delayDuration={300}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <p className="font-bold text-foreground leading-tight truncate cursor-help">
+                                                        {commission.nome}
+                                                    </p>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="bg-white text-slate-700 border border-slate-200 shadow-md font-medium px-3 py-1.5">
+                                                    {commission.nome}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide truncate">Doc: {formatDoc(commission.documento, commission.tipoEntidade)}</p>
                                     </div>
                                 </div>
 

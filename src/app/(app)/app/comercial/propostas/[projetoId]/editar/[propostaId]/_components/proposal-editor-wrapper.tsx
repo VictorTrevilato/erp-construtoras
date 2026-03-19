@@ -139,10 +139,10 @@ function ProposalTabs(props: TabsProps) {
                 </TabsContent>
 
                 <TabsContent value="anexos" className="focus-visible:outline-none focus-visible:ring-0">
-                    <ProposalAttachmentsTab 
-                        proposal={props.currentProposal} 
-                        attachments={props.attachments} 
-                        setAttachments={props.setAttachments} 
+                    <ProposalAttachmentsTab
+                        proposal={props.currentProposal}
+                        attachments={props.attachments}
+                        setAttachments={props.setAttachments}
                     />
                 </TabsContent>
 
@@ -151,6 +151,9 @@ function ProposalTabs(props: TabsProps) {
                         proposal={props.currentProposal} 
                         setProposal={props.setCurrentProposal} 
                         projetoId={props.projetoId}
+                        attachments={props.attachments}
+                        setAttachments={props.setAttachments}
+                        
                     />
                 </TabsContent>
 
