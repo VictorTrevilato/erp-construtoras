@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card"
 export default function LoadingProjectMesa() {
   return (
     <div className="space-y-6 pb-10">
-      
       {/* HEADER SKELETON */}
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-4">
@@ -27,6 +26,12 @@ export default function LoadingProjectMesa() {
       </div>
 
       <div className="space-y-6 mt-6">
+        {/* HEADER COM BOTÕES DO ESPELHO */}
+        <div className="flex justify-end items-center gap-3">
+          <Skeleton className="h-9 w-36 rounded-md" />
+          <Skeleton className="h-9 w-32 rounded-md" />
+        </div>
+
         {/* SEÇÃO 1: KPIs GLOBAIS */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -43,7 +48,6 @@ export default function LoadingProjectMesa() {
         {/* SEÇÃO 2: GRID DE ESPELHOS POR BLOCO */}
         <div className="space-y-12 pt-4">
           <div className="space-y-4">
-            
             {/* Header do Bloco */}
             <div className="flex items-center justify-between border-b border-dashed border-border pb-2">
               <div className="flex items-center gap-2">
@@ -51,7 +55,6 @@ export default function LoadingProjectMesa() {
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-5 w-24 rounded-full" />
               </div>
-              <Skeleton className="h-8 w-32 rounded-md" />
             </div>
 
             {/* Grid Area */}
@@ -83,20 +86,18 @@ export default function LoadingProjectMesa() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
         {/* SEÇÃO 3: OUTRAS UNIDADES (Lojas/Comercial) */}
         <div className="mt-12 bg-muted/30 p-6 rounded-xl border border-dashed border-border">
-           <Skeleton className="h-5 w-56 mb-4" />
-           <div className="flex flex-wrap gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                 <Skeleton key={i} className="w-36 h-24 rounded-lg" />
-              ))}
-           </div>
+          <Skeleton className="h-5 w-56 mb-4" />
+          <div className="flex flex-wrap gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="w-36 h-24 rounded-lg" />
+            ))}
+          </div>
         </div>
-
       </div>
     </div>
   )
