@@ -26,7 +26,7 @@ export default function Loading() {
       {/* CONTEÚDO DA ABA (SIMULANDO O FORMULÁRIO) */}
       <div className="space-y-6">
         
-        {/* CARD 1: IDENTIFICAÇÃO */}
+        {/* CARD 1: IDENTIFICAÇÃO E VÍNCULO */}
         <Card className="shadow-sm border-border">
           <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
@@ -36,24 +36,33 @@ export default function Loading() {
             <Skeleton className="h-4 w-96 max-w-full" />
           </CardHeader>
           <CardContent className="space-y-6">
+            
+            {/* Logo + Escopo + Nome */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+              <div className="col-span-1 md:col-span-2 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-[120px] w-full rounded-lg" />
+              </div>
+              <div className="col-span-1 md:col-span-3 flex flex-col gap-4 justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+               <Skeleton className="h-4 w-48" />
+               <Skeleton className="h-10 w-full" />
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-10 w-full" />
               </div>
               <div className="space-y-2">
@@ -63,13 +72,39 @@ export default function Loading() {
             </div>
 
             <div className="space-y-2">
-               <Skeleton className="h-4 w-20" />
+               <Skeleton className="h-4 w-48" />
                <Skeleton className="h-24 w-full" />
             </div>
           </CardContent>
         </Card>
 
-        {/* CARD 2: LOCALIZAÇÃO */}
+        {/* CARD 2: DADOS LEGAIS E COMERCIAIS */}
+        <Card className="shadow-sm border-border">
+           <CardHeader className="space-y-2">
+            <div className="flex items-center gap-2">
+               <Skeleton className="h-5 w-5 rounded-full" />
+               <Skeleton className="h-6 w-48" />
+            </div>
+           </CardHeader>
+           <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-3 gap-6">
+                 <div className="space-y-2"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+                 <div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-10 w-full" /></div>
+                 <div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-10 w-full" /></div>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                 <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+                 <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+                 <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+              </div>
+              <div className="space-y-2">
+                 <Skeleton className="h-4 w-64" />
+                 <Skeleton className="h-10 w-full" />
+              </div>
+           </CardContent>
+        </Card>
+
+        {/* CARD 3: LOCALIZAÇÃO */}
         <Card className="shadow-sm border-border">
           <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
@@ -77,64 +112,23 @@ export default function Loading() {
                <Skeleton className="h-6 w-32" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="col-span-1 space-y-2">
-                  <Skeleton className="h-4 w-12" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="col-span-3 space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
+                <div className="col-span-1 space-y-2"><Skeleton className="h-4 w-12" /><Skeleton className="h-10 w-full" /></div>
+                <div className="col-span-3 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="col-span-1 space-y-2">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="col-span-1 space-y-2">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
+                <div className="col-span-1 space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                <div className="col-span-1 space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                <div className="col-span-2 space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="col-span-1 space-y-2"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+                <div className="col-span-3 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
              </div>
           </CardContent>
         </Card>
         
-        {/* CARD 3: DADOS LEGAIS (AGORA COM 4 COLUNAS) */}
-        <Card className="shadow-sm border-border">
-           <CardHeader className="space-y-2">
-            <div className="flex items-center gap-2">
-               <Skeleton className="h-5 w-5 rounded-full" />
-               <Skeleton className="h-6 w-40" />
-            </div>
-           </CardHeader>
-           <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-4 gap-6">
-                 <div className="space-y-2">
-                   <Skeleton className="h-4 w-20" />
-                   <Skeleton className="h-10 w-full" />
-                 </div>
-                 <div className="space-y-2">
-                   <Skeleton className="h-4 w-24" />
-                   <Skeleton className="h-10 w-full" />
-                 </div>
-                 <div className="space-y-2">
-                   <Skeleton className="h-4 w-24" />
-                   <Skeleton className="h-10 w-full" />
-                 </div>
-                 <div className="space-y-2">
-                   <Skeleton className="h-4 w-32" />
-                   <Skeleton className="h-10 w-full" />
-                 </div>
-              </div>
-           </CardContent>
-        </Card>
-
         {/* RODAPÉ DE AÇÃO */}
         <div className="flex justify-end pt-2">
             <Skeleton className="h-11 w-[200px]" />

@@ -8,11 +8,16 @@ import { z } from "zod"
 import { uploadFileToAzure, deleteFileFromAzureByPath } from "@/lib/azure-storage"
 
 const tenantSchema = z.object({
+  // Dados Principais
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  razaoSocial: z.string().optional(),
+  emailResponsavel: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  
+  // Cores Base
   corPrimaria: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Cor inválida").optional().or(z.literal("")),
   corSecundaria: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Cor inválida").optional().or(z.literal("")),
   
-  // Novos campos de personalizacao visual
+  // Campos de personalizacao visual
   sidebarTheme: z.string().optional(),
   sidebarNavTheme: z.string().optional(),
   topbarTheme: z.string().optional(),
@@ -20,6 +25,21 @@ const tenantSchema = z.object({
   subButtonsTheme: z.string().optional(),
   tooltipsTheme: z.string().optional(),
   accentTheme: z.string().optional(),
+
+  // Endereço
+  cep: z.string().optional(),
+  logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
+
+  // Informações Adicionais
+  telefoneSac: z.string().optional(),
+  siteCliente: z.string().optional(),
+  siteVendedora: z.string().optional(),
+  nomeApp: z.string().optional(),
 })
 
 export type TenantFormState = {
@@ -37,6 +57,8 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
 
   const validatedFields = tenantSchema.safeParse({
     nome: formData.get("nome"),
+    razaoSocial: formData.get("razaoSocial")?.toString(),
+    emailResponsavel: formData.get("emailResponsavel")?.toString(),
     corPrimaria: formData.get("corPrimaria"),
     corSecundaria: formData.get("corSecundaria"),
     sidebarTheme: formData.get("sidebarTheme"),
@@ -46,6 +68,17 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
     subButtonsTheme: formData.get("subButtonsTheme"),
     tooltipsTheme: formData.get("tooltipsTheme"),
     accentTheme: formData.get("accentTheme"),
+    cep: formData.get("cep")?.toString(),
+    logradouro: formData.get("logradouro")?.toString(),
+    numero: formData.get("numero")?.toString(),
+    complemento: formData.get("complemento")?.toString(),
+    bairro: formData.get("bairro")?.toString(),
+    cidade: formData.get("cidade")?.toString(),
+    estado: formData.get("estado")?.toString(),
+    telefoneSac: formData.get("telefoneSac")?.toString(),
+    siteCliente: formData.get("siteCliente")?.toString(),
+    siteVendedora: formData.get("siteVendedora")?.toString(),
+    nomeApp: formData.get("nomeApp")?.toString(),
   })
 
   if (!validatedFields.success) {
@@ -56,7 +89,6 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
     }
   }
 
-  // Capturando os 3 possiveis arquivos de imagem
   const logoFile = formData.get("logo") as File | null;
   const logoMiniFile = formData.get("logoMini") as File | null;
   const faviconFile = formData.get("favicon") as File | null;
@@ -64,13 +96,11 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
   try {
     const tenantId = BigInt(tenantIdStr)
     
-    // Busca a empresa atual para podermos deletar as imagens antigas do Azure
     const currentTenant = await prisma.ycEmpresas.findUnique({
       where: { id: tenantId },
       select: { logo: true, logoMini: true, favicon: true }
     });
 
-    // Funcao auxiliar para processar upload e delecao de forma limpa
     async function processImageUpload(file: File | null, oldPath: string | null | undefined) {
       if (file && file.size > 0) {
         const newUrl = await uploadFileToAzure(file, 'public-assets');
@@ -91,14 +121,12 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
       return { success: false, message: "Erro ao processar os arquivos no servidor." }
     }
 
-    // Prepara o objeto principal com os textos
     const dataToUpdate: Record<string, string | null | undefined> = {
       ...validatedFields.data,
       corPrimaria: validatedFields.data.corPrimaria || null,
       corSecundaria: validatedFields.data.corSecundaria || null,
     }
 
-    // Adiciona as URLs das imagens apenas se novos arquivos foram processados
     if (finalLogoUrl !== undefined) dataToUpdate.logo = finalLogoUrl;
     if (finalLogoMiniUrl !== undefined) dataToUpdate.logoMini = finalLogoMiniUrl;
     if (finalFaviconUrl !== undefined) dataToUpdate.favicon = finalFaviconUrl;
@@ -109,9 +137,9 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
     })
 
     revalidatePath("/app/configuracoes/empresa")
-    revalidatePath("/app/dashboard") // Atualiza as cores globais
+    revalidatePath("/app/dashboard") 
     
-    return { success: true, message: "Configurações da empresa atualizadas com sucesso!" }
+    return { success: true, message: "Configurações atualizadas com sucesso!" }
 
   } catch (error) {
     console.error("Erro ao atualizar empresa:", error)
@@ -129,7 +157,6 @@ export async function getTenantSettings() {
   try {
     const company = await prisma.ycEmpresas.findUnique({
       where: { id: BigInt(tenantIdStr) }
-      // Agora retornamos todos os campos (removi o select para facilitar a manutencao)
     })
     
     return company

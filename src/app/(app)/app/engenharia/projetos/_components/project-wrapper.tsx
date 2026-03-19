@@ -25,6 +25,8 @@ export interface ScopeOption {
 export interface InitialProjectData {
     id: string
     nome: string
+    razaoSocial: string         // <--- NOVO
+    logo: string | null         // <--- NOVO
     tipo: string
     status: string
     descricao: string
@@ -37,8 +39,10 @@ export interface InitialProjectData {
     cep: string
     complemento: string
     cnpj: string
+    dataPrevistaConclusao: string // <--- NOVO
     matricula: string
     registroIncorporacao: string
+    cartorioRegistro: string      // <--- NOVO
     areaTotal: string
     percComissaoPadrao: string
 }
@@ -108,10 +112,11 @@ function ProjectTabs({ initialData, availableScopes, readOnly, formData, setForm
 export function ProjectWrapper(props: Props) {
     const [formData, setFormData] = useState<ProjectFormData>({
         escopoId: props.initialData?.escopoId || "",
+        logo: props.initialData?.logo || null,                     // <--- NOVO
+        nome: props.initialData?.nome || "",
+        razaoSocial: props.initialData?.razaoSocial || "",         // <--- NOVO
         tipo: props.initialData?.tipo || "OBRA",
         status: props.initialData?.status || "LANCAMENTO",
-        estado: props.initialData?.estado || "",
-        nome: props.initialData?.nome || "",
         descricao: props.initialData?.descricao || "",
         cep: props.initialData?.cep || "",
         logradouro: props.initialData?.logradouro || "",
@@ -119,9 +124,12 @@ export function ProjectWrapper(props: Props) {
         complemento: props.initialData?.complemento || "",
         bairro: props.initialData?.bairro || "",
         cidade: props.initialData?.cidade || "",
+        estado: props.initialData?.estado || "",
         cnpj: props.initialData?.cnpj || "",
+        dataPrevistaConclusao: props.initialData?.dataPrevistaConclusao || "", // <--- NOVO
         registroIncorporacao: props.initialData?.registroIncorporacao || "",
         matricula: props.initialData?.matricula || "",
+        cartorioRegistro: props.initialData?.cartorioRegistro || "",           // <--- NOVO
         areaTotal: props.initialData?.areaTotal || "",
         percComissaoPadrao: props.initialData?.percComissaoPadrao || "",
     })

@@ -11,6 +11,7 @@ import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl } from "
 const projectSchema = z.object({
   escopoId: z.string().min(1, "O vínculo com um Escopo é obrigatório."),
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres."),
+  razaoSocial: z.string().optional(),
   tipo: z.string().min(1, "Selecione um tipo."),
   status: z.string().min(1, "Selecione um status."),
   descricao: z.string().optional(),
@@ -26,8 +27,10 @@ const projectSchema = z.object({
 
   // Legal e Comercial
   cnpj: z.string().optional(),
+  dataPrevistaConclusao: z.string().optional(),
   registroIncorporacao: z.string().optional(),
   matricula: z.string().optional(),
+  cartorioRegistro: z.string().optional(),
   areaTotal: z.string().optional(),
   percComissaoPadrao: z.string().optional(),
 })
@@ -37,6 +40,7 @@ export type ProjectFormState = {
   message?: string
   errors?: Record<string, string[]>
   dataId?: string
+  newLogoUrl?: string
 }
 
 export type ProjectAttachmentItem = {
@@ -48,7 +52,6 @@ export type ProjectAttachmentItem = {
 }
 
 // --- FUNÇÃO AUXILIAR: Parse de Decimal (BR ou US) ---
-// Retornamos 'undefined' em vez de 'null' para satisfazer a tipagem estrita do Prisma
 function parseDecimal(value: string | undefined): number | undefined {
   if (!value) return undefined
   let v = value.trim()
@@ -75,6 +78,8 @@ export async function getProjects() {
     return projects.map(p => ({
       id: p.id.toString(),
       nome: p.nome,
+      razaoSocial: p.razaoSocial || "",
+      logo: p.logo || null,
       tipo: p.tipo,
       status: p.status,
       descricao: p.descricao || "",
@@ -88,8 +93,10 @@ export async function getProjects() {
       cep: p.cep || "",
       complemento: p.complemento || "",
       cnpj: p.cnpj || "",
+      dataPrevistaConclusao: p.dataPrevistaConclusao ? p.dataPrevistaConclusao.toISOString().split('T')[0] : "",
       matricula: p.matricula || "",
       registroIncorporacao: p.registroIncorporacao || "",
+      cartorioRegistro: p.cartorioRegistro || "",
       areaTotal: p.areaTotal ? p.areaTotal.toString() : "",
       percComissaoPadrao: p.percComissaoPadrao ? p.percComissaoPadrao.toString() : ""
     }))
@@ -108,9 +115,17 @@ export async function getProjectById(id: string) {
         })
         if (!p) return null
         
+        // Se a logo existir no banco, gera a URL de leitura do Azure
+        let logoUrl = p.logo;
+        if (p.logo && !p.logo.startsWith('http')) {
+            logoUrl = await getFileDownloadUrl(p.logo, 'logo.png') || p.logo;
+        }
+
         return {
             id: p.id.toString(),
             nome: p.nome,
+            razaoSocial: p.razaoSocial || "",
+            logo: logoUrl || "",
             tipo: p.tipo,
             status: p.status,
             descricao: p.descricao || "",
@@ -123,8 +138,10 @@ export async function getProjectById(id: string) {
             cep: p.cep || "",
             complemento: p.complemento || "",
             cnpj: p.cnpj || "",
+            dataPrevistaConclusao: p.dataPrevistaConclusao ? p.dataPrevistaConclusao.toISOString().split('T')[0] : "",
             matricula: p.matricula || "",
             registroIncorporacao: p.registroIncorporacao || "",
+            cartorioRegistro: p.cartorioRegistro || "",
             areaTotal: p.areaTotal ? p.areaTotal.toString() : "",
             percComissaoPadrao: p.percComissaoPadrao ? p.percComissaoPadrao.toString() : "" 
         }
@@ -176,6 +193,7 @@ export async function saveProject(
   const validated = projectSchema.safeParse({
     escopoId: formData.get("escopoId")?.toString(),
     nome: formData.get("nome")?.toString(),
+    razaoSocial: formData.get("razaoSocial")?.toString(),
     tipo: formData.get("tipo")?.toString(),
     status: formData.get("status")?.toString(),
     descricao: formData.get("descricao")?.toString(),
@@ -187,8 +205,10 @@ export async function saveProject(
     cidade: formData.get("cidade")?.toString(),
     estado: formData.get("estado")?.toString(),
     cnpj: formData.get("cnpj")?.toString(),
+    dataPrevistaConclusao: formData.get("dataPrevistaConclusao")?.toString(),
     registroIncorporacao: formData.get("registroIncorporacao")?.toString(),
     matricula: formData.get("matricula")?.toString(),
+    cartorioRegistro: formData.get("cartorioRegistro")?.toString(),
     areaTotal: formData.get("areaTotal")?.toString(),
     percComissaoPadrao: formData.get("percComissaoPadrao")?.toString(),
   })
@@ -204,16 +224,21 @@ export async function saveProject(
   const data = validated.data
   const areaTotalDecimal = parseDecimal(data.areaTotal)
   const percComissaoDecimal = parseDecimal(data.percComissaoPadrao)
+  
+  // Tratamento da Data (adicionando hora para evitar fuso horário puxando 1 dia para trás)
+  const dataPrevisao = data.dataPrevistaConclusao ? new Date(`${data.dataPrevistaConclusao}T12:00:00Z`) : undefined;
 
   try {
     let returnId = projectId;
 
+    // 1. SALVA OU ATUALIZA O PROJETO (Ignorando a logo por enquanto)
     if (projectId) {
       await prisma.ycProjetos.update({
         where: { id: BigInt(projectId) },
         data: {
           escopoId: BigInt(data.escopoId),
           nome: data.nome,
+          razaoSocial: data.razaoSocial || undefined,
           tipo: data.tipo,
           status: data.status,
           descricao: data.descricao || undefined,
@@ -225,8 +250,10 @@ export async function saveProject(
           cidade: data.cidade || undefined,
           estado: data.estado || undefined,
           cnpj: data.cnpj || undefined,
+          dataPrevistaConclusao: dataPrevisao,
           registroIncorporacao: data.registroIncorporacao || undefined,
           matricula: data.matricula || undefined,
+          cartorioRegistro: data.cartorioRegistro || undefined,
           areaTotal: areaTotalDecimal,
           percComissaoPadrao: percComissaoDecimal,
           sysUpdatedAt: new Date()
@@ -239,6 +266,7 @@ export async function saveProject(
           sysUserId: userId,
           escopoId: BigInt(data.escopoId),
           nome: data.nome,
+          razaoSocial: data.razaoSocial || undefined,
           tipo: data.tipo,
           status: data.status,
           descricao: data.descricao || undefined,
@@ -250,8 +278,10 @@ export async function saveProject(
           cidade: data.cidade || undefined,
           estado: data.estado || undefined,
           cnpj: data.cnpj || undefined,
+          dataPrevistaConclusao: dataPrevisao,
           registroIncorporacao: data.registroIncorporacao || undefined,
           matricula: data.matricula || undefined,
+          cartorioRegistro: data.cartorioRegistro || undefined,
           areaTotal: areaTotalDecimal,
           percComissaoPadrao: percComissaoDecimal,
         }
@@ -259,11 +289,62 @@ export async function saveProject(
       returnId = created.id.toString()
     }
 
+    // 2. UPLOAD E SUBSTITUIÇÃO DA LOGO
+    const logoFile = formData.get("logo") as File | null;
+    let newLogoUrlToReturn: string | undefined = undefined;
+    
+    // Se o usuário subiu um arquivo novo e já temos o ID do projeto
+    if (logoFile && logoFile.size > 0 && returnId) {
+        
+        // A. Busca a logo atual no banco. Se existir, tenta apagar do Azure.
+        if (projectId) {
+            const currentProject = await prisma.ycProjetos.findUnique({
+                where: { id: BigInt(projectId) },
+                select: { logo: true }
+            })
+            if (currentProject?.logo) {
+                try {
+                    // Tenta apagar, mas se não achar o arquivo (ou tiver sido apagado manualmente), ignora o erro!
+                    await deleteFileFromAzureByPath(currentProject.logo)
+                } catch {
+                    console.warn("Logo antiga não encontrada no Azure, ignorando exclusão.")
+                }
+            }
+        }
+
+        // B. Define a pasta com o padrão correto (agora com o ID do projeto garantido)
+        const folderPath = `tenant-${tenantIdStr}/projeto-${returnId}`
+        const ext = logoFile.name.split('.').pop() || 'png'
+        const fileName = `logo-${Date.now()}.${ext}`
+        
+        const { uploadUrl, relativePath } = await getUploadSasUrl('private-docs', folderPath, fileName)
+        
+        const arrayBuffer = await logoFile.arrayBuffer()
+        const res = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': logoFile.type },
+            body: arrayBuffer
+        })
+        
+        // C. Se o upload deu certo, atualiza o registro e gera a URL visual para devolver à tela
+        if (res.ok) {
+            await prisma.ycProjetos.update({
+                where: { id: BigInt(returnId) },
+                data: { logo: relativePath }
+            })
+            // Gera uma URL temporária do Azure para a tela mostrar instantaneamente
+            newLogoUrlToReturn = await getFileDownloadUrl(relativePath, fileName) || undefined;
+        } else {
+            throw new Error("Falha na comunicação com o servidor de armazenamento.")
+        }
+    }
+
     revalidatePath("/app/engenharia/projetos")
     return { 
         success: true, 
         message: "Projeto salvo com sucesso!", 
-        dataId: returnId ?? undefined 
+        dataId: returnId ?? undefined,
+        newLogoUrl: newLogoUrlToReturn // <--- Retorna a nova URL para a tela
     }
   } catch (error) {
     console.error("Erro ao salvar projeto:", error)
@@ -275,14 +356,9 @@ export async function deleteProject(projectId: string) {
     try {
         const pId = BigInt(projectId)
 
-        // 1. Verifica se existem unidades (se houver, aí sim bloqueamos a exclusão do projeto)
         const projeto = await prisma.ycProjetos.findUnique({
             where: { id: pId },
-            include: {
-                _count: {
-                    select: { ycUnidades: true }
-                }
-            }
+            include: { _count: { select: { ycUnidades: true } } }
         })
 
         if (!projeto) return { success: false, message: "Projeto não encontrado." }
@@ -294,19 +370,21 @@ export async function deleteProject(projectId: string) {
             }
         }
 
-        // 2. Busca todos os anexos atrelados a este projeto
         const anexos = await prisma.ycProjetosAnexos.findMany({
             where: { projetoId: pId }
         })
 
-        // 3. Apaga fisicamente os arquivos do Azure Blob Storage (Zero Órfãos)
         for (const anexo of anexos) {
             if (anexo.urlArquivo) {
                 await deleteFileFromAzureByPath(anexo.urlArquivo)
             }
         }
+        
+        // Exclui a logo do Azure se existir
+        if (projeto.logo) {
+             await deleteFileFromAzureByPath(projeto.logo)
+        }
 
-        // 4. Exclui os registros em cascata no banco de dados usando transação
         await prisma.$transaction([
             prisma.ycProjetosAnexos.deleteMany({ where: { projetoId: pId } }),
             prisma.ycProjetos.delete({ where: { id: pId } })
@@ -323,7 +401,6 @@ export async function deleteProject(projectId: string) {
 // ==========================================
 // MÓDULO DE ANEXOS DO PROJETO
 // ==========================================
-
 export async function getProjectAttachments(projetoId: string): Promise<ProjectAttachmentItem[]> {
     const session = await auth()
     if (!session) return []

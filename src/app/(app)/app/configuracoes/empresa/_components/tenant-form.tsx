@@ -6,11 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useActionState, useEffect, useState, useRef } from "react" 
 import { updateTenant, TenantFormState } from "@/app/actions/tenant-settings"
 import { toast } from "sonner"
-import { Loader2, Save, Lock, UploadCloud, ImageIcon, Palette } from "lucide-react"
+import { Loader2, Save, Lock, UploadCloud, ImageIcon, Palette, MapPin, Globe, Building2 } from "lucide-react"
 import { ImageCropperModal } from "@/components/shared/image-cropper-modal"
+
+const BRAZIL_STATES = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", 
+  "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+]
 
 // --- FUNCOES MATEMATICAS PARA O LIVE PREVIEW ---
 function hexToHslString(hex: string): string {
@@ -45,11 +51,20 @@ function getContrastForeground(hex: string): string {
   return yiq >= 128 ? "222.2 84% 4.9%" : "210 40% 98%"
 }
 
+const formatCnpj = (cnpj: string) => {
+  const d = cnpj.replace(/\D/g, '')
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+  return cnpj
+}
+
 const initialState: TenantFormState = { message: "", errors: {} }
 
+// --- TIPAGENS EXPANDIDAS ---
 export interface TenantInitialData {
   nome: string
+  razaoSocial?: string | null
   cnpj: string
+  emailResponsavel?: string | null
   corPrimaria?: string | null
   corSecundaria?: string | null
   sidebarTheme?: string | null
@@ -62,6 +77,17 @@ export interface TenantInitialData {
   logo?: string | null
   logoMini?: string | null
   favicon?: string | null
+  cep?: string | null
+  logradouro?: string | null
+  numero?: string | null
+  complemento?: string | null
+  bairro?: string | null
+  cidade?: string | null
+  estado?: string | null
+  telefoneSac?: string | null
+  siteCliente?: string | null
+  siteVendedora?: string | null
+  nomeApp?: string | null
 }
 
 export function TenantForm({ initialData }: { initialData: TenantInitialData }) {
@@ -176,48 +202,79 @@ export function TenantForm({ initialData }: { initialData: TenantInitialData }) 
       <form action={handleSubmit}>
         <div className="space-y-6">
           
+          {/* 1. INFORMAÇÕES DA EMPRESA */}
           <Card>
             <CardHeader>
-              <CardTitle>Identidade Visual</CardTitle>
-              <CardDescription>Informações principais e cores base.</CardDescription>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle>Informações da Empresa</CardTitle>
+              </div>
+              <CardDescription>Dados cadastrais principais e paleta de cores.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              
+              {/* LINHA 1: CNPJ e Razão Social */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome Fantasia</Label>
-                  <Input id="nome" name="nome" defaultValue={initialData.nome} />
-                </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="cnpj">CNPJ</Label>
                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="h-3 w-3" /> Não editável</span>
                   </div>
-                  <Input id="cnpj" value={initialData.cnpj} disabled className="bg-muted text-muted-foreground" />
+                  {/* Máscara de CNPJ aplicada aqui */}
+                  <Input id="cnpj" value={formatCnpj(initialData.cnpj)} disabled className="bg-muted text-muted-foreground font-medium" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="razaoSocial">Razão Social</Label>
+                    {/* Elemento fantasma para forçar a mesma altura do cadeado ao lado */}
+                    <span className="text-xs flex items-center gap-1 invisible"><Lock className="h-3 w-3" /> Fantasma</span>
+                  </div>
+                  <Input id="razaoSocial" name="razaoSocial" defaultValue={initialData.razaoSocial || ""} placeholder="Ex: Meu Negócio LTDA" />
                 </div>
               </div>
 
+              {/* LINHA 2: Nome Fantasia e E-mail */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome Fantasia</Label>
+                  <Input id="nome" name="nome" defaultValue={initialData.nome} placeholder="Ex: Meu Negócio" />
+                  {state.errors?.nome && <p className="text-xs text-destructive">{state.errors.nome[0]}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emailResponsavel">E-mail Principal / Administrativo</Label>
+                  <Input id="emailResponsavel" name="emailResponsavel" type="email" defaultValue={initialData.emailResponsavel || ""} placeholder="contato@empresa.com.br" />
+                  {state.errors?.emailResponsavel && <p className="text-xs text-destructive">{state.errors.emailResponsavel[0]}</p>}
+                </div>
+              </div>
+
+              {/* LINHA 3: Cores */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border pt-6">
                 <div className="space-y-2">
                   <Label htmlFor="corPrimaria">Cor Primária</Label>
                   <div className="flex gap-2">
                     <Input type="color" className="w-10 h-10 p-1 cursor-pointer shrink-0" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}/>
-                    <Input id="corPrimaria" name="corPrimaria" className="h-10" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}/>
+                    <Input id="corPrimaria" name="corPrimaria" className="h-10 font-mono text-sm uppercase" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}/>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="corSecundaria">Cor Secundária</Label>
                   <div className="flex gap-2">
                     <Input type="color" className="w-10 h-10 p-1 cursor-pointer shrink-0" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)}/>
-                    <Input id="corSecundaria" name="corSecundaria" className="h-10" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)}/>
+                    <Input id="corSecundaria" name="corSecundaria" className="h-10 font-mono text-sm uppercase" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)}/>
                   </div>
                 </div>
               </div>
+
             </CardContent>
           </Card>
 
+          {/* 2. LOGOTIPOS E ÍCONES */}
           <Card>
             <CardHeader>
-              <CardTitle>Logotipos e Ícones</CardTitle>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Logotipos e Ícones</CardTitle>
+              </div>
               <CardDescription>Faça o upload das imagens que representarão sua marca no sistema.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -263,6 +320,94 @@ export function TenantForm({ initialData }: { initialData: TenantInitialData }) 
             </CardContent>
           </Card>
 
+          {/* 3. ENDEREÇO FÍSICO */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <CardTitle>Endereço Físico</CardTitle>
+              </div>
+              <CardDescription>Endereço oficial e sede principal da empresa.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2 col-span-1">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input id="cep" name="cep" defaultValue={initialData.cep || ""} placeholder="00000-000" />
+                </div>
+                <div className="space-y-2 col-span-3">
+                  <Label htmlFor="logradouro">Logradouro</Label>
+                  <Input id="logradouro" name="logradouro" defaultValue={initialData.logradouro || ""} placeholder="Ex: Av. Presidente Vargas" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2 col-span-1">
+                  <Label htmlFor="numero">Número</Label>
+                  <Input id="numero" name="numero" defaultValue={initialData.numero || ""} placeholder="Ex: 1234" />
+                </div>
+                <div className="space-y-2 col-span-1">
+                  <Label htmlFor="bairro">Bairro</Label>
+                  <Input id="bairro" name="bairro" defaultValue={initialData.bairro || ""} placeholder="Ex: Jardim Sumaré" />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="cidade">Cidade</Label>
+                  <Input id="cidade" name="cidade" defaultValue={initialData.cidade || ""} placeholder="Ex: Ribeirão Preto" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2 col-span-1">
+                  <Label>Estado (UF)</Label>
+                  <Select name="estado" defaultValue={initialData.estado || undefined}>
+                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                    <SelectContent>
+                      {BRAZIL_STATES.map(uf => (
+                        <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 col-span-3">
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input id="complemento" name="complemento" defaultValue={initialData.complemento || ""} placeholder="Ex: Sala 1" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 4. INFORMAÇÕES ADICIONAIS */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                <CardTitle>Informações Adicionais</CardTitle>
+              </div>
+              <CardDescription>Contatos e links importantes para o Portal do Cliente e Aplicativo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="telefoneSac">Telefone SAC / Atendimento</Label>
+                  <Input id="telefoneSac" name="telefoneSac" defaultValue={initialData.telefoneSac || ""} placeholder="(00) 0000-0000" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nomeApp">Nome do Aplicativo</Label>
+                  <Input id="nomeApp" name="nomeApp" defaultValue={initialData.nomeApp || ""} placeholder="Ex: Meu Portal" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="siteCliente">Site do Cliente (Portal Web)</Label>
+                  <Input id="siteCliente" name="siteCliente" defaultValue={initialData.siteCliente || ""} placeholder="https://portal.empresa.com.br" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="siteVendedora">Site Institucional (Vendedora)</Label>
+                  <Input id="siteVendedora" name="siteVendedora" defaultValue={initialData.siteVendedora || ""} placeholder="https://www.empresa.com.br" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 5. PERSONALIZAÇÃO AVANÇADA */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">

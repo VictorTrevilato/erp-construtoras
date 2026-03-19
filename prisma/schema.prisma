@@ -73,6 +73,8 @@ model ycEmpresas {
   siteCliente                  String?                        @db.VarChar(255)
   siteVendedora                String?                        @db.VarChar(255)
   nomeApp                      String?                        @db.VarChar(100)
+  razaoSocial                  String?                        @db.VarChar(255)
+  emailResponsavel             String?                        @db.VarChar(100)
   ycBlocos                     ycBlocos[]
   ycCargos                     ycCargos[]
   ycCargosPermissoes           ycCargosPermissoes[]

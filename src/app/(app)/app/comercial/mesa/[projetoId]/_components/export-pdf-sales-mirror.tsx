@@ -163,8 +163,12 @@ export function ExportPdfSalesMirrorButton({
                         )
 
                         if (unit) {
+                            const valorFormatado = unit.valorTabela > 0 
+                                ? unit.valorTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) 
+                                : 'Sob Consulta';
+
                             row.push(
-                                `${unit.unidade}\n${unit.areaPrivativa} m²\n${formatStatusLabel(unit.statusComercial)}`
+                                `${unit.unidade}\n${unit.areaPrivativa} m²\n${valorFormatado}\n${formatStatusLabel(unit.statusComercial)}`
                             )
                         } else {
                             row.push("")
@@ -223,13 +227,16 @@ export function ExportPdfSalesMirrorButton({
                                 data.cell.styles.fontStyle = 'bold'
                             } else if (text.includes('Reservado')) {
                                 data.cell.styles.fillColor = [245, 158, 11]
-                                data.cell.styles.textColor = [15, 23, 42]
+                                data.cell.styles.textColor = [255, 255, 255]
+                                data.cell.styles.fontStyle = 'bold'
                             } else if (text.includes('Em Análise')) {
                                 data.cell.styles.fillColor = [59, 130, 246]
                                 data.cell.styles.textColor = [255, 255, 255]
+                                data.cell.styles.fontStyle = 'bold'
                             } else if (text.includes('Vendido')) {
                                 data.cell.styles.fillColor = [239, 68, 68]
                                 data.cell.styles.textColor = [255, 255, 255]
+                                data.cell.styles.fontStyle = 'bold'
                             } else if (data.cell.raw === "") {
                                 data.cell.styles.fillColor = [241, 245, 249]
                             }
@@ -246,10 +253,11 @@ export function ExportPdfSalesMirrorButton({
                 doc.setTextColor(15, 23, 42)
                 doc.text(`Lojas & Áreas Comerciais`, 14, finalY + 5)
 
-                const head = [["Unidade", "Área", "Status"]]
+                const head = [["Unidade", "Área", "Valor", "Status"]] // Adicionado "Valor"
                 const body = specialUnits.map(u => [
                     u.unidade,
                     `${u.areaPrivativa} m²`,
+                    u.valorTabela > 0 ? u.valorTabela.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sob Consulta',
                     formatStatusLabel(u.statusComercial)
                 ])
 
@@ -261,8 +269,12 @@ export function ExportPdfSalesMirrorButton({
                     styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
                     headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42] },
                     didParseCell: function (data) {
-                        if (data.section === 'body' && data.column.index === 2) {
+                        // O índice é 3 pois agora incluímos a coluna "Valor"
+                        if (data.section === 'body' && data.column.index === 3) {
                             const status = data.cell.text[0]
+                            
+                            // Adiciona negrito para todos os status na tabela de baixo
+                            data.cell.styles.fontStyle = 'bold'
 
                             if (status === 'Disponível') {
                                 data.cell.styles.fillColor = [34, 197, 94]
@@ -275,7 +287,7 @@ export function ExportPdfSalesMirrorButton({
                                 data.cell.styles.textColor = [255, 255, 255]
                             } else if (status === 'Reservado') {
                                 data.cell.styles.fillColor = [245, 158, 11]
-                                data.cell.styles.textColor = [15, 23, 42]
+                                data.cell.styles.textColor = [255, 255, 255]
                             }
                         }
                     }
