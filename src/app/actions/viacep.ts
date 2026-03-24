@@ -28,7 +28,7 @@ export async function fetchAddressByCep(cep: string) {
             }
         }
     } catch (error) {
-        console.error("Erro na integração ViaCEP:", error)
-        return { success: false, message: "Falha na comunicação com o ViaCEP." }
+        console.error("Erro na integração Correios:", error)
+        return { success: false, message: "Falha na comunicação com o Correios." }
     }
 }
