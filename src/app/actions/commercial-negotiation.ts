@@ -39,7 +39,7 @@ export type ProposalConditionInput = {
 }
 
 export type ProposalPayload = {
-    lead: { nome: string, email: string, telefone: string, origem: string }
+    lead: { nome: string, email: string, telefone: string, origem: string, origemDescricao: string }
     unidadeId: string
     valorProposta: number
     condicoes: ProposalConditionInput[]
@@ -347,6 +347,7 @@ export async function saveProposal(data: ProposalPayload) {
           email: lead.email,
           telefone: lead.telefone,
           origem: lead.origem,
+          origemDescricao: lead.origemDescricao,
           status: "NOVO"
         }
       })

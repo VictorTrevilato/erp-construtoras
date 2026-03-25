@@ -81,7 +81,7 @@ export function ExportPdfNegotiationButton({ units, projetoNome = "Projeto", log
 
             doc.setFontSize(16)
             doc.setTextColor(15, 23, 42)
-            doc.text("Ficha de Proposta Comercial", textStartX, finalY)
+            doc.text("Ficha de Proposta", textStartX, finalY)
 
             finalY += 6
             doc.setFontSize(10)
@@ -105,9 +105,8 @@ export function ExportPdfNegotiationButton({ units, projetoNome = "Projeto", log
                 body: [
                     [{ content: 'Comprador:', styles: { fontStyle: 'bold' } }, lead.nome || 'Não informado', { content: 'Unidade:', styles: { fontStyle: 'bold' } }, `${selectedUnit.blocoNome} - ${selectedUnit.unidade}`],
                     [{ content: 'Telefone:', styles: { fontStyle: 'bold' } }, lead.telefone || '-', { content: 'Área Privativa:', styles: { fontStyle: 'bold' } }, `${selectedUnit.areaPrivativa} m²`],
-                    [{ content: 'E-mail:', styles: { fontStyle: 'bold' } }, lead.email || '-', { content: 'Valor Tabela:', styles: { fontStyle: 'bold' } }, fmtCurrency(selectedUnit.valorTabela)],
-                    // REMOVIDA A COR VERDE DO VALOR PROPOSTO
-                    [{ content: 'Origem:', styles: { fontStyle: 'bold' } }, lead.origem || '-', { content: 'Valor Proposto:', styles: { fontStyle: 'bold' } }, fmtCurrency(targetPrice)]
+                    [{ content: 'Origem:', styles: { fontStyle: 'bold' } }, lead.origem || '-', { content: 'Valor Tabela:', styles: { fontStyle: 'bold' } }, fmtCurrency(selectedUnit.valorTabela)],
+                    [{ content: 'Descrição:', styles: { fontStyle: 'bold' } }, lead.origemDescricao || '-', { content: 'Valor Proposto:', styles: { fontStyle: 'bold' } }, fmtCurrency(targetPrice)],
                 ],
                 theme: 'plain',
                 styles: { fontSize: 10, cellPadding: 2, textColor: [51, 65, 85] }

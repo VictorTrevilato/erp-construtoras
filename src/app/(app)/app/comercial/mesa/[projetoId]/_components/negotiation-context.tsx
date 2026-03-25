@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react'
 import { StandardFlow } from "@/app/actions/commercial-negotiation"
 
 // Tipos
-type LeadData = { nome: string, email: string, telefone: string, origem: string }
+type LeadData = { nome: string, email: string, telefone: string, origem: string, origemDescricao: string }
 type ConditionData = {
     id: string
     tipo: string
@@ -46,7 +46,7 @@ export function NegotiationProvider({ children }: { children: ReactNode }) {
     
     // Estado do Lead (Inicia vazio)
     const [lead, setLead] = useState<LeadData>({ 
-        nome: "", email: "", telefone: "", origem: "" 
+        nome: "", email: "", telefone: "", origem: "", origemDescricao: "" 
     })
 
     // Estado da Proposta

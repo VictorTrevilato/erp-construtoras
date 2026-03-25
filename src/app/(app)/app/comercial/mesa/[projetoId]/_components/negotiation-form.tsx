@@ -26,7 +26,7 @@ type CustomCondition = {
 }
 
 const ALLOWED_TYPES = ["ENTRADA", "MENSAL", "INTERMEDIARIAS", "ANUAL", "CHAVES", "FINANCIAMENTO"]
-const ORIGIN_OPTIONS = ["Gestão", "Imobiliária", "Indicação", "Lead", "WhatsApp", "Outro"]
+const ORIGIN_OPTIONS = ["Gestão", "Imobiliária", "Indicação", "Lead", "WhatsApp", "Construtora", "Outro"] // <--- ADICIONADO "Construtora"
 
 // --- HELPERS ---
 const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -146,7 +146,7 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
 
     const handleClear = () => {
         setConditions([])
-        setLead({ nome: "", email: "", telefone: "", origem: "" })
+        setLead({ nome: "", email: "", telefone: "", origem: "", origemDescricao: "" }) // <--- ZERA O NOVO CAMPO
         if (selectedUnit) {
             setTargetPrice(selectedUnit.valorTabela)
         }
@@ -193,7 +193,7 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                 // Limpa o estado de negociação
                 setConditions([])
                 setSelectedUnitId("") 
-                setLead({ nome: "", email: "", telefone: "", origem: "" })
+                setLead({ nome: "", email: "", telefone: "", origem: "", origemDescricao: "" }) // <--- ZERA O NOVO CAMPO
                 setTargetPrice(0)
                 setStandardFlow([])
             } else {
@@ -260,8 +260,10 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                                 <h3 className="font-bold text-lg text-foreground">2. Dados do Comprador</h3>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
+                            {/* --- ESTRUTURA DE 2 LINHAS --- */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* LINHA 1: Nome e Telefone */}
+                                <div className="md:col-span-2 space-y-1">
                                     <Label>Nome Completo *</Label>
                                     <Input 
                                         value={lead.nome} 
@@ -271,7 +273,7 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                                         disabled={isSaving}
                                     />
                                 </div>
-                                <div className="space-y-1">
+                                <div className="md:col-span-2 space-y-1">
                                     <Label>Telefone / WhatsApp *</Label>
                                     <Input 
                                         value={lead.telefone} 
@@ -281,17 +283,9 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                                         disabled={isSaving}
                                     />
                                 </div>
-                                <div className="space-y-1">
-                                    <Label>Email</Label>
-                                    <Input 
-                                        value={lead.email} 
-                                        onChange={e => updateLead('email', e.target.value)} 
-                                        className="h-10 bg-background" 
-                                        placeholder="Preencha o email..." 
-                                        disabled={isSaving}
-                                    />
-                                </div>
-                                <div className="space-y-1">
+
+                                {/* LINHA 2: Origem e Descrição */}
+                                <div className="md:col-span-1 space-y-1">
                                     <Label>Origem</Label>
                                     <Select value={lead.origem} onValueChange={v => updateLead('origem', v)} disabled={isSaving}>
                                         <SelectTrigger className="h-10 bg-background">
@@ -303,6 +297,16 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                </div>
+                                <div className="md:col-span-3 space-y-1">
+                                    <Label>Descrição da Origem</Label>
+                                    <Input 
+                                        value={lead.origemDescricao} 
+                                        onChange={e => updateLead('origemDescricao', e.target.value)} 
+                                        className="h-10 bg-background" 
+                                        placeholder="Ex: Nome do Corretor, Parceria..." 
+                                        disabled={isSaving}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -484,7 +488,7 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
 
                     </CardContent>
                     
-                    <div className="p-4 border-t bg-background flex justify-end gap-3">
+                    <div className="p-4 border-t bg-background flex flex-col sm:flex-row justify-between sm:justify-end gap-3">
                         <ExportPdfNegotiationButton units={units} projetoNome={projetoNome} logoUrl={logoUrl} />
                         
                         <Button variant="outline" onClick={handleResetToStandard} disabled={isSaving}>
