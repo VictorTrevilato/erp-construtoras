@@ -62,7 +62,11 @@ function NegotiationTabs({ projetoId, units, flows, projetoNome, tabelaCodigo, l
                 </TabsContent>
                 
                 <TabsContent value="negociacao" className="focus-visible:ring-0 focus-visible:outline-none">
-                    <NegotiationForm units={units} />
+                    <NegotiationForm 
+                        units={units} 
+                        projetoNome={projetoNome}
+                        logoUrl={logoUrl}
+                    />
                 </TabsContent>
 
                 <TabsContent value="documentos" className="focus-visible:ring-0 focus-visible:outline-none">

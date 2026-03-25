@@ -12,8 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-// Importação do componente de análise
 import { ProposalAnalysis } from "./proposal-analysis"
+import { ExportPdfNegotiationButton } from "./export-pdf-negotiation"
 
 // --- TIPOS ---
 type CustomCondition = {
@@ -69,7 +69,7 @@ function MoneyInput({ value, onChange, className, placeholder }: MoneyInputProps
 
 // --- COMPONENTE PRINCIPAL ---
 
-export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
+export function NegotiationForm({ units, projetoNome, logoUrl }: { units: NegotiationUnit[], projetoNome?: string, logoUrl?: string | null }) {
     const { 
         selectedUnitId, setSelectedUnitId,
         lead, updateLead, setLead,
@@ -485,6 +485,8 @@ export function NegotiationForm({ units }: { units: NegotiationUnit[] }) {
                     </CardContent>
                     
                     <div className="p-4 border-t bg-background flex justify-end gap-3">
+                        <ExportPdfNegotiationButton units={units} projetoNome={projetoNome} logoUrl={logoUrl} />
+                        
                         <Button variant="outline" onClick={handleResetToStandard} disabled={isSaving}>
                             <RotateCcw className="mr-2 h-4 w-4" /> Tabela Padrão
                         </Button>
