@@ -335,43 +335,22 @@ export async function saveProposal(data: ProposalPayload) {
 
     const result = await prisma.$transaction(async (tx) => {
       // --- A. LEADS ---
-      let leadId
-      const existingLead = await tx.ycLeads.findFirst({
-        where: {
+      // Forçamos a criação de um novo registro de Lead independente do e-mail ou telefone
+      // para evitar que corretores usando o próprio contato sobrescrevam leads uns dos outros.
+      const newLead = await tx.ycLeads.create({
+        data: {
           sysTenantId: contextUnit.sysTenantId,
-          OR: [
-            { email: lead.email },
-            { telefone: lead.telefone }
-          ]
+          sysUserId: BigInt(session.user.id),
+          escopoId: contextUnit.escopoId,
+          projetoId: contextUnit.projetoId,
+          nome: lead.nome.toUpperCase(),
+          email: lead.email,
+          telefone: lead.telefone,
+          origem: lead.origem,
+          status: "NOVO"
         }
       })
-
-      if (existingLead) {
-        await tx.ycLeads.update({
-          where: { id: existingLead.id },
-          data: { 
-              nome: lead.nome, 
-              origem: lead.origem,
-              sysUpdatedAt: new Date()
-          }
-        })
-        leadId = existingLead.id
-      } else {
-        const newLead = await tx.ycLeads.create({
-          data: {
-            sysTenantId: contextUnit.sysTenantId,
-            sysUserId: BigInt(session.user.id),
-            escopoId: contextUnit.escopoId,
-            projetoId: contextUnit.projetoId,
-            nome: lead.nome,
-            email: lead.email,
-            telefone: lead.telefone,
-            origem: lead.origem,
-            status: "NOVO"
-          }
-        })
-        leadId = newLead.id
-      }
+      const leadId = newLead.id
 
       // --- B. PROPOSTAS ---
       const newProposal = await tx.ycPropostas.create({
