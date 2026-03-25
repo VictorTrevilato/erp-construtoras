@@ -40,7 +40,7 @@ import {
   FormMessage
 } from "@/components/ui/form"
 import { ScopeSelect } from "@/components/scope-select"
-import { savePersonPhysical } from "@/app/actions/persons"
+import { savePersonPhysical } from "@/app/actions/physical-persons"
 import { fetchAddressByCep } from "@/app/actions/viacep"
 
 export interface ScopeOption {

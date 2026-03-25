@@ -33,36 +33,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { PaginationSelector } from "@/components/shared/pagination-selector"
-import { PersonActions } from "./person-actions"
+import { PersonLegalActions } from "./person-legal-actions"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-interface PersonPhysical {
+interface PersonLegal {
   id: string
-  nome: string
-  documento: string
+  nome: string // Razão Social
+  nomeFantasia: string | null
+  documento: string // CNPJ
   email: string | null
   telefone: string | null
   cidade: string | null
   uf: string | null
   isCliente: boolean
-  isCorretor: boolean
-  isFuncionario: boolean
+  isImobiliaria: boolean
+  isFornecedor: boolean
   sysCreatedAt: string
 }
 
 interface Props {
-  initialData: PersonPhysical[]
+  initialData: PersonLegal[]
   totalItems: number
 }
 
-export function PersonPhysicalClient({ initialData, totalItems }: Props) {
+export function PersonLegalClient({ initialData, totalItems }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   
   const [searchValue, setSearchValue] = useState(searchParams.get("search") || "")
   const isFirstRender = useRef(true)
 
-  // Captura exata do que está na URL
   const currentSortBy = searchParams.get("sortBy")
   const currentSortDir = searchParams.get("sortDir") as "asc" | "desc" | null
 
@@ -78,12 +78,10 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
   const handleSort = (field: string) => {
     const params = new URLSearchParams(searchParams.toString())
     
-    // Se clicar em um campo que NÃO é o que está ordenado no momento (ou se não houver ordenação na URL)
     if (currentSortBy !== field) {
       params.set("sortBy", field)
       params.set("sortDir", "asc")
     } else {
-      // Se já está no campo, rotaciona: asc -> desc -> reset
       if (currentSortDir === "asc") {
         params.set("sortDir", "desc")
       } else {
@@ -96,9 +94,7 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
   }
 
   const renderSortIcon = (field: string) => {
-    // Se a URL estiver vazia e o campo for ID, mostramos o ícone de DESC (padrão do sistema)
     if (!currentSortBy && field === "id") return <ArrowDown className="ml-2 h-3 w-3 text-primary" />
-    
     if (currentSortBy !== field) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />
     if (currentSortDir === "asc") return <ArrowUp className="ml-2 h-3 w-3 text-primary" />
     if (currentSortDir === "desc") return <ArrowDown className="ml-2 h-3 w-3 text-primary" />
@@ -120,8 +116,6 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
         
         params.set("page", "1")
         router.push(`?${params.toString()}`, { scroll: false })
-        
-        // ADICIONE ESTA LINHA PARA GARANTIR
         router.refresh() 
       }
     }, 500)
@@ -135,7 +129,7 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Buscar por Nome ou CPF..." 
+            placeholder="Buscar por Razão Social, Nome Fantasia ou CNPJ..." 
             className="pl-9 w-full"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
@@ -150,7 +144,7 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Filtrar por Vínculo</DropdownMenuLabel>
+              <DropdownMenuLabel>Filtrar por Perfil</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem 
                 checked={searchParams.get("isCliente") === "true"}
@@ -165,33 +159,33 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
                 Clientes
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem 
-                checked={searchParams.get("isCorretor") === "true"}
+                checked={searchParams.get("isImobiliaria") === "true"}
                 onCheckedChange={(val) => {
                   const p = new URLSearchParams(searchParams.toString())
-                  if (val) p.set("isCorretor", "true")
-                  else p.delete("isCorretor")
+                  if (val) p.set("isImobiliaria", "true")
+                  else p.delete("isImobiliaria")
                   p.set("page", "1")
                   router.push(`?${p.toString()}`, { scroll: false })
                 }}
               >
-                Corretores
+                Imobiliárias
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem 
-                checked={searchParams.get("isFuncionario") === "true"}
+                checked={searchParams.get("isFornecedor") === "true"}
                 onCheckedChange={(val) => {
                   const p = new URLSearchParams(searchParams.toString())
-                  if (val) p.set("isFuncionario", "true")
-                  else p.delete("isFuncionario")
+                  if (val) p.set("isFornecedor", "true")
+                  else p.delete("isFornecedor")
                   p.set("page", "1")
                   router.push(`?${p.toString()}`, { scroll: false })
                 }}
               >
-                Funcionários
+                Fornecedores
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={() => router.push("/app/cadastros/pessoas-fisicas/novo")} className="gap-2">
+          <Button onClick={() => router.push("/app/cadastros/pessoas-juridicas/novo")} className="gap-2">
             <UserPlus className="h-4 w-4" /> Cadastrar
           </Button>
         </div>
@@ -225,7 +219,7 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
             {initialData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  Nenhuma pessoa física encontrada.
+                  Nenhuma pessoa jurídica encontrada.
                 </TableCell>
               </TableRow>
             ) : (
@@ -237,14 +231,17 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9 border">
-                        <AvatarFallback className="text-xs font-bold bg-primary/5 text-primary">
-                          {getInitials(person.nome)}
+                        <AvatarFallback className="text-xs font-bold bg-primary/5 text-primary rounded-md">
+                          {getInitials(person.nomeFantasia || person.nome)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <span className="font-bold text-foreground leading-tight">{person.nome}</span>
+                        <span className="font-bold text-foreground leading-tight truncate max-w-[250px]">
+                          {person.nomeFantasia || person.nome}
+                        </span>
                         <span className="text-[11px] text-muted-foreground font-mono">
-                          {person.documento.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
+                          {/* Máscara de CNPJ na listagem */}
+                          {person.documento.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}
                         </span>
                       </div>
                     </div>
@@ -273,31 +270,31 @@ export function PersonPhysicalClient({ initialData, totalItems }: Props) {
                             <TooltipContent>Cliente</TooltipContent>
                           </Tooltip>
                         )}
-                        {person.isCorretor && (
+                        {person.isImobiliaria && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center text-warning border border-warning/20 cursor-help">
                                 <UserCheck className="w-4 h-4" />
                               </div>
                             </TooltipTrigger>
-                            <TooltipContent>Corretor</TooltipContent>
+                            <TooltipContent>Imobiliária</TooltipContent>
                           </Tooltip>
                         )}
-                        {person.isFuncionario && (
+                        {person.isFornecedor && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="h-8 w-8 rounded-full bg-info/10 flex items-center justify-center text-info border border-info/20 cursor-help">
                                 <UserCog className="w-4 h-4" />
                               </div>
                             </TooltipTrigger>
-                            <TooltipContent>Funcionário</TooltipContent>
+                            <TooltipContent>Fornecedor</TooltipContent>
                           </Tooltip>
                         )}
                       </TooltipProvider>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <PersonActions id={person.id} nome={person.nome} />
+                    <PersonLegalActions id={person.id} nome={person.nomeFantasia || person.nome} />
                   </TableCell>
                 </TableRow>
               ))

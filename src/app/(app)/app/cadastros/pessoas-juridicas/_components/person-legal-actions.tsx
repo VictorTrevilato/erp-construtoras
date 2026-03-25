@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { deletePersonPhysical } from "@/app/actions/physical-persons"
+import { deletePersonLegal } from "@/app/actions/legal-persons" 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,23 +27,22 @@ import {
 
 interface Props {
   id: string
-  nome: string
+  nome: string // Recebe Razão Social ou Nome Fantasia
   readOnly?: boolean
 }
 
-export function PersonActions({ id, nome, readOnly = false }: Props) {
+export function PersonLegalActions({ id, nome, readOnly = false }: Props) {
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
-      // Chamada real para o banco de dados
-      const res = await deletePersonPhysical(id)
+      const res = await deletePersonLegal(id)
       
       if (res.success) {
         toast.success(res.message)
-        router.refresh() // <--- Força o Next.js a buscar os dados novamente e sumir com a linha
+        router.refresh()
       } else {
         toast.error(res.message)
       }
@@ -61,7 +60,7 @@ export function PersonActions({ id, nome, readOnly = false }: Props) {
         {/* Botão Editar / Visualizar */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href={`/app/cadastros/pessoas-fisicas/${id}`}>
+            <Link href={`/app/cadastros/pessoas-juridicas/${id}`}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 {readOnly ? (
                   <Eye className="h-4 w-4 text-muted-foreground" />
@@ -90,7 +89,7 @@ export function PersonActions({ id, nome, readOnly = false }: Props) {
             
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Excluir Pessoa Física?</AlertDialogTitle>
+                <AlertDialogTitle>Excluir Empresa?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Tem certeza que deseja excluir <strong className="text-foreground">{nome}</strong>?
                   Esta ação não poderá ser desfeita se houver vínculos com propostas ou contratos ativos.
