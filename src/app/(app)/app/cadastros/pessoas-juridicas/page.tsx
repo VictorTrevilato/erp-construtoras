@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getPersonsLegal } from "@/app/actions/legal-persons"
 import { PersonLegalClient } from "./_components/person-legal-client"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Pessoas Jurídicas",
+}
 
 export const dynamic = 'force-dynamic'
 

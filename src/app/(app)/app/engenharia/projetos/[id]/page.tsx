@@ -6,7 +6,7 @@ import { ProjectWrapper } from "../_components/project-wrapper" // <-- IMPORT AT
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Projetos",
+  title: "Editar Projeto",
 };
 
 interface Props {

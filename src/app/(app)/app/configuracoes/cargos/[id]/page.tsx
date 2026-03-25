@@ -5,7 +5,7 @@ import { getRoleById } from "@/app/actions/roles"
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cargos e Permissões",
+  title: "Editar Cargo e Permissão",
 };
 
 export default async function EditRolePage({ params }: { params: Promise<{ id: string }> }) {

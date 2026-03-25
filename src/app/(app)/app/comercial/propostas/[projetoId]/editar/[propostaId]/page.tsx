@@ -17,7 +17,7 @@ import { ProposalEditorWrapper } from "./_components/proposal-editor-wrapper"
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Propostas Comerciais",
+  title: "Editar Proposta Comercial",
 };
 
 interface Props { 

@@ -5,7 +5,7 @@ import { RoleForm } from "../_components/role-form"
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cargos e Permissões",
+  title: "Cadastrar Cargo e Permissão",
 };
 
 export default async function NewRolePage() {

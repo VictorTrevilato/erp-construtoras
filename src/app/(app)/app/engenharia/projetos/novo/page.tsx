@@ -5,7 +5,7 @@ import { ProjectWrapper } from "../_components/project-wrapper"
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Novo Projeto",
+  title: "Cadastrar Projeto",
 };
 
 export default async function NewProjectPage() {
