@@ -196,7 +196,7 @@ export function ExportPdfInstallmentsButton({ proposal, installments }: Props) {
             doc.text("Assinatura do Comprador", (halfWidth + 10) / 2, finalY + 5, { align: "center" })
 
             doc.line(halfWidth + 10, finalY, pageWidth - 20, finalY)
-            doc.text("Corretor / Aprovação", halfWidth + ((halfWidth - 10) / 2), finalY + 5, { align: "center" })
+            doc.text("Responsável", halfWidth + ((halfWidth - 10) / 2), finalY + 5, { align: "center" })
 
             // --- NOME DO ARQUIVO FORMATADO ---
             const rawFileName = `FLUXO_${nomeDoProjeto}_UN${numUnidade}_${leadNome}`

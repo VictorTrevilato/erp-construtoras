@@ -230,7 +230,7 @@ export function ExportPdfNegotiationButton({ units, projetoNome = "Projeto", log
 
             // Linha do Corretor/Construtora
             doc.line(halfWidth + 10, finalY, pageWidth - 20, finalY)
-            doc.text("Corretor / Aprovação", halfWidth + ((halfWidth - 10) / 2), finalY + 5, { align: "center" })
+            doc.text("Responsável", halfWidth + ((halfWidth - 10) / 2), finalY + 5, { align: "center" })
 
             // --- NOME DO ARQUIVO FORMATADO ---
             const rawFileName = `PROPOSTA_${projetoNome}_UN${selectedUnit.unidade}_${lead.nome || 'CLIENTE'}`
