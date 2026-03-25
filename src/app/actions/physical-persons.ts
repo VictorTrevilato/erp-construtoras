@@ -94,22 +94,50 @@ export async function getPersonsPhysical(params: GetPersonsParams) {
 
   const skip = (page - 1) * pageSize
   const tenantId = BigInt(tenantIdStr)
+  
   const cleanSearch = String(search).trim()
   const searchNumber = cleanSearch.replace(/\D/g, "")
+  const isIdSearch = cleanSearch.startsWith('#')
+
+  // NOVO: "Mágica" para adivinhar a máscara do telefone caso o usuário digite só números com DDD
+  let phoneWithDDD = ""
+  if (searchNumber.length >= 3) {
+    if (searchNumber.length >= 8) {
+       // Ex: "16992364117" vira "(16) 99236-4117"
+       phoneWithDDD = `(${searchNumber.slice(0, 2)}) ${searchNumber.slice(2, 7)}-${searchNumber.slice(7)}`
+    } else {
+       // Ex: "1699" vira "(16) 99"
+       phoneWithDDD = `(${searchNumber.slice(0, 2)}) ${searchNumber.slice(2)}`
+    }
+  }
 
   const where: Prisma.ycPessoasFisicasWhereInput = {
     sysTenantId: tenantId,
     ...(params.isCliente === true || params.isCliente === 'true' ? { isCliente: true } : {}),
     ...(params.isCorretor === true || params.isCorretor === 'true' ? { isCorretor: true } : {}),
     ...(params.isFuncionario === true || params.isFuncionario === 'true' ? { isFuncionario: true } : {}),
-    ...(cleanSearch && {
+    
+    ...(isIdSearch && searchNumber ? {
+      id: BigInt(searchNumber) 
+    } : (cleanSearch ? {
       OR: [
         { ycEntidades: { is: { nome: { contains: cleanSearch } } } },
         { email_1: { contains: cleanSearch } },
         { cidade: { contains: cleanSearch } },
-        ...(searchNumber ? [{ ycEntidades: { is: { documento: { contains: searchNumber } } } }] : []),
+        { telefone_1: { contains: cleanSearch } }, 
+        { telefone_2: { contains: cleanSearch } }, 
+        ...(searchNumber ? [
+          { ycEntidades: { is: { documento: { contains: searchNumber } } } },
+          { telefone_1: { contains: searchNumber } }, 
+          { telefone_2: { contains: searchNumber } } 
+        ] : []),
+        // NOVO: Inclui a versão "mascarada" dinamicamente na busca
+        ...(phoneWithDDD ? [
+          { telefone_1: { contains: phoneWithDDD } },
+          { telefone_2: { contains: phoneWithDDD } }
+        ] : [])
       ],
-    }),
+    } : {})),
   }
 
   const orderBy: Prisma.ycPessoasFisicasOrderByWithRelationInput[] = []
@@ -118,7 +146,6 @@ export async function getPersonsPhysical(params: GetPersonsParams) {
     orderBy.push({ ycEntidades: { nome: sortDir } })
     orderBy.push({ id: "desc" })
   } else {
-    // Tipagem correta nativa do Prisma ao invés de 'as any'
     orderBy.push({ [sortBy]: sortDir } as Prisma.ycPessoasFisicasOrderByWithRelationInput)
     if (sortBy !== "id") orderBy.push({ id: "desc" })
   }
