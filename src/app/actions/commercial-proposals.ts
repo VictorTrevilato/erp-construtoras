@@ -55,6 +55,11 @@ export type ProposalFullDetail = {
   motivoRejeicao: string | null
   observacaoDecisao: string | null
 
+  projeto: {
+    nome: string
+    logoUrl: string | null
+  }
+
   tabela: {
     codigo: string
     nome: string
@@ -302,12 +307,36 @@ export async function getProposalDetails(propostaId: string): Promise<ProposalFu
   const session = await auth()
   if (!session) return null
 
+  // 1. Pegamos o ID da Empresa atual logada
+  const tenantIdStr = await getCurrentTenantId()
+
   try {
+    // 2. BALA DE PRATA: Buscamos a logo diretamente na tabela ycEmpresas ignorando relações complexas
+    let logoGarantida = null
+    if (tenantIdStr) {
+        const empresa = await prisma.ycEmpresas.findUnique({
+            where: { id: BigInt(tenantIdStr) },
+            select: { logoMini: true }
+        })
+        
+        // ---> O SEGREDO ESTÁ AQUI <---
+        // Converte o caminho do banco em uma URL real e autorizada do Azure Blob Storage
+        if (empresa?.logoMini) {
+            logoGarantida = await getFileDownloadUrl(empresa.logoMini)
+        }
+    }
+
     const prop = await prisma.ycPropostas.findUnique({
       where: { id: BigInt(propostaId) },
       include: {
+        ycEmpresas: true,
         ycUnidades: {
-          include: { ycBlocos: true }
+          include: { 
+              ycBlocos: true,
+              ycProjetos: {
+                  include: { ycEmpresas: true }
+              } 
+          }
         },
         ycLeads: true,
         ycTabelasPreco: true,
@@ -333,6 +362,11 @@ export async function getProposalDetails(propostaId: string): Promise<ProposalFu
       usuarioDecisaoNome: prop.usuarioDecisao?.nome || null, 
       motivoRejeicao: prop.motivoRejeicao,
       observacaoDecisao: prop.observacaoDecisao,
+
+      projeto: {
+        nome: prop.ycUnidades.ycProjetos.nome,
+        logoUrl: logoGarantida 
+      },
 
       tabela: {
         codigo: prop.ycTabelasPreco?.codigo || "N/A",

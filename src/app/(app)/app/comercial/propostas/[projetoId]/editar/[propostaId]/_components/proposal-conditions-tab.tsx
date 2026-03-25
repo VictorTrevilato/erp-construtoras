@@ -12,7 +12,8 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { ProposalAnalysis } from "./proposal-analysis"
-import { GridInstallment } from "./proposal-installments-tab" // <- IMPORT DA ABA GÊMEA
+import { GridInstallment } from "./proposal-installments-tab"
+import { ExportPdfNegotiationButton } from "./export-pdf-conditions"
 
 // --- TIPOS E CONSTANTES ---
 export type CustomCondition = {
@@ -430,6 +431,17 @@ export function ProposalConditionsTab({
                     {/* BARRA DE AÇÕES (Só exibe se estiver destravado) */}
                     {isUnlocked && (
                         <div className="p-4 border-t bg-background flex flex-wrap justify-end gap-3">
+                            
+                            {/* NOVO BOTÃO DE PDF ADICIONADO AQUI */}
+                            <ExportPdfNegotiationButton 
+                                proposal={proposal}
+                                conditions={conditions}
+                                targetPrice={targetPrice}
+                                standardFlow={standardFlow}
+                                projetoNome={proposal.projeto?.nome}
+                                logoUrl={proposal.projeto?.logoUrl}
+                            />
+
                             <Button variant="outline" onClick={handleClear} className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" /> Limpar Tudo
                             </Button>

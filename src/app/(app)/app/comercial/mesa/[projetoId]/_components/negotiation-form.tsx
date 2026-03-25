@@ -26,7 +26,7 @@ type CustomCondition = {
 }
 
 const ALLOWED_TYPES = ["ENTRADA", "MENSAL", "INTERMEDIARIAS", "ANUAL", "CHAVES", "FINANCIAMENTO"]
-const ORIGIN_OPTIONS = ["Gestão", "Imobiliária", "Indicação", "Lead", "WhatsApp", "Construtora", "Outro"] // <--- ADICIONADO "Construtora"
+const ORIGIN_OPTIONS = ["Imobiliária", "Construtora", "Gestão", "Lead", "WhatsApp", "Indicação", "Outro"]
 
 // --- HELPERS ---
 const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })

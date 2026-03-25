@@ -13,7 +13,8 @@ import { Save, Plus, NotebookPen, Trash2, Calculator, Lock, Unlock, AlertTriangl
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { CustomCondition } from "./proposal-conditions-tab" // <- ADD IMPORT DA ABA GÊMEA
+import { CustomCondition } from "./proposal-conditions-tab"
+import { ExportPdfInstallmentsButton } from "./export-pdf-installments"
 
 // --- TIPOS ---
 export type GridInstallment = {
@@ -452,15 +453,21 @@ export function ProposalInstallmentsTab({ proposal, setProposal, installments, s
                         </CardContent>
                     </Card>
 
+                    {/* === NOVO BOTÃO DE PDF AQUI === */}
+                    <ExportPdfInstallmentsButton 
+                        proposal={proposal} 
+                        installments={installments} 
+                    />
+
                     {/* BOTÃO PRINCIPAL DE SALVAR */}
                     <Button 
                         size="lg" 
-                        className="w-full shadow-md h-12 text-sm font-bold" 
+                        className="w-full shadow-md h-12 text-sm font-bold mt-2" 
                         onClick={handleSave} 
                         disabled={isPending || !isValid || isPendingTrans || !isUnlocked}
                     >
                         {isPending || isPendingTrans ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                        {isPending || isPendingTrans ? "Salvando..." : "Salvar Fluxo Fino"}
+                        {isPending || isPendingTrans ? "Salvando..." : "Salvar Fluxo"}
                     </Button>
                 </div>
             </div>
