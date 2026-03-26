@@ -56,7 +56,7 @@ export default async function EditTablePage({ params }: Props) {
                             </span>
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Vigência: {fmtDate(header.vigenciaInicial)} a {fmtDate(header.vigenciaFinal)} • Juros: {Number(header.taxaJuros)}% a.m.
+                            Vigência: {fmtDate(header.vigenciaInicial)} a {fmtDate(header.vigenciaFinal)} • Comissão: {Number(header.percComissaoPadrao)}%
                         </p>
                     </div>
                 </div>

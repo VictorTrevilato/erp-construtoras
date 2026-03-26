@@ -42,6 +42,7 @@ interface Campaign {
   vigenciaInicial: Date
   vigenciaFinal: Date
   taxaJuros: number
+  percComissaoPadrao: number
 }
 
 interface Props {
@@ -169,7 +170,7 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                 <TableHead>Código</TableHead>
                 <TableHead>Nome da Tabela</TableHead>
                 <TableHead>Vigência</TableHead>
-                <TableHead>Taxa Juros (a.m)</TableHead>
+                <TableHead>Comissão (%)</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -187,7 +188,7 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                            {fmtDate(c.vigenciaInicial)} até {fmtDate(c.vigenciaFinal)}
                         </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{Number(c.taxaJuros).toFixed(2)}%</TableCell>
+                    <TableCell className="text-muted-foreground">{Number(c.percComissaoPadrao).toFixed(2)}%</TableCell>
                     
                     <TableCell className="text-right">
                        <div className="flex justify-end gap-1">
@@ -278,13 +279,13 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label>Taxa Juros (a.m)</Label>
+                        <Label>Comissão (%)</Label>
                         <div className="relative">
                             <Input 
-                                name="taxaJuros" 
+                                name="percComissaoPadrao" 
                                 type="number" 
                                 step="0.01"
-                                defaultValue={editingCampaign?.taxaJuros} 
+                                defaultValue={editingCampaign?.percComissaoPadrao} 
                                 placeholder="0.00" 
                                 className="pr-8"
                             />

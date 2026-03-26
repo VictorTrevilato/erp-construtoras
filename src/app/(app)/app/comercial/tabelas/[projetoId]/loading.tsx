@@ -54,7 +54,7 @@ export default function LoadingCampaigns() {
                 <TableHead>Código</TableHead>
                 <TableHead>Nome da Tabela</TableHead>
                 <TableHead>Vigência</TableHead>
-                <TableHead>Taxa Juros (a.m)</TableHead>
+                <TableHead>Comissão (%)</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>

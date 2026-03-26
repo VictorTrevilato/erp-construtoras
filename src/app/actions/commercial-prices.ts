@@ -39,6 +39,7 @@ const campaignSchema = z.object({
   vigenciaInicial: z.string().refine(val => !isNaN(Date.parse(val)), "Data inválida"),
   vigenciaFinal: z.string().refine(val => !isNaN(Date.parse(val)), "Data inválida"),
   taxaJuros: z.coerce.number().min(0).default(0),
+  percComissaoPadrao: z.coerce.number().min(0).default(0),
 })
 
 const priceItemSchema = z.object({
@@ -101,7 +102,8 @@ export async function getCampaigns(projetoId: string) {
       nome: c.nome,
       vigenciaInicial: c.vigenciaInicial,
       vigenciaFinal: c.vigenciaFinal,
-      taxaJuros: Number(c.taxaJuros)
+      taxaJuros: Number(c.taxaJuros),
+      percComissaoPadrao: Number(c.percComissaoPadrao)
     }))
   } catch {
     return []
@@ -160,6 +162,7 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
           vigenciaInicial: start,
           vigenciaFinal: end,
           taxaJuros: valid.data.taxaJuros,
+          percComissaoPadrao: valid.data.percComissaoPadrao,
           sysUpdatedAt: new Date()
         }
       })
@@ -174,7 +177,8 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
           codigo: valid.data.codigo,
           vigenciaInicial: start,
           vigenciaFinal: end,
-          taxaJuros: valid.data.taxaJuros
+          taxaJuros: valid.data.taxaJuros,
+          percComissaoPadrao: valid.data.percComissaoPadrao
         }
       })
     }
@@ -226,7 +230,8 @@ export async function duplicateCampaign(projetoId: string, sourceTabelaId: strin
                     codigo: valid.data.codigo,
                     vigenciaInicial: start,
                     vigenciaFinal: end,
-                    taxaJuros: valid.data.taxaJuros
+                    taxaJuros: valid.data.taxaJuros,
+                    percComissaoPadrao: valid.data.percComissaoPadrao
                 }
             })
 
