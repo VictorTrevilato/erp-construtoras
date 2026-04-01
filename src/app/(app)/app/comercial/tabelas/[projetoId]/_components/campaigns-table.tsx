@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -55,14 +55,16 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
   const [filterText, setFilterText] = useState("")
   const [filterDateStart, setFilterDateStart] = useState("")
   const [filterDateEnd, setFilterDateEnd] = useState("")
-  
-  // Controle de Modal
+
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
   const [isDuplicating, setIsDuplicating] = useState(false) 
   
   const [isPending, setIsPending] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const isDeletingRef = useRef(false)
 
   const filteredCampaigns = campaigns.filter(c => {
     const matchesText = c.nome.toLowerCase().includes(filterText.toLowerCase()) || 
@@ -91,8 +93,14 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     setIsDialogOpen(true)
   }
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    
+    if (isPending) return;
+    
     setIsPending(true)
+    const formData = new FormData(e.currentTarget)
+    
     let res;
 
     if (isDuplicating && editingCampaign) {
@@ -109,19 +117,28 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
     } else {
       toast.error(res.message)
     }
+    
     setIsPending(false)
   }
 
   const confirmDelete = async () => {
-    if (!deleteId) return
+    if (!deleteId || isDeletingRef.current) return; 
+    
+    isDeletingRef.current = true;
+    setIsDeleting(true)
+    
     const res = await deleteCampaign(deleteId)
+    
     if (res.success) {
       toast.success(res.message)
       router.refresh()
     } else {
       toast.error(res.message)
     }
+    
     setDeleteId(null)
+    setIsDeleting(false)
+    isDeletingRef.current = false
   }
 
   const fmtDate = (d: Date) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
@@ -250,7 +267,7 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
                     }
                 </DialogTitle>
             </DialogHeader>
-            <form action={handleSubmit} className="space-y-4 py-2">
+            <form onSubmit={handleFormSubmit} className="space-y-4 py-2">
                 <div className="grid gap-2">
                     <Label>Nome da Campanha</Label>
                     <Input 
@@ -344,7 +361,15 @@ export function CampaignsTable({ campaigns, projetoId }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+                onClick={(e) => {
+                    e.preventDefault();
+                    confirmDelete();
+                }} 
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Confirmar Exclusão
             </AlertDialogAction>
           </AlertDialogFooter>
