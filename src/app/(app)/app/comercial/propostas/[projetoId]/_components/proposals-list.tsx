@@ -66,15 +66,14 @@ export function ProposalsList({ proposals, projetoId }: Props) {
     return matchesText && matchesBlock && matchesStatus && matchesDate
   })
 
-  // Estilização de Status Específica
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'APROVADO': return "bg-success/20 text-success border-success/30"
-      case 'FORMALIZADA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
-      case 'EM_ASSINATURA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
       case 'ASSINADO': return "bg-success text-success-foreground border-success/30"
-      case 'REPROVADO': return "bg-destructive/20 text-destructive border-destructive/30"
-      case 'CANCELADO': return "bg-muted text-muted-foreground border-border"
+      case 'EM_ASSINATURA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      case 'FORMALIZADA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      case 'APROVADO': return "bg-success/20 text-success border-success/30"
+      case 'REPROVADO': return "bg-warning/20 text-warning border-warning/30"
+      case 'CANCELADO': return "bg-destructive/20 text-destructive border-destructive/30"
       case 'EM_ANALISE': return "bg-info/20 text-info border-info/30"
       case 'RASCUNHO': return "bg-muted/50 text-muted-foreground border-border"
       default: return "bg-muted text-muted-foreground"
@@ -108,35 +107,41 @@ export function ProposalsList({ proposals, projetoId }: Props) {
   }
 
   const renderValidade = (dataValidade: Date) => {
-      const hoje = new Date()
-      hoje.setHours(0, 0, 0, 0)
-      
+      const now = new Date()
       const validade = new Date(dataValidade)
-      validade.setHours(0, 0, 0, 0)
-
       const formattedDate = fmtDate(dataValidade)
 
-      if (validade < hoje) {
-          return (
-              <div className="flex items-center gap-1.5 text-muted-foreground" title="Proposta Vencida">
-                  <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-                  <span>{formattedDate}</span>
-              </div>
-          )
+      let icon
+      let tooltipText = ""
+
+      // Comparação exata incluindo horas e minutos
+      if (validade < now) {
+          icon = <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+          tooltipText = "Proposta Vencida"
+      } else {
+          // Calcula se vence nas próximas 24 horas
+          const diffMs = validade.getTime() - now.getTime()
+          const diffHours = diffMs / (1000 * 60 * 60)
+          
+          if (diffHours <= 24) {
+              icon = <Clock className="w-3.5 h-3.5 text-warning" />
+              tooltipText = "Vence em menos de 24h"
+          } else {
+              icon = <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+              tooltipText = "No Prazo"
+          }
       }
-      if (validade.getTime() === hoje.getTime()) {
-          return (
-              <div className="flex items-center gap-1.5 text-muted-foreground" title="Vence Hoje">
-                  <Clock className="w-3.5 h-3.5 text-warning" />
-                  <span>{formattedDate}</span>
-              </div>
-          )
-      }
+
       return (
-          <div className="flex items-center gap-1.5 text-muted-foreground" title="No Prazo">
-              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-              <span>{formattedDate}</span>
-          </div>
+          <Tooltip>
+              <TooltipTrigger className="flex items-center gap-1.5 text-muted-foreground cursor-default">
+                  {icon}
+                  <span>{formattedDate}</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                  {tooltipText}
+              </TooltipContent>
+          </Tooltip>
       )
   }
 

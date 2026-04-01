@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw, Loader2 } from "lucide-react"
+import { Plus, Trash2, Save, RefreshCw, Calculator, Wallet, RotateCcw, Loader2, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ProposalAnalysis } from "./proposal-analysis"
@@ -80,6 +80,8 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
 
     // Estado de proteção contra duplo-clique
     const [isSaving, setIsSaving] = useState(false)
+    // Estado do Collapse da Análise VPL (inicia falso/recolhido)
+    const [showAnalysis, setShowAnalysis] = useState(false)
 
     const selectedUnit = units.find(u => u.id === selectedUnitId)
     const availableUnits = units.filter(u => u.statusComercial === 'DISPONIVEL')
@@ -477,13 +479,27 @@ export function NegotiationForm({ units, projetoNome, logoUrl }: { units: Negoti
                             })}
                         </div>
 
-                        {/* COMPONENTE DE ANÁLISE VPL */}
+                        {/* COMPONENTE DE ANÁLISE VPL (RETRÁTIL) */}
                         {selectedUnit && (
-                            <ProposalAnalysis 
-                                standardFlow={standardFlow} 
-                                proposalConditions={conditions} 
-                                unitArea={selectedUnit.areaPrivativa}
-                            />
+                            <div className="mt-8 border border-border rounded-lg bg-background overflow-hidden shadow-sm">
+                                <button 
+                                    onClick={() => setShowAnalysis(!showAnalysis)}
+                                    className="w-full flex justify-between items-center p-3 text-sm font-bold text-muted-foreground hover:bg-muted/50 transition-colors"
+                                >
+                                    <span>Detalhes da Viabilidade</span>
+                                    {showAnalysis ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                                
+                                {showAnalysis && (
+                                    <div className="border-t border-border bg-muted/5 px-2 pb-8">
+                                        <ProposalAnalysis 
+                                            standardFlow={standardFlow} 
+                                            proposalConditions={conditions} 
+                                            unitArea={selectedUnit.areaPrivativa}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                     </CardContent>

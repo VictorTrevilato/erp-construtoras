@@ -71,6 +71,7 @@ export type ProposalFullDetail = {
     email: string | null
     telefone: string | null
     origem: string | null
+    origemDescricao: string | null
   }
 
   unidade: {
@@ -124,6 +125,7 @@ export type ProposalCommissionItem = {
     nome: string
     documento: string
     tipoEntidade: string // 'PF' ou 'PJ'
+    percVGV: number
     percRateio: number
     valor: number
     isResponsavel: boolean
@@ -152,6 +154,48 @@ export type ProposalAttachmentItem = {
 // 2. SERVER ACTIONS (HUBS E PROPOSTAS)
 // ==========================================
 
+// --- FUNÇÃO INTERNA: GATILHO DE CANCELAMENTO AUTOMÁTICO (LAZY CHECK) ---
+async function autoCancelExpiredProposals(tenantIdStr: string, userIdStr: string) {
+    const now = new Date()
+    // Busca propostas vencidas que estão segurando a unidade
+    const expired = await prisma.ycPropostas.findMany({
+        where: {
+            sysTenantId: BigInt(tenantIdStr),
+            validade: { lt: now },
+            status: { in: ['RASCUNHO', 'EM_ANALISE', 'REPROVADO'] }
+        },
+        select: { id: true, unidadeId: true, sysTenantId: true, escopoId: true, status: true }
+    })
+
+    if (expired.length === 0) return
+
+    // Para cada uma, cancela, solta a unidade e grava na linha do tempo
+    for (const prop of expired) {
+        await prisma.$transaction([
+            prisma.ycPropostas.update({
+                where: { id: prop.id },
+                data: { status: 'CANCELADO', sysUpdatedAt: new Date() }
+            }),
+            prisma.ycUnidades.update({
+                where: { id: prop.unidadeId },
+                data: { statusComercial: 'DISPONIVEL' }
+            }),
+            prisma.ycPropostasHistorico.create({
+                data: {
+                    sysTenantId: prop.sysTenantId,
+                    sysUserId: BigInt(userIdStr),
+                    escopoId: prop.escopoId,
+                    propostaId: prop.id,
+                    statusAnterior: prop.status,
+                    statusNovo: 'CANCELADO',
+                    acao: 'CANCELOU_VENCIDA',
+                    observacao: 'Cancelamento automático: Validade da proposta expirou. Unidade liberada.'
+                }
+            })
+        ])
+    }
+}
+
 // --- LISTAR PROJETOS (HUB 1) ---
 export async function getProposalProjects(): Promise<ProposalProjectSummary[]> {
   const session = await auth()
@@ -160,6 +204,9 @@ export async function getProposalProjects(): Promise<ProposalProjectSummary[]> {
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
   const tenantId = BigInt(tenantIdStr)
+  
+  // --- RODA O GATILHO SILENCIOSO AQUI ---
+  await autoCancelExpiredProposals(tenantIdStr, session.user.id)
 
   try {
     const projects = await prisma.ycProjetos.findMany({
@@ -217,6 +264,12 @@ export async function getProposalProjects(): Promise<ProposalProjectSummary[]> {
 export async function getProposalsByProject(projetoId: string): Promise<ProposalListSummary[]> {
   const session = await auth()
   if (!session) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (tenantIdStr) {
+      // --- RODA O GATILHO SILENCIOSO AQUI ---
+      await autoCancelExpiredProposals(tenantIdStr, session.user.id)
+  }
 
   try {
     const proposals = await prisma.ycPropostas.findMany({
@@ -286,8 +339,13 @@ export async function deleteProposal(id: string) {
             prisma.ycPropostasParcelas.deleteMany({ where: { propostaId: pId } }),
             prisma.ycPropostasPartes.deleteMany({ where: { propostaId: pId } }),
             prisma.ycPropostasComissoes.deleteMany({ where: { propostaId: pId } }),
-            prisma.ycPropostasAnexos.deleteMany({ where: { propostaId: pId } }), // <-- NOVO
-            prisma.ycPropostas.delete({ where: { id: pId } })
+            prisma.ycPropostasAnexos.deleteMany({ where: { propostaId: pId } }),
+            prisma.ycPropostas.delete({ where: { id: pId } }),
+            // --- LIBERA A UNIDADE ---
+            prisma.ycUnidades.update({
+                where: { id: prop.unidadeId },
+                data: { statusComercial: 'DISPONIVEL' }
+            })
         ])
 
         revalidatePath('/app/comercial/propostas')
@@ -295,6 +353,51 @@ export async function deleteProposal(id: string) {
     } catch(e) {
         console.error(e)
         return { success: false, message: "Erro ao excluir proposta." }
+    }
+}
+
+// --- CANCELAR PROPOSTA MANUALMENTE ---
+export async function cancelProposal(propostaId: string) {
+    const session = await auth()
+    if (!session) return { success: false, message: "Não autorizado" }
+    
+    try {
+        const pId = BigInt(propostaId)
+        const prop = await prisma.ycPropostas.findUnique({ where: { id: pId } })
+        if (!prop) return { success: false, message: "Proposta não encontrada" }
+        
+        if (!['RASCUNHO', 'EM_ANALISE', 'REPROVADO'].includes(prop.status)) {
+            return { success: false, message: "Esta proposta não pode ser cancelada neste status." }
+        }
+
+        await prisma.$transaction([
+            prisma.ycPropostas.update({
+                where: { id: pId },
+                data: { status: 'CANCELADO', sysUpdatedAt: new Date() }
+            }),
+            prisma.ycUnidades.update({
+                where: { id: prop.unidadeId },
+                data: { statusComercial: 'DISPONIVEL' }
+            }),
+            prisma.ycPropostasHistorico.create({
+                data: {
+                    sysTenantId: prop.sysTenantId,
+                    sysUserId: BigInt(session.user.id),
+                    escopoId: prop.escopoId,
+                    propostaId: pId,
+                    statusAnterior: prop.status,
+                    statusNovo: 'CANCELADO',
+                    acao: 'CANCELOU',
+                    observacao: 'Proposta cancelada manualmente pelo usuário. Unidade liberada para venda.'
+                }
+            })
+        ])
+
+        revalidatePath('/app/comercial/propostas')
+        return { success: true, message: "Proposta cancelada com sucesso. Unidade liberada!" }
+    } catch(e) {
+        console.error(e)
+        return { success: false, message: "Erro ao cancelar proposta." }
     }
 }
 
@@ -378,7 +481,8 @@ export async function getProposalDetails(propostaId: string): Promise<ProposalFu
         nome: prop.ycLeads.nome,
         email: prop.ycLeads.email,
         telefone: prop.ycLeads.telefone,
-        origem: prop.ycLeads.origem
+        origem: prop.ycLeads.origem,
+        origemDescricao: prop.ycLeads.origemDescricao
       },
 
       unidade: {
@@ -910,6 +1014,7 @@ export async function getProposalCommissions(propostaId: string): Promise<Propos
             nome: c.ycEntidades.nome,
             documento: c.ycEntidades.documento || 'N/A',
             tipoEntidade: c.ycEntidades.tipo,
+            percVGV: Number(c.percVGV),
             percRateio: Number(c.percRateio),
             valor: Number(c.valor),
             isResponsavel: c.isResponsavel
@@ -982,6 +1087,7 @@ export async function saveProposalCommissions(
                         escopoId: proposta.escopoId,
                         propostaId: pId,
                         entidadeId: BigInt(c.entidadeId),
+                        percVGV: c.percVGV,
                         percRateio: c.percRateio,
                         valor: c.valor,
                         isResponsavel: c.isResponsavel

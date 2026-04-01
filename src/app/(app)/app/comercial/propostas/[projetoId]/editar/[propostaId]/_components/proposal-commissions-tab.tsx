@@ -69,7 +69,7 @@ interface Props {
   setValorComissaoTotal: React.Dispatch<React.SetStateAction<number>>
 }
 
-export function ProposalCommissionsTab({ proposal, setProposal, commissions, setCommissions }: Props) {
+export function ProposalCommissionsTab({ proposal, setProposal, commissions, setCommissions, percComissaoTotal }: Props) {
     const router = useRouter()
     const [isPendingTrans, startTransition] = useTransition()
     
@@ -87,6 +87,7 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
 
     // --- CÁLCULOS TOTAIS ---
     const valorComissaoTotal = proposal.valorComissaoTotal || 0
+    const currentTotalVGV = commissions.reduce((acc, curr) => acc + Number(curr.percVGV), 0)
     const currentTotalRateio = commissions.reduce((acc, curr) => acc + Number(curr.percRateio), 0)
     const currentTotalValor = commissions.reduce((acc, curr) => acc + Number(curr.valor), 0)
 
@@ -153,8 +154,9 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
         const added = selectedFromModal.filter(s => !existingEntityIds.includes(s.id))
 
         const addedCommissions = added.map((ent, idx) => {
-            const initialPerc = (newCommissions.length === 0 && idx === 0) ? 100 : 0;
-            const initialValor = (initialPerc / 100) * valorComissaoTotal;
+            const initialPercRateio = (newCommissions.length === 0 && idx === 0) ? 100 : 0;
+            const initialPercVGV = (newCommissions.length === 0 && idx === 0) ? percComissaoTotal : 0;
+            const initialValor = (initialPercRateio / 100) * valorComissaoTotal;
             
             return {
                 id: crypto.randomUUID(),
@@ -162,7 +164,8 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
                 nome: ent.nome,
                 documento: ent.documento,
                 tipoEntidade: ent.tipo,
-                percRateio: initialPerc, 
+                percVGV: initialPercVGV, // <--- NOVO
+                percRateio: initialPercRateio, 
                 valor: initialValor,
                 isResponsavel: (newCommissions.length === 0 && idx === 0), 
             }
@@ -187,18 +190,27 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
             return
         }
 
+        if (field === 'percVGV') {
+            const pVGV = Number(value) || 0
+            const calculatedRateio = percComissaoTotal > 0 ? (pVGV / percComissaoTotal) * 100 : 0
+            const calculatedValor = (calculatedRateio / 100) * valorComissaoTotal
+            setCommissions(commissions.map(c => c.id === id ? ({ ...c, percVGV: pVGV, percRateio: Number(calculatedRateio.toFixed(2)), valor: calculatedValor } as ProposalCommissionItem) : c))
+            return
+        }
+
         if (field === 'percRateio') {
-            const perc = Number(value) || 0
-            const calculatedValor = (perc / 100) * valorComissaoTotal
-            setCommissions(commissions.map(c => c.id === id ? ({ ...c, percRateio: perc, valor: calculatedValor } as ProposalCommissionItem) : c))
+            const percR = Number(value) || 0
+            const calculatedVGV = (percR / 100) * percComissaoTotal
+            const calculatedValor = (percR / 100) * valorComissaoTotal
+            setCommissions(commissions.map(c => c.id === id ? ({ ...c, percRateio: percR, percVGV: Number(calculatedVGV.toFixed(2)), valor: calculatedValor } as ProposalCommissionItem) : c))
             return
         }
 
         if (field === 'valor') {
             const val = Number(value) || 0
-            const calculatedPerc = valorComissaoTotal > 0 ? (val / valorComissaoTotal) * 100 : 0
-            const roundedPerc = Number(calculatedPerc.toFixed(2))
-            setCommissions(commissions.map(c => c.id === id ? ({ ...c, valor: val, percRateio: roundedPerc } as ProposalCommissionItem) : c))
+            const calculatedRateio = valorComissaoTotal > 0 ? (val / valorComissaoTotal) * 100 : 0
+            const calculatedVGV = (calculatedRateio / 100) * percComissaoTotal
+            setCommissions(commissions.map(c => c.id === id ? ({ ...c, valor: val, percRateio: Number(calculatedRateio.toFixed(2)), percVGV: Number(calculatedVGV.toFixed(2)) } as ProposalCommissionItem) : c))
             return
         }
 
@@ -219,19 +231,24 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
 
     // --- VALIDAÇÃO E SALVAMENTO ---
     const performSave = async (payloadToSave: ProposalCommissionItem[]) => {
+        const sumVGV = payloadToSave.reduce((acc, curr) => acc + Number(curr.percVGV), 0)
         const sumRateio = payloadToSave.reduce((acc, curr) => acc + Number(curr.percRateio), 0)
         const sumValor = payloadToSave.reduce((acc, curr) => acc + Number(curr.valor), 0)
 
         if (payloadToSave.length > 0) {
+            if (Math.abs(sumVGV - percComissaoTotal) > 0.05) {
+                toast.error(`A soma do VGV deve ser exatos ${percComissaoTotal.toFixed(2)}%. Atual: ${sumVGV.toFixed(2)}%`)
+                return false
+            }
             if (Math.abs(sumRateio - 100) > 0.05) {
                 toast.error(`A soma do Rateio (%) deve ser exatos 100%. Atual: ${sumRateio.toFixed(2)}%`)
                 return false
             }
             if (Math.abs(sumValor - valorComissaoTotal) > 0.05) {
-                toast.error(`A soma dos valores está divergente do Total da Comissão.`)
+                toast.error(`A soma dos valores deve ser exata ao total de comissões.`)
                 return false
             }
-        }
+        } // <--- ERA ESTA CHAVE QUE ESTAVA FALTANDO!
 
         if (payloadToSave.length > 0 && !payloadToSave.some(c => c.isResponsavel)) {
             toast.error("Selecione um Corretor ou Imobiliária como Responsável.")
@@ -426,6 +443,21 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
                                         </Label>
                                     </div>
 
+                                    {/* % VGV (NOVO) */}
+                                    <div className="grid gap-1.5 w-[90px]">
+                                        <Label className="text-[10px] font-bold uppercase text-primary">VGV</Label>
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                className="h-9 pr-7 font-bold text-primary bg-background border-primary/30" 
+                                                value={commission.percVGV}
+                                                onChange={e => updateCommission(commission.id, 'percVGV', Number(e.target.value))}
+                                                disabled={!isUnlocked}
+                                            />
+                                            <span className="absolute right-2.5 top-2.5 text-xs font-bold text-primary/60 pointer-events-none">%</span>
+                                        </div>
+                                    </div>
+
                                     {/* RATEIO % */}
                                     <div className="grid gap-1.5 w-[100px]">
                                         <Label className="text-[10px] font-bold uppercase text-muted-foreground">Rateio</Label>
@@ -490,6 +522,17 @@ export function ProposalCommissionsTab({ proposal, setProposal, commissions, set
                             
                             {/* Resumo Bloqueado pela Privacidade Visual */}
                             <div className="flex items-center gap-6 bg-muted/50 border border-border rounded-lg px-4 py-3 overflow-x-auto">
+                                
+                                {/* 0. Total VGV (NOVO) */}
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Soma VGV</p>
+                                    <p className={cn("text-lg font-black tracking-tight", Math.abs(currentTotalVGV - percComissaoTotal) < 0.05 ? "text-success" : "text-warning")}>
+                                        {currentTotalVGV.toFixed(2)}% / <span className="text-sm font-medium text-muted-foreground">{percComissaoTotal.toFixed(2)}%</span>
+                                    </p>
+                                </div>
+                                
+                                <div className="w-px h-8 bg-border"></div>
+
                                 {/* 1. Rateio */}
                                 <div>
                                     <p className="text-[10px] font-bold uppercase text-muted-foreground">Rateio Total</p>

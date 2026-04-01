@@ -654,6 +654,7 @@ model ycPropostasComissoes {
   propostaId    BigInt
   entidadeId    BigInt
   percRateio    Decimal     @db.Decimal(10, 4)
+  percVGV       Decimal     @db.Decimal(10, 4)
   valor         Decimal     @db.Decimal(18, 2)
   isResponsavel Boolean     @default(false, map: "DF__ycPropost__isRes__6D9742D9")
   ycEmpresas    ycEmpresas  @relation(fields: [sysTenantId], references: [id], onUpdate: NoAction, map: "FK_ycPropostasComissoes_ycEmpresas")

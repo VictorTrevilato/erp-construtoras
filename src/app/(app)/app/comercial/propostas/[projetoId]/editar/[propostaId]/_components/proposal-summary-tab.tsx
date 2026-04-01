@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { ProposalFullDetail, submitProposalForAnalysis } from "@/app/actions/commercial-proposals"
+import { ProposalFullDetail, submitProposalForAnalysis, cancelProposal } from "@/app/actions/commercial-proposals"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { 
   FileText, Calendar, Building2, Maximize, User, Phone, 
-  Mail, Briefcase, CarFront, Box, TableProperties, AlertCircle, 
+  CircleUserRound, Briefcase, CarFront, Box, TableProperties, AlertCircle, 
   CheckCircle2, XCircle, Info, Megaphone, Send, Loader2
 } from "lucide-react"
 
@@ -23,18 +24,20 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCanceling, setIsCanceling] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   const fmtCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const fmtDate = (d: Date | null) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'APROVADO': return "bg-success/20 text-success border-success/30"
-      case 'FORMALIZADA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
-      case 'EM_ASSINATURA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
       case 'ASSINADO': return "bg-success text-success-foreground border-success/30"
-      case 'REPROVADO': return "bg-destructive/20 text-destructive border-destructive/30"
-      case 'CANCELADO': return "bg-muted text-muted-foreground border-border"
+      case 'EM_ASSINATURA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      case 'FORMALIZADA': return "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      case 'APROVADO': return "bg-success/20 text-success border-success/30"
+      case 'REPROVADO': return "bg-warning/20 text-warning border-warning/30"
+      case 'CANCELADO': return "bg-destructive/20 text-destructive border-destructive/30"
       case 'EM_ANALISE': return "bg-info/20 text-info border-info/30"
       case 'RASCUNHO': return "bg-muted/50 text-muted-foreground border-border"
       default: return "bg-muted text-muted-foreground"
@@ -46,10 +49,7 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
     const res = await submitProposalForAnalysis(proposal.id)
     if (res.success) {
         toast.success(res.message)
-        
-        // UI OTIMISTA: Avisa o Pai que o status mudou. Reflete instantaneamente em todas as abas.
         setProposal(prev => ({ ...prev, status: 'EM_ANALISE' }))
-
         startTransition(() => {
             router.refresh()
         })
@@ -57,6 +57,22 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
         toast.error(res.message)
     }
     setIsSubmitting(false)
+  }
+
+  const executeCancelProposal = async () => {
+    setIsCanceling(true)
+    const res = await cancelProposal(proposal.id)
+    if (res.success) {
+        toast.success(res.message)
+        setProposal(prev => ({ ...prev, status: 'CANCELADO' }))
+        startTransition(() => {
+            router.refresh()
+        })
+        setShowCancelModal(false) // <--- Fecha o modal com sucesso
+    } else {
+        toast.error(res.message)
+    }
+    setIsCanceling(false)
   }
 
   return (
@@ -90,16 +106,31 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
                         <span className="text-3xl font-black text-primary tracking-tight">{fmtCurrency(proposal.valorProposta)}</span>
                     </div>
 
-                    {/* BOTÃO DE SUBMETER */}
-                    {['RASCUNHO', 'REPROVADO'].includes(proposal.status) && (
-                        <Button 
-                            className="w-full font-bold h-11"
-                            onClick={handleSubmitForAnalysis}
-                            disabled={isSubmitting || isPending}
-                        >
-                            {isSubmitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
-                            {isSubmitting ? "Enviando..." : (proposal.status === 'REPROVADO' ? "Reenviar para Análise" : "Enviar para Análise")}
-                        </Button>
+                    {/* BOTÕES DE AÇÃO */}
+                    {['RASCUNHO', 'REPROVADO', 'EM_ANALISE'].includes(proposal.status) && (
+                        <div className="flex flex-col gap-2 mt-2">
+                            {/* O botão de Enviar não aparece se já estiver Em Análise, mas o de Cancelar pode aparecer */}
+                            {['RASCUNHO', 'REPROVADO'].includes(proposal.status) && (
+                                <Button 
+                                    className="w-full font-bold h-11"
+                                    onClick={handleSubmitForAnalysis}
+                                    disabled={isSubmitting || isPending || isCanceling}
+                                >
+                                    {isSubmitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
+                                    {isSubmitting ? "Enviando..." : (proposal.status === 'REPROVADO' ? "Reenviar para Análise" : "Enviar para Análise")}
+                                </Button>
+                            )}
+
+                            <Button 
+                                variant="outline"
+                                className="w-full font-bold h-11 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => setShowCancelModal(true)}
+                                disabled={isSubmitting || isPending || isCanceling}
+                            >
+                                {isCanceling ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <XCircle className="w-5 h-5 mr-2" />}
+                                {isCanceling ? "Cancelando..." : "Cancelar Proposta"}
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -270,12 +301,12 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
                                 <span className="font-medium">{proposal.lead.telefone || "Não informado"}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                                <Mail className="w-4 h-4 text-muted-foreground/70" />
-                                <span className="truncate">{proposal.lead.email || "Não informado"}</span>
+                                <Megaphone className="w-4 h-4 text-muted-foreground/70" />
+                                <span>{proposal.lead.origem || "Não informada"}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                                <Megaphone className="w-4 h-4 text-muted-foreground/70" />
-                                <span>Origem: {proposal.lead.origem || "Não informada"}</span>
+                                <CircleUserRound className="w-4 h-4 text-muted-foreground/70" />
+                                <span className="truncate">{proposal.lead.origemDescricao || "Não informado"}</span>
                             </div>
                         </div>
                     </div>
@@ -283,7 +314,7 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
                     {/* Coluna Intermediação */}
                     <div className="space-y-4 border-l pl-8">
                         <span className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-1">
-                            <Briefcase className="w-3.5 h-3.5" /> Corretor Responsável
+                            <Briefcase className="w-3.5 h-3.5" /> Usuário Responsável
                         </span>
                         <div className="flex items-center gap-3 bg-muted/30 border p-3 rounded-lg">
                             <div className="w-10 h-10 rounded-full bg-muted border flex items-center justify-center text-muted-foreground font-bold">
@@ -298,6 +329,33 @@ export function ProposalSummaryTab({ proposal, setProposal }: Props) {
           </Card>
 
       </div>
+      
+      {/* --- MODAL DE CONFIRMAÇÃO DE CANCELAMENTO --- */}
+      <AlertDialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Proposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar esta proposta? A unidade correspondente retornará imediatamente para o status &quot;Disponível&quot; no espelho de vendas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCanceling}>Voltar</AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={(e) => {
+                    e.preventDefault(); // Evita que o modal feche antes da action terminar
+                    executeCancelProposal();
+                }} 
+                disabled={isCanceling}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCanceling ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Confirmar Cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }

@@ -45,6 +45,46 @@ export type ProposalPayload = {
     condicoes: ProposalConditionInput[]
 }
 
+// --- FUNÇÃO INTERNA: GATILHO DE CANCELAMENTO AUTOMÁTICO (LAZY CHECK) ---
+async function autoCancelExpiredProposals(tenantIdStr: string, userIdStr: string) {
+    const now = new Date()
+    const expired = await prisma.ycPropostas.findMany({
+        where: {
+            sysTenantId: BigInt(tenantIdStr),
+            validade: { lt: now },
+            status: { in: ['RASCUNHO', 'EM_ANALISE', 'REPROVADO'] }
+        },
+        select: { id: true, unidadeId: true, sysTenantId: true, escopoId: true, status: true }
+    })
+
+    if (expired.length === 0) return
+
+    for (const prop of expired) {
+        await prisma.$transaction([
+            prisma.ycPropostas.update({
+                where: { id: prop.id },
+                data: { status: 'CANCELADO', sysUpdatedAt: new Date() }
+            }),
+            prisma.ycUnidades.update({
+                where: { id: prop.unidadeId },
+                data: { statusComercial: 'DISPONIVEL' }
+            }),
+            prisma.ycPropostasHistorico.create({
+                data: {
+                    sysTenantId: prop.sysTenantId,
+                    sysUserId: BigInt(userIdStr),
+                    escopoId: prop.escopoId,
+                    propostaId: prop.id,
+                    statusAnterior: prop.status,
+                    statusNovo: 'CANCELADO',
+                    acao: 'CANCELOU_VENCIDA',
+                    observacao: 'Cancelamento automático: Validade da proposta expirou. Unidade liberada.'
+                }
+            })
+        ])
+    }
+}
+
 // --- 1. LISTAGEM DE PROJETOS (Mesa) ---
 export async function getProjectsForNegotiation() {
   const session = await auth()
@@ -52,6 +92,9 @@ export async function getProjectsForNegotiation() {
   
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
+
+  // ---> RODA O GATILHO SILENCIOSO AQUI <---
+  await autoCancelExpiredProposals(tenantIdStr, session.user.id)
 
   try {
     const projects = await prisma.ycProjetos.findMany({
@@ -106,13 +149,14 @@ export async function getNegotiationHeader(projetoId: string) {
 
     if (!project) return null
 
-    const now = new Date()
+    const today = new Date()
+    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
     
     const activeTable = await prisma.ycTabelasPreco.findFirst({
       where: { 
         projetoId: BigInt(projetoId),
-        vigenciaInicial: { lte: now },
-        vigenciaFinal: { gte: now }   
+        vigenciaInicial: { lte: dataReferencia },
+        vigenciaFinal: { gte: dataReferencia }   
       },
       orderBy: { sysCreatedAt: 'desc' }, 
       select: { codigo: true, id: true }
@@ -132,7 +176,15 @@ export async function getNegotiationHeader(projetoId: string) {
 // --- 3. ESPELHO DE VENDAS (PREÇOS) ---
 export async function getSalesMirrorData(projetoId: string) {
   try {
-    const now = new Date()
+    // ---> RODA O GATILHO SILENCIOSO AQUI <---
+    const session = await auth()
+    const tenantIdStr = await getCurrentTenantId()
+    if (session && tenantIdStr) {
+        await autoCancelExpiredProposals(tenantIdStr, session.user.id)
+    }
+
+    const today = new Date()
+    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
 
     const units = await prisma.ycUnidades.findMany({
       where: { projetoId: BigInt(projetoId) },
@@ -141,8 +193,8 @@ export async function getSalesMirrorData(projetoId: string) {
         ycTabelasPrecoItens: {
           where: {
             ycTabelasPreco: {
-                vigenciaInicial: { lte: now },
-                vigenciaFinal: { gte: now }
+                vigenciaInicial: { lte: dataReferencia },
+                vigenciaFinal: { gte: dataReferencia }
             }
           },
           include: { ycTabelasPreco: true },
@@ -184,13 +236,14 @@ export async function getSalesMirrorData(projetoId: string) {
 
 // --- 4. FLUXOS DA TABELA VIGENTE ---
 export async function getProjectActiveFlows(projetoId: string) {
-    const now = new Date()
+    const today = new Date()
+    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
     
     const activeTable = await prisma.ycTabelasPreco.findFirst({
         where: { 
             projetoId: BigInt(projetoId),
-            vigenciaInicial: { lte: now },
-            vigenciaFinal: { gte: now }
+            vigenciaInicial: { lte: dataReferencia },
+            vigenciaFinal: { gte: dataReferencia }
         },
         orderBy: { sysCreatedAt: 'desc' },
         select: { id: true }
@@ -214,7 +267,8 @@ export async function getProjectActiveFlows(projetoId: string) {
 
 // --- 5. CALCULAR FLUXO PADRÃO ---
 export async function calculateStandardFlow(unidadeId: string, valorFechamento: number) {
-  const now = new Date()
+    const today = new Date()
+    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
 
   const unit = await prisma.ycUnidades.findUnique({
     where: { id: BigInt(unidadeId) },
@@ -222,8 +276,8 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
         ycTabelasPrecoItens: { 
             where: {
                 ycTabelasPreco: {
-                    vigenciaInicial: { lte: now },
-                    vigenciaFinal: { gte: now }
+                    vigenciaInicial: { lte: dataReferencia },
+                    vigenciaFinal: { gte: dataReferencia }
                 }
             },
             select: { tabelaPrecoId: true },
@@ -290,22 +344,23 @@ export async function saveProposal(data: ProposalPayload) {
   if (!session) return { success: false, message: "Não autorizado" }
 
   const { lead, unidadeId, valorProposta, condicoes } = data
-  const now = new Date()
+    const today = new Date()
+    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
 
   try {
     const contextUnit = await prisma.ycUnidades.findUnique({
         where: { id: BigInt(unidadeId) },
         include: {
-            ycProjetos: true, // Necessário para herança da comissão
+            ycProjetos: true,
             ycTabelasPrecoItens: {
                 where: {
                     ycTabelasPreco: {
-                        vigenciaInicial: { lte: now },
-                        vigenciaFinal: { gte: now }
+                        vigenciaInicial: { lte: dataReferencia },
+                        vigenciaFinal: { gte: dataReferencia }
                     }
                 },
                 include: {
-                    ycTabelasPreco: true // Necessário para herança da comissão
+                    ycTabelasPreco: true
                 },
                 take: 1
             }
