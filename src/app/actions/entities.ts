@@ -3,6 +3,8 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 export type CreateEntityInput = {
     tipo: 'PF' | 'PJ'
@@ -30,13 +32,29 @@ export type CreateEntityInput = {
     uf?: string
 }
 
+// ----------------------------------------------------------------------
+// 1. LISTAGEM BLINDADA (Com Filtro Dinâmico de Tipo)
+// ----------------------------------------------------------------------
 export async function getEntitiesPaginated(search: string, page: number, limit: number = 10) {
     const session = await auth()
-    if (!session) return { data: [], total: 0 }
+    if (!session?.user?.id) return { data: [], total: 0 }
 
     const tenantIdStr = await getCurrentTenantId()
     if (!tenantIdStr) return { data: [], total: 0 }
+    
     const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    // CRACHÁ DO UTILIZADOR
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha) return { data: [], total: 0 }
+
+    // Descobre o que ele pode ver
+    const canViewPF = cracha.permissoes.includes('PESSOAS_FISICAS_VER')
+    const canViewPJ = cracha.permissoes.includes('PESSOAS_JURIDICAS_VER')
+
+    // Se não pode ver nenhum dos dois, ejeta
+    if (!canViewPF && !canViewPJ) return { data: [], total: 0 }
 
     const numericSearch = search.replace(/\D/g, '')
 
@@ -47,8 +65,15 @@ export async function getEntitiesPaginated(search: string, page: number, limit: 
         OR.push({ documento: { contains: numericSearch } })
     }
 
+    // INJEÇÃO DA SEGURANÇA NA QUERY
     const whereClause = {
         sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos }, // REGRA 1: Escopos
+        ...(cracha.isInterno ? {} : { sysUserId: userId }), // REGRA 2: Autoria
+        
+        // REGRA 3: Filtra o Tipo de Entidade baseado nas permissões
+        ...(canViewPF && canViewPJ ? {} : { tipo: canViewPF ? 'PF' : 'PJ' }),
+
         ...(search ? { OR } : {})
     }
 
@@ -91,9 +116,12 @@ export async function getEntitiesPaginated(search: string, page: number, limit: 
     }
 }
 
+// ----------------------------------------------------------------------
+// 2. CRIAÇÃO RÁPIDA (Permissão Dinâmica e Escopo Seguro)
+// ----------------------------------------------------------------------
 export async function createSimpleEntity(data: CreateEntityInput) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado." }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
     const tenantIdStr = await getCurrentTenantId()
     if (!tenantIdStr) return { success: false, message: "Tenant não encontrado." }
@@ -101,9 +129,21 @@ export async function createSimpleEntity(data: CreateEntityInput) {
     const tenantId = BigInt(tenantIdStr)
     const userId = BigInt(session.user.id)
 
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+    // CHECAGEM DINÂMICA DE PERMISSÃO
+    const requiredPermission = data.tipo === 'PF' ? 'PESSOAS_FISICAS_CRIAR' : 'PESSOAS_JURIDICAS_CRIAR'
+    if (!cracha.permissoes.includes(requiredPermission)) {
+        return { success: false, message: "Você não tem permissão para cadastrar este tipo de cliente." }
+    }
+
     try {
-        const escopo = await prisma.ycEscopos.findFirst({ where: { sysTenantId: tenantId } })
-        const escopoId = escopo ? escopo.id : BigInt(1)
+        // ESCOPO SEGURO: Pega o primeiro escopo que o utilizador tem acesso
+        if (cracha.escoposPermitidos.length === 0) {
+            return { success: false, message: "Você não possui escopos vinculados para realizar cadastros." }
+        }
+        const escopoId = cracha.escoposPermitidos[0]
 
         const docExists = await prisma.ycEntidades.findFirst({
             where: { sysTenantId: tenantId, documento: data.documento }
@@ -120,7 +160,7 @@ export async function createSimpleEntity(data: CreateEntityInput) {
                 data: {
                     sysTenantId: tenantId,
                     sysUserId: userId,
-                    escopoId: escopoId,
+                    escopoId: escopoId, // Usa o escopo seguro
                     tipo: data.tipo,
                     documento: data.documento,
                     nome: data.nome
@@ -205,15 +245,30 @@ export async function createSimpleEntity(data: CreateEntityInput) {
     }
 }
 
-// --- NOVAS FUNÇÕES: BUSCAR E EDITAR ENTIDADE EXISTENTE ---
-
+// ----------------------------------------------------------------------
+// 3. BUSCAR POR ID (Com Proteção)
+// ----------------------------------------------------------------------
 export async function getEntityById(id: string) {
     const session = await auth()
-    if (!session) return null
+    if (!session?.user?.id) return null
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return null
+
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha) return null
 
     try {
-        const ent = await prisma.ycEntidades.findUnique({
-            where: { id: BigInt(id) }
+        const ent = await prisma.ycEntidades.findFirst({
+            where: { 
+                id: BigInt(id),
+                sysTenantId: tenantId,
+                escopoId: { in: cracha.escoposPermitidos },
+                ...(cracha.isInterno ? {} : { sysUserId: userId }) 
+            }
         })
         if (!ent) return null
 
@@ -226,7 +281,6 @@ export async function getEntityById(id: string) {
             if (pj) detalhes = pj
         }
 
-        // Converte BigInts e Datas para string para trafegar no Client Component
         const payload = { ...ent, ...detalhes }
         return JSON.parse(JSON.stringify(payload, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
@@ -237,15 +291,45 @@ export async function getEntityById(id: string) {
     }
 }
 
+// ----------------------------------------------------------------------
+// 4. ATUALIZAÇÃO RÁPIDA (Permissão Dinâmica)
+// ----------------------------------------------------------------------
 export async function updateSimpleEntity(id: string, data: Partial<CreateEntityInput>) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado." }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Tenant não encontrado." }
+
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+    const entId = BigInt(id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+    // CHECAGEM DINÂMICA DE PERMISSÃO
+    const requiredPermission = data.tipo === 'PF' ? 'PESSOAS_FISICAS_EDITAR' : 'PESSOAS_JURIDICAS_EDITAR'
+    if (!cracha.permissoes.includes(requiredPermission)) {
+        return { success: false, message: "Você não tem permissão para editar este tipo de cliente." }
+    }
 
     try {
-        const entId = BigInt(id)
-        
+        // ANTES DE EDITAR: Verifica propriedade e escopo
+        const checkExists = await prisma.ycEntidades.findFirst({
+            where: {
+                id: entId,
+                sysTenantId: tenantId,
+                escopoId: { in: cracha.escoposPermitidos },
+                ...(cracha.isInterno ? {} : { sysUserId: userId }) 
+            }
+        })
+
+        if (!checkExists) {
+            return { success: false, message: "Cadastro não encontrado ou acesso negado." }
+        }
+
         await prisma.$transaction(async (tx) => {
-            // Atualiza Tabela Pai (apenas nome muda)
             await tx.ycEntidades.update({
                 where: { id: entId },
                 data: { 
@@ -254,7 +338,6 @@ export async function updateSimpleEntity(id: string, data: Partial<CreateEntityI
                 }
             })
 
-            // Atualiza Filha
             if (data.tipo === 'PF') {
                 await tx.ycPessoasFisicas.update({
                     where: { id: entId },

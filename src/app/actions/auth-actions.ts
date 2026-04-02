@@ -7,7 +7,6 @@ import { AuthError } from "next-auth"
 import { cookies } from "next/headers"
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
-  // 1. Captura o contexto de cookies IMEDIATAMENTE (Primeira linha)
   const cookieStore = await cookies()
   let destinationUrl = "/select-org"
 
@@ -15,9 +14,11 @@ export async function authenticate(prevState: string | undefined, formData: Form
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
-    // 2. Validação no Banco
+    // 1. BLINDAGEM: Garante que o usuário existe e está globalmente ATIVO
     const user = await prisma.ycUsuarios.findUnique({
-      where: { email },
+      where: { 
+        email: email,
+      },
       include: {
         usuariosEmpresas: {
           where: { 
@@ -29,16 +30,18 @@ export async function authenticate(prevState: string | undefined, formData: Form
       }
     })
 
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      return "Credenciais inválidas."
+    // Checa se encontrou, se está ativo e se a senha confere
+    if (!user || !user.ativo || !(await bcrypt.compare(password, user.passwordHash))) {
+      return "Credenciais inválidas ou usuário inativo."
     }
 
-    // 3. Setar Cookie de Tenant se necessário
+    // 2. Setar Cookie de Tenant se necessário (Apenas 1 empresa ativa)
     const activeTenants = user.usuariosEmpresas
+    
     if (activeTenants.length === 1) {
       const tenantId = activeTenants[0].sysTenantId.toString()
       cookieStore.set("tenant-id", tenantId, {
-        maxAge: 60 * 60 * 24 * 30, // 30 dias em segundos
+        maxAge: 60 * 60 * 24 * 30, // 30 dias
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production"
@@ -46,8 +49,7 @@ export async function authenticate(prevState: string | undefined, formData: Form
       destinationUrl = "/app/dashboard"
     }
 
-    // 4. SignIn com Redirecionamento Nativo (Throw)
-    // REMOVIDO: redirect: false. Deixamos o NextAuth lançar o erro de redirect.
+    // 3. SignIn com Redirecionamento Nativo (Throw)
     await signIn("credentials", formData, { redirectTo: destinationUrl })
 
   } catch (error) {
@@ -59,12 +61,15 @@ export async function authenticate(prevState: string | undefined, formData: Form
           return "Algo deu errado."
       }
     }
-    // [IMPORTANTE] Relançar erros de sistema (como o NEXT_REDIRECT do signIn)
-    // Se não relançar, o redirecionamento não acontece.
+    // Relançar erros de sistema (como o NEXT_REDIRECT do signIn)
     throw error
   }
 }
 
 export async function serverSignOut() {
+  // BLINDAGEM: Limpa o contexto da empresa ao sair para evitar resíduos em PCs compartilhados
+  const cookieStore = await cookies()
+  cookieStore.delete("tenant-id")
+
   await signOut({ redirectTo: "/login" })
 }

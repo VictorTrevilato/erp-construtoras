@@ -60,7 +60,7 @@ export async function updateProfile(prevState: SettingsState, formData: FormData
       where: { id: userId }
     })
 
-    if (!user) return { success: false, message: 'Usuario nao encontrado.' }
+    if (!user) return { success: false, message: 'Usuário não encontrado.' }
 
     let passwordHash = user.passwordHash
 
@@ -70,16 +70,17 @@ export async function updateProfile(prevState: SettingsState, formData: FormData
       }
       const isPasswordValid = await bcrypt.compare(currentPassword, passwordHash)
       if (!isPasswordValid) {
-        return { success: false, message: 'A senha atual esta incorreta.' }
+        return { success: false, message: 'A senha atual está incorreta.' }
       }
       passwordHash = await bcrypt.hash(newPassword, 10)
     }
 
-    let finalAvatarUrl = (user as typeof user & { avatarUrl?: string | null }).avatarUrl || null;
+    // LIMPEZA: O Prisma já entende o avatarUrl nativamente pelo seu schema!
+    let finalAvatarUrl = user.avatarUrl;
 
     if (avatarFile && avatarFile.size > 0) {
       try {
-        // 1. Fazer o upload para o container PUBLICO
+        // 1. Fazer o upload para o container PUBLICO (Avatares são públicos)
         const newUrl = await uploadFileToAzure(avatarFile, 'public-assets');
         
         // 2. Se o usuario ja tinha uma foto antes, deletamos a antiga do servidor

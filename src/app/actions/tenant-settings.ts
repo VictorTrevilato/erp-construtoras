@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 import { uploadFileToAzure, deleteFileFromAzureByPath } from "@/lib/azure-storage"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 const tenantSchema = z.object({
   // Dados Principais
@@ -48,12 +50,22 @@ export type TenantFormState = {
   errors?: Record<string, string[]>
 }
 
+// --- ATUALIZAR DADOS DA EMPRESA ---
 export async function updateTenant(prevState: TenantFormState, formData: FormData): Promise<TenantFormState> {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado." }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { success: false, message: "Nenhuma organização selecionada." }
+
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('EMPRESA_EDITAR')) {
+    return { success: false, message: "Você não tem permissão para editar as configurações da empresa." }
+  }
 
   const validatedFields = tenantSchema.safeParse({
     nome: formData.get("nome"),
@@ -94,8 +106,6 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
   const faviconFile = formData.get("favicon") as File | null;
 
   try {
-    const tenantId = BigInt(tenantIdStr)
-    
     const currentTenant = await prisma.ycEmpresas.findUnique({
       where: { id: tenantId },
       select: { logo: true, logoMini: true, favicon: true }
@@ -147,16 +157,24 @@ export async function updateTenant(prevState: TenantFormState, formData: FormDat
   }
 }
 
+// --- LER DADOS DA EMPRESA ---
 export async function getTenantSettings() {
   const session = await auth()
-  if (!session) return null
+  if (!session?.user?.id) return null
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return null
 
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO DE LEITURA
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('EMPRESA_VER')) return null
+
   try {
     const company = await prisma.ycEmpresas.findUnique({
-      where: { id: BigInt(tenantIdStr) }
+      where: { id: tenantId }
     })
     
     return company

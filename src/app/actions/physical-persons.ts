@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control" 
 
 // ----------------------------------------------------------------------
-// TIPAGENS PARA SUBSTITUIR OS 'any' (Boas Práticas TypeScript)
+// TIPAGENS
 // ----------------------------------------------------------------------
 export interface GetPersonsParams {
   page?: number
@@ -48,15 +50,26 @@ export interface SavePersonPayload {
 }
 
 // ----------------------------------------------------------------------
-// NOVO: Busca Escopos para popular o dropdown (Copiado/Adaptado de Projetos)
+// BUSCA ESCOPOS PARA O DROPDOWN
 // ----------------------------------------------------------------------
 export async function getAvailableScopes() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  // FILTRO: Puxa o crachá para exibir apenas escopos permitidos
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha) return []
+
   try {
     const scopes = await prisma.ycEscopos.findMany({
-      where: { sysTenantId: BigInt(tenantIdStr), ativo: true },
+      where: { 
+        sysTenantId: BigInt(tenantIdStr), 
+        ativo: true,
+        id: { in: cracha.escoposPermitidos } // Trava de escopo na UI
+      },
       orderBy: { caminho: 'asc' },
       select: { 
         id: true, 
@@ -67,7 +80,6 @@ export async function getAvailableScopes() {
     })
 
     return scopes.map(s => {
-      // Usando a matemática exata e funcional do seu sistema
       const nivelCalculado = s.caminho.split('/').filter(Boolean).length
       return { id: s.id.toString(), nome: s.nome, tipo: s.tipo, nivel: nivelCalculado }
     })
@@ -78,11 +90,18 @@ export async function getAvailableScopes() {
 }
 
 // ----------------------------------------------------------------------
-// 1. LISTAGEM (O filtro que arrumamos anteriormente)
+// 1. LISTAGEM COM SEGURANÇA E REGRA DE CORRETOR EXTERNO
 // ----------------------------------------------------------------------
 export async function getPersonsPhysical(params: GetPersonsParams) {
+  const session = await auth()
+  if (!session?.user?.id) return { data: [], total: 0 }
+
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { data: [], total: 0 }
+
+  // VERIFICAÇÃO DE PERMISSÃO E CRACHÁ
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('PESSOAS_FISICAS_VER')) return { data: [], total: 0 }
 
   const { 
     page = 1, 
@@ -99,20 +118,21 @@ export async function getPersonsPhysical(params: GetPersonsParams) {
   const searchNumber = cleanSearch.replace(/\D/g, "")
   const isIdSearch = cleanSearch.startsWith('#')
 
-  // NOVO: "Mágica" para adivinhar a máscara do telefone caso o usuário digite só números com DDD
   let phoneWithDDD = ""
   if (searchNumber.length >= 3) {
     if (searchNumber.length >= 8) {
-       // Ex: "16992364117" vira "(16) 99236-4117"
        phoneWithDDD = `(${searchNumber.slice(0, 2)}) ${searchNumber.slice(2, 7)}-${searchNumber.slice(7)}`
     } else {
-       // Ex: "1699" vira "(16) 99"
        phoneWithDDD = `(${searchNumber.slice(0, 2)}) ${searchNumber.slice(2)}`
     }
   }
 
+  // INJEÇÃO DA SEGURANÇA NA QUERY DO BANCO
   const where: Prisma.ycPessoasFisicasWhereInput = {
     sysTenantId: tenantId,
+    escopoId: { in: cracha.escoposPermitidos }, // REGRA 1: Apenas Escopos do Usuário
+    ...(cracha.isInterno ? {} : { sysUserId: BigInt(session.user.id) }), // REGRA 2: Se Externo, apenas os dele
+
     ...(params.isCliente === true || params.isCliente === 'true' ? { isCliente: true } : {}),
     ...(params.isCorretor === true || params.isCorretor === 'true' ? { isCorretor: true } : {}),
     ...(params.isFuncionario === true || params.isFuncionario === 'true' ? { isFuncionario: true } : {}),
@@ -131,7 +151,6 @@ export async function getPersonsPhysical(params: GetPersonsParams) {
           { telefone_1: { contains: searchNumber } }, 
           { telefone_2: { contains: searchNumber } } 
         ] : []),
-        // NOVO: Inclui a versão "mascarada" dinamicamente na busca
         ...(phoneWithDDD ? [
           { telefone_1: { contains: phoneWithDDD } },
           { telefone_2: { contains: phoneWithDDD } }
@@ -184,19 +203,26 @@ export async function getPersonsPhysical(params: GetPersonsParams) {
   }
 }
 
-
 // ----------------------------------------------------------------------
-// 2. LEITURA POR ID (Corrigido para retornar TODOS os campos do Form)
+// 2. LEITURA POR ID
 // ----------------------------------------------------------------------
 export async function getPersonPhysicalById(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return null
+
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('PESSOAS_FISICAS_VER')) return null
 
   try {
     const person = await prisma.ycPessoasFisicas.findFirst({
       where: { 
         id: BigInt(id), 
-        sysTenantId: BigInt(tenantIdStr) 
+        sysTenantId: BigInt(tenantIdStr),
+        escopoId: { in: cracha.escoposPermitidos }, // Proteção de Escopo
+        ...(cracha.isInterno ? {} : { sysUserId: BigInt(session.user.id) }) // Proteção de Autoria
       },
       include: { ycEntidades: true }
     })
@@ -213,7 +239,6 @@ export async function getPersonPhysicalById(id: string) {
       escopoId: person.escopoId.toString(),
       nome: person.ycEntidades.nome,
       documento: person.ycEntidades.documento,
-      
       dataNascimento: dNasc,
       rg: person.rg || "",
       estadoCivil: person.estadoCivil || "",
@@ -234,7 +259,6 @@ export async function getPersonPhysicalById(id: string) {
       isCliente: person.isCliente,
       isCorretor: person.isCorretor,
       isFuncionario: person.isFuncionario,
-      // Conversão segura do TypeScript em vez de usar 'any'
       creci: (person as unknown as { creci?: string | null }).creci || ""
     }
   } catch (error) {
@@ -243,9 +267,8 @@ export async function getPersonPhysicalById(id: string) {
   }
 }
 
-
 // ----------------------------------------------------------------------
-// 3. SALVAR (Criar ou Atualizar em Transação)
+// 3. SALVAR (Criar ou Atualizar)
 // ----------------------------------------------------------------------
 export async function savePersonPhysical(data: SavePersonPayload) {
   const session = await auth()
@@ -257,6 +280,20 @@ export async function savePersonPhysical(data: SavePersonPayload) {
   const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
   
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+  // CHECAGEM DE PERMISSÃO
+  const requiredPermission = data.id ? 'PESSOAS_FISICAS_EDITAR' : 'PESSOAS_FISICAS_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
+
+  // Impede forçar criação/edição em um escopo proibido
+  if (!cracha.escoposPermitidos.includes(BigInt(data.escopoId))) {
+    return { success: false, message: "Você não tem permissão para usar este escopo." }
+  }
+
   const { id, nome, documento, dataNascimento, escopoId, ...pfData } = data;
 
   const dataToSave = Object.fromEntries(
@@ -268,6 +305,20 @@ export async function savePersonPhysical(data: SavePersonPayload) {
 
   try {
     if (id) {
+      // ANTES DE EDITAR: Verifica se ele tem direito sobre este registro
+      const checkExists = await prisma.ycPessoasFisicas.findFirst({
+        where: {
+          id: BigInt(id),
+          sysTenantId: tenantId,
+          escopoId: { in: cracha.escoposPermitidos },
+          ...(cracha.isInterno ? {} : { sysUserId: userId }) 
+        }
+      })
+
+      if (!checkExists) {
+        return { success: false, message: "Cadastro não encontrado ou você não tem permissão de edição sobre ele." }
+      }
+
       await prisma.$transaction([
         prisma.ycEntidades.update({
           where: { id: BigInt(id) },
@@ -307,7 +358,6 @@ export async function savePersonPhysical(data: SavePersonPayload) {
       return { success: true, message: "Pessoa Física cadastrada com sucesso!" }
     }
   } catch (error: unknown) {
-    // Usando a classe oficial do Prisma para tratamento de erro tipado
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') return { success: false, message: "Já existe um cadastro com este CPF." }
     }
@@ -315,16 +365,39 @@ export async function savePersonPhysical(data: SavePersonPayload) {
   }
 }
 
-
 // ----------------------------------------------------------------------
-// 4. EXCLUIR (Deletar em Transação)
+// 4. EXCLUIR
 // ----------------------------------------------------------------------
 export async function deletePersonPhysical(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { success: false, message: "Acesso negado." }
 
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('PESSOAS_FISICAS_EXCLUIR')) {
+    return { success: false, message: "Você não tem permissão para excluir registros." }
+  }
+
   try {
-    // Para não violar chaves estrangeiras, excluímos a Filha PRIMEIRO, e a Pai DEPOIS.
+    // ANTES DE EXCLUIR: Verifica propriedade/escopo
+    const checkExists = await prisma.ycPessoasFisicas.findFirst({
+        where: {
+          id: BigInt(id),
+          sysTenantId: tenantId,
+          escopoId: { in: cracha.escoposPermitidos },
+          ...(cracha.isInterno ? {} : { sysUserId: userId }) 
+        }
+    })
+
+    if (!checkExists) {
+      return { success: false, message: "Cadastro não encontrado ou acesso negado." }
+    }
+
     await prisma.$transaction([
       prisma.ycPessoasFisicas.delete({
         where: { id: BigInt(id) }
@@ -338,9 +411,7 @@ export async function deletePersonPhysical(id: string) {
   } catch (error: unknown) {
     console.error("Erro ao excluir Pessoa Física:", error)
     
-    // Usando a classe oficial do Prisma para tratamento de erro tipado
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Erro comum se a Entidade já estiver vinculada a Contratos ou Projetos
       if (error.code === 'P2003') {
         return { success: false, message: "Não é possível excluir. Este cadastro possui vínculos em outras áreas do sistema." }
       }

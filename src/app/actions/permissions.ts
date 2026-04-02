@@ -3,7 +3,10 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO CENTRALIZADO
+import { getUserAccessProfile } from "@/lib/access-control"
 
+// Função consumida pelo Provider no Front-end para montar a UI (Menus, Botões)
 export async function getUserPermissions(): Promise<string[]> {
   const session = await auth()
   if (!session?.user?.id) return []
@@ -12,50 +15,15 @@ export async function getUserPermissions(): Promise<string[]> {
   if (!tenantIdStr) return []
 
   const userId = BigInt(session.user.id)
+  const tenantId = BigInt(tenantIdStr)
 
   try {
-    const tenantId = BigInt(tenantIdStr)
-
-    // Verifica se o vínculo do usuário com esta empresa ainda está ativo
-    const usuarioEmpresa = await prisma.ycUsuariosEmpresas.findFirst({
-      where: { usuarioId: userId, sysTenantId: tenantId, ativo: true },
-      select: { id: true, cargoId: true }
-    })
-
-    if (!usuarioEmpresa) return []
-
-    // Busca Permissões (Cargo + Granulares) em paralelo
-    const [permissoesCargo, permissoesGranulares] = await Promise.all([
-        prisma.ycCargosPermissoes.findMany({
-            where: { cargoId: usuarioEmpresa.cargoId },
-            include: { ycPermissoes: true }
-        }),
-        prisma.ycUsuariosEmpresasPermissoes.findMany({
-            where: { usuarioEmpresaId: usuarioEmpresa.id },
-            include: { ycPermissoes: true }
-        })
-    ])
-
-    const permissionsSet = new Set<string>()
-
-    // 1. Adiciona permissões do Cargo
-    permissoesCargo.forEach(item => {
-      if (item.ycPermissoes?.codigo) permissionsSet.add(item.ycPermissoes.codigo)
-    })
-
-    // 2. Aplica permissões Granulares (Adiciona ou Remove)
-    permissoesGranulares.forEach(item => {
-      if (!item.ycPermissoes?.codigo) return
-      
-      if (item.permitido) {
-        permissionsSet.add(item.ycPermissoes.codigo)
-      } else {
-        // Se a granular diz "negado", remove mesmo que o cargo tenha
-        permissionsSet.delete(item.ycPermissoes.codigo)
-      }
-    })
+    // REFACTORING BRILHANTE: 
+    // Substituímos 40 linhas de código pela chamada direta ao nosso motor de acesso.
+    // Assim, a inteligência fica num lugar só!
+    const cracha = await getUserAccessProfile(userId, tenantId)
     
-    return Array.from(permissionsSet)
+    return cracha ? cracha.permissoes : []
 
   } catch (error) {
     console.error("Erro ao buscar permissões:", error)
@@ -63,8 +31,28 @@ export async function getUserPermissions(): Promise<string[]> {
   }
 }
 
-// Mantida para uso nas telas de administração de cargos
+// Mantida para uso nas telas de administração de cargos e perfis granulares
 export async function getAllSystemPermissions() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+
+  const userId = BigInt(session.user.id)
+  const tenantId = BigInt(tenantIdStr)
+
+  // BLINDAGEM: Apenas quem tem acesso à tela de Cargos ou Usuários precisa ver a matriz
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return []
+
+  const canViewRoles = cracha.permissoes.includes('CARGOS_VER')
+  const canViewUsers = cracha.permissoes.includes('USUARIOS_VER')
+
+  if (!canViewRoles && !canViewUsers) {
+    return [] // Se for um utilizador comum tentando fuçar, devolve vazio.
+  }
+
   try {
     const permissions = await prisma.ycPermissoes.findMany({
       orderBy: [{ categoria: 'asc' }, { descricao: 'asc' }]

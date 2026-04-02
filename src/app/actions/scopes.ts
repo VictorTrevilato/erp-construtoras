@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 const scopeSchema = z.object({
   nome: z.string().min(2, "O nome deve ter pelo menos 2 caracteres."),
@@ -21,17 +23,25 @@ export type ScopeFormState = {
   }
 }
 
+// --- LISTAGEM ---
 export async function getScopes() {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('ESCOPOS_VER')) return []
+
   try {
     const scopes = await prisma.ycEscopos.findMany({
       where: {
-        sysTenantId: BigInt(tenantIdStr),
+        sysTenantId: tenantId,
         ativo: true
       },
       orderBy: { caminho: 'asc' } 
@@ -51,6 +61,7 @@ export async function getScopes() {
   }
 }
 
+// --- SALVAR (CRIAR ou EDITAR) ---
 export async function saveScope(
   scopeId: string | null, 
   prevState: ScopeFormState, 
@@ -64,6 +75,15 @@ export async function saveScope(
   
   const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
+
+  // CHECAGEM DINÂMICA DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+  const requiredPermission = scopeId ? 'ESCOPOS_EDITAR' : 'ESCOPOS_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
 
   const validatedFields = scopeSchema.safeParse({
     nome: formData.get("nome"),
@@ -87,30 +107,31 @@ export async function saveScope(
       let newParentPath = ""
       let newParentIdBigInt: bigint | null = null
 
-      // [CORREÇÃO DO BUG] Se for "root", tratamos como null. Se for ID válido, convertemos.
       if (idPai && idPai !== "root") {
         newParentIdBigInt = BigInt(idPai)
-        const parentScope = await tx.ycEscopos.findUnique({
-          where: { id: newParentIdBigInt }
+        // BLINDAGEM: Garante que o Pai pertence ao mesmo Tenant
+        const parentScope = await tx.ycEscopos.findFirst({
+          where: { id: newParentIdBigInt, sysTenantId: tenantId }
         })
-        if (!parentScope) throw new Error("Novo escopo pai não encontrado.")
+        if (!parentScope) throw new Error("Novo escopo pai não encontrado ou acesso negado.")
         newParentPath = parentScope.caminho
       }
-      // Se for "root", newParentPath continua vazio "" e newParentIdBigInt continua null. Correto.
 
       // --- EDIÇÃO (Pode envolver MOVER) ---
       if (scopeId) {
         const targetId = BigInt(scopeId)
         
-        const currentScope = await tx.ycEscopos.findUniqueOrThrow({
-          where: { id: targetId }
+        // BLINDAGEM: Garante que o escopo alvo pertence ao mesmo Tenant
+        const currentScope = await tx.ycEscopos.findFirst({
+          where: { id: targetId, sysTenantId: tenantId }
         })
+
+        if (!currentScope) throw new Error("Escopo alvo não encontrado ou acesso negado.")
 
         const isMoving = currentScope.idPai !== newParentIdBigInt
 
         if (isMoving) {
           // [SEGURANÇA] Verificação de Ciclo
-          // Só verificamos ciclo se tivermos um pai. Mover pra raiz nunca gera ciclo.
           if (newParentPath && newParentPath.startsWith(currentScope.caminho)) {
             throw new Error("Não é possível mover um escopo para dentro de um de seus descendentes.")
           }
@@ -183,11 +204,11 @@ export async function saveScope(
     revalidatePath("/app/configuracoes/escopos")
     return { success: true, message: "Escopo salvo com sucesso!" }
 
-  } catch (error) { // <--- [CORREÇÃO] Removido ': any'
+  } catch (error) { 
     console.error("Erro ao salvar escopo:", error)
     
-    // Verificação segura do tipo de erro
-    const msg = (error instanceof Error && error.message.includes("descendentes")) 
+    // Extrai as nossas exceções disparadas dentro do bloco
+    const msg = (error instanceof Error && (error.message.includes("descendentes") || error.message.includes("não encontrado"))) 
       ? error.message 
       : "Erro interno ao salvar."
 
@@ -195,29 +216,48 @@ export async function saveScope(
   }
 }
 
+// --- EXCLUIR ---
 export async function deleteScope(scopeId: string) {
     const session = await auth()
-      if (!session) return { success: false, message: "Não autorizado." }
-    
-      try {
-        const id = BigInt(scopeId)
-    
-        const childrenCount = await prisma.ycEscopos.count({
-          where: { idPai: id, ativo: true }
-        })
-    
-        if (childrenCount > 0) {
-          return { success: false, message: "Não é possível excluir: Este escopo possui sub-escopos." }
-        }
-    
-        await prisma.ycEscopos.delete({
-          where: { id }
-        })
-    
-        revalidatePath("/app/configuracoes/escopos")
-        return { success: true, message: "Escopo excluído." }
-    
-      } catch { // <--- [CORREÇÃO] Removido '(error)' pois não era usado
-        return { success: false, message: "Erro ao excluir." }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
+
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    // CHECAGEM DE PERMISSÃO
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha || !cracha.permissoes.includes('ESCOPOS_EXCLUIR')) {
+        return { success: false, message: "Você não tem permissão para excluir escopos." }
+    }
+  
+    try {
+      const id = BigInt(scopeId)
+
+      // BLINDAGEM: Garante que o escopo alvo pertence ao mesmo Tenant antes de excluir
+      const scopeExists = await prisma.ycEscopos.findFirst({
+          where: { id, sysTenantId: tenantId }
+      })
+      if (!scopeExists) return { success: false, message: "Escopo não encontrado ou acesso negado." }
+  
+      const childrenCount = await prisma.ycEscopos.count({
+        where: { idPai: id, sysTenantId: tenantId, ativo: true }
+      })
+  
+      if (childrenCount > 0) {
+        return { success: false, message: "Não é possível excluir: Este escopo possui sub-escopos." }
       }
+  
+      await prisma.ycEscopos.delete({
+        where: { id }
+      })
+  
+      revalidatePath("/app/configuracoes/escopos")
+      return { success: true, message: "Escopo excluído." }
+  
+    } catch { 
+      return { success: false, message: "Erro ao excluir. Verifique se o escopo possui dependências ativas." }
+    }
 }

@@ -53,7 +53,7 @@ export type ProjectAttachmentItem = {
     isPublico: boolean
 }
 
-// --- FUNÇÃO AUXILIAR: Parse de Decimal (BR ou US) ---
+// --- FUNÇÃO AUXILIAR: Parse de Decimal ---
 function parseDecimal(value: string | undefined): number | undefined {
   if (!value) return undefined
   let v = value.trim()

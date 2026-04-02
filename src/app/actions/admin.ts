@@ -7,7 +7,10 @@ import { auth } from '@/auth'
 import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
-// Função auxiliar para serializar BigInt
+// ==================================================================
+// FUNÇÕES AUXILIARES E DE SEGURANÇA GLOBAL
+// ==================================================================
+
 function serializeData<T>(data: T): T {
   return JSON.parse(JSON.stringify(data, (key, value: unknown) =>
     typeof value === 'bigint' ? value.toString() : value
@@ -21,9 +24,31 @@ export type ActionState = {
   data?: unknown
 }
 
-// ------------------------------------------------------------------
+/**
+ * BLINDAGEM SUPER ADMIN:
+ * Verifica se o usuário logado tem a flag isSuperAdmin = true.
+ * Como este arquivo gerencia dados globais (Tenants, Permissões Mestre), 
+ * o acesso deve ser restrito ao dono do software.
+ */
+async function checkSuperAdminAccess(): Promise<boolean> {
+  const session = await auth()
+  if (!session?.user?.id) return false
+
+  try {
+    const user = await prisma.ycUsuarios.findUnique({
+      where: { id: BigInt(session.user.id) },
+      select: { isSuperAdmin: true }
+    })
+    return user?.isSuperAdmin === true
+  } catch (error) {
+    console.error("Erro ao verificar acesso Super Admin:", error)
+    return false
+  }
+}
+
+// ==================================================================
 // 1. GESTÃO DE TENANTS (ycEmpresas)
-// ------------------------------------------------------------------
+// ==================================================================
 
 const tenantSchema = z.object({
   nome: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -33,7 +58,6 @@ const tenantSchema = z.object({
   ativo: z.boolean().default(true),
 })
 
-// GET com Paginação, Busca e Ordenação
 export async function getTenants(
   page: number = 1, 
   pageSize: number = 10, 
@@ -41,6 +65,11 @@ export async function getTenants(
   sortBy: string = 'sysCreatedAt',
   sortDir: 'asc' | 'desc' = 'desc'
 ) {
+  // BLINDAGEM:
+  if (!(await checkSuperAdminAccess())) {
+    return { success: false, message: "Acesso Negado.", data: [], meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 } }
+  }
+
   try {
     const skip = (page - 1) * pageSize
     const searchClean = search.replace(/\D/g, '')
@@ -55,9 +84,7 @@ export async function getTenants(
     const validSortFields = ['nome', 'cnpj', 'sysCreatedAt', 'ativo']
     const orderByField = validSortFields.includes(sortBy) ? sortBy : 'sysCreatedAt'
     
-    const orderBy = {
-      [orderByField]: sortDir
-    }
+    const orderBy = { [orderByField]: sortDir }
 
     const [tenants, total] = await prisma.$transaction([
       prisma.ycEmpresas.findMany({
@@ -82,8 +109,9 @@ export async function getTenants(
   }
 }
 
-// CREATE
 export async function createTenant(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const session = await auth()
   const sysUserId = session?.user?.id ? BigInt(session.user.id) : null
 
@@ -141,13 +169,7 @@ export async function createTenant(prevState: ActionState, formData: FormData): 
     })
     
     revalidatePath('/admin/tenants')
-    
-    return { 
-      success: true, 
-      message: 'Empresa e Cargo Administrador criados!',
-      data: serializeData(newTenant) 
-    }
-
+    return { success: true, message: 'Empresa e Cargo Administrador criados!', data: serializeData(newTenant) }
   } catch (error) {
     console.error(error)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -157,10 +179,10 @@ export async function createTenant(prevState: ActionState, formData: FormData): 
   }
 }
 
-// UPDATE
 export async function updateTenant(prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const id = formData.get('id') as string
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
 
+  const id = formData.get('id') as string
   const rawAtivo = formData.get('ativo')
   const isAtivo = rawAtivo === 'on' 
 
@@ -173,11 +195,7 @@ export async function updateTenant(prevState: ActionState, formData: FormData): 
   })
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: 'Erro de validação.',
-      errors: validatedFields.error.flatten().fieldErrors,
-    }
+    return { success: false, message: 'Erro de validação.', errors: validatedFields.error.flatten().fieldErrors }
   }
 
   const { nome, cnpj, corPrimaria, corSecundaria, ativo } = validatedFields.data
@@ -206,29 +224,25 @@ export async function updateTenant(prevState: ActionState, formData: FormData): 
   }
 }
 
-// DELETE
 export async function deleteTenant(id: string) {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   try {
     await prisma.ycEmpresas.delete({ where: { id: BigInt(id) } })
     revalidatePath('/admin/tenants')
     return { success: true, message: 'Empresa removida com sucesso.' }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-      return { 
-        success: false, 
-        message: 'Existem usuários, cargos ou obras vinculados a esta empresa.' 
-      }
+      return { success: false, message: 'Existem usuários, cargos ou obras vinculados a esta empresa.' }
     }
-    
     console.error('Erro ao deletar tenant:', error)
     return { success: false, message: 'Erro interno ao remover empresa.' }
   }
 }
 
-/* ===========================================================================
-  2. GESTÃO DE PERMISSÕES (ycPermissoes)
-  ===========================================================================
-*/
+// ==================================================================
+// 2. GESTÃO DE PERMISSÕES (ycPermissoes)
+// ==================================================================
 
 const permissionSchema = z.object({
   codigo: z.string()
@@ -238,7 +252,6 @@ const permissionSchema = z.object({
   categoria: z.string().min(2, 'Informe a categoria (ex: Financeiro).'),
 })
 
-// GET Permissões
 export async function getPermissions(
   page: number = 1, 
   pageSize: number = 10, 
@@ -246,6 +259,8 @@ export async function getPermissions(
   sortBy: string = 'categoria',
   sortDir: 'asc' | 'desc' = 'asc'
 ) {
+  if (!(await checkSuperAdminAccess())) return { success: false, data: [], meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 } }
+
   try {
     const skip = (page - 1) * pageSize
     
@@ -285,8 +300,9 @@ export async function getPermissions(
   }
 }
 
-// CREATE Permissão
 export async function createPermission(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const validatedFields = permissionSchema.safeParse({
     codigo: formData.get('codigo'),
     descricao: formData.get('descricao'),
@@ -294,18 +310,11 @@ export async function createPermission(prevState: ActionState, formData: FormDat
   })
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: 'Erro de validação.',
-      errors: validatedFields.error.flatten().fieldErrors,
-    }
+    return { success: false, message: 'Erro de validação.', errors: validatedFields.error.flatten().fieldErrors }
   }
 
   try {
-    await prisma.ycPermissoes.create({
-      data: validatedFields.data
-    })
-    
+    await prisma.ycPermissoes.create({ data: validatedFields.data })
     revalidatePath('/admin/permissions')
     return { success: true, message: 'Permissão criada com sucesso!' }
   } catch (error) {
@@ -316,8 +325,9 @@ export async function createPermission(prevState: ActionState, formData: FormDat
   }
 }
 
-// UPDATE Permissão
 export async function updatePermission(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const id = formData.get('id') as string
 
   const validatedFields = permissionSchema.safeParse({
@@ -327,11 +337,7 @@ export async function updatePermission(prevState: ActionState, formData: FormDat
   })
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: 'Erro de validação.',
-      errors: validatedFields.error.flatten().fieldErrors,
-    }
+    return { success: false, message: 'Erro de validação.', errors: validatedFields.error.flatten().fieldErrors }
   }
 
   try {
@@ -353,8 +359,9 @@ export async function updatePermission(prevState: ActionState, formData: FormDat
   }
 }
 
-// DELETE Permissão
 export async function deletePermission(id: string) {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   try {
     await prisma.ycPermissoes.delete({ where: { id: BigInt(id) } })
     revalidatePath('/admin/permissions')
@@ -367,10 +374,9 @@ export async function deletePermission(id: string) {
   }
 }
 
-/* ===========================================================================
-  3. GESTÃO DE USUÁRIOS (ycUsuarios)
-  ===========================================================================
-*/
+// ==================================================================
+// 3. GESTÃO DE USUÁRIOS GLOBAIS (ycUsuarios)
+// ==================================================================
 
 const userSchema = z.object({
   nome: z.string().min(3, 'Nome muito curto.'),
@@ -387,7 +393,6 @@ const passwordSchema = z.object({
   password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.')
 })
 
-// GET Usuários
 export async function getUsers(
   page: number = 1, 
   pageSize: number = 10, 
@@ -395,6 +400,8 @@ export async function getUsers(
   sortBy: string = 'sysCreatedAt',
   sortDir: 'asc' | 'desc' = 'desc'
 ) {
+  if (!(await checkSuperAdminAccess())) return { success: false, data: [], meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 } }
+
   try {
     const skip = (page - 1) * pageSize
     
@@ -440,8 +447,9 @@ export async function getUsers(
   }
 }
 
-// CREATE Usuário
 export async function createUser(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const rawData = {
     nome: formData.get('nome'),
     email: formData.get('email'),
@@ -482,8 +490,9 @@ export async function createUser(prevState: ActionState, formData: FormData): Pr
   }
 }
 
-// UPDATE Usuário
 export async function updateUser(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const id = formData.get('id') as string
   
   const validatedFields = userSchema.safeParse({
@@ -508,13 +517,14 @@ export async function updateUser(prevState: ActionState, formData: FormData): Pr
     
     revalidatePath('/admin/users')
     return { success: true, message: 'Dados do usuário atualizados.' }
-  } catch { // [CORREÇÃO FINAL] Removida variável do catch
+  } catch { 
     return { success: false, message: 'Erro ao atualizar usuário.' }
   }
 }
 
-// DELETE Usuário
 export async function deleteUser(id: string) {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   try {
     await prisma.ycUsuarios.delete({ where: { id: BigInt(id) } })
     revalidatePath('/admin/users')
@@ -527,8 +537,9 @@ export async function deleteUser(id: string) {
   }
 }
 
-// ALTERAR SENHA
 export async function changeUserPassword(id: string, newPassword: string): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const validated = passwordSchema.safeParse({ password: newPassword })
   
   if (!validated.success) {
@@ -548,13 +559,14 @@ export async function changeUserPassword(id: string, newPassword: string): Promi
     
     revalidatePath('/admin/users')
     return { success: true, message: 'Senha alterada com sucesso.' }
-  } catch { // [CORREÇÃO FINAL] Removida variável do catch
+  } catch { 
     return { success: false, message: 'Erro ao alterar senha.' }
   }
 }
 
-// ENVIAR EMAIL RESET
 export async function sendUserResetEmail(id: string): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   try {
     const user = await prisma.ycUsuarios.findUnique({ where: { id: BigInt(id) } })
     if (!user) return { success: false, message: 'Usuário não encontrado.' }
@@ -562,15 +574,14 @@ export async function sendUserResetEmail(id: string): Promise<ActionState> {
     console.log(`[SIMULAÇÃO] Enviando e-mail de recuperação para: ${user.email}`)
 
     return { success: true, message: `E-mail de recuperação enviado para ${user.email}` }
-  } catch { // [CORREÇÃO FINAL] Removida variável do catch
+  } catch { 
     return { success: false, message: 'Erro ao enviar e-mail.' }
   }
 }
 
-/* ===========================================================================
-   NOVO: WIZARD DE USUÁRIO MASTER
-   ===========================================================================
-*/
+// ==================================================================
+// 4. WIZARD DE USUÁRIO MASTER
+// ==================================================================
 
 const masterAccessSchema = z.object({
   tenantId: z.string(),
@@ -580,6 +591,8 @@ const masterAccessSchema = z.object({
 })
 
 export async function createTenantMasterAccess(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado: Privilégios de SuperAdmin requeridos.' }
+
   const session = await auth()
   const sysUserId = session?.user?.id ? BigInt(session.user.id) : null
 
@@ -652,8 +665,9 @@ export async function createTenantMasterAccess(prevState: ActionState, formData:
   }
 }
 
-// CONSULTA
 export async function getTenantMaster(tenantId: string) {
+  if (!(await checkSuperAdminAccess())) return { success: false, message: 'Acesso Negado.' }
+
   try {
     const masterLink = await prisma.ycUsuariosEmpresas.findFirst({
       where: {

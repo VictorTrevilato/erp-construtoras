@@ -6,23 +6,19 @@ import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 // Schema Atualizado
 const userSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),
-  // Senha
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
-  
   cargoId: z.string().min(1, "Selecione um cargo."),
   escopos: z.array(z.string()), 
-  
-  // Novas Permissões Granulares: Array de string JSON "{id: 1, action: 'ALLOW'}"
-  // Vamos processar isso manualmente pois vem do form como strings
 })
 .refine((data) => {
-  // Se password foi preenchido, confirmPassword deve ser igual
   if (data.password && data.password !== "") {
     return data.password === data.confirmPassword
   }
@@ -47,17 +43,22 @@ export type UserFormState = {
 // --- LISTAGEM ---
 export async function getUsers() {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('USUARIOS_VER')) return []
+
   try {
     const users = await prisma.ycUsuariosEmpresas.findMany({
       where: {
-        sysTenantId: BigInt(tenantIdStr),
-        // Removido filtro 'ativo: true' para listar inativos também (se desejar)
-        // ou mantemos apenas ativos. Vamos listar todos para gestão.
+        sysTenantId: tenantId,
       },
       include: {
         ycUsuarios: {
@@ -69,7 +70,6 @@ export async function getUsers() {
         ycUsuariosEmpresasEscopos: {
             select: { escopoId: true }
         },
-        // Incluir permissões para popular o form de edição
         ycUsuariosEmpresasPermissoes: {
             select: { permissaoId: true, permitido: true }
         }
@@ -84,9 +84,8 @@ export async function getUsers() {
       email: u.ycUsuarios.email,
       cargoId: u.cargoId.toString(),
       cargoNome: u.ycCargos.nome,
-      ativo: u.ativo, // Novo campo
+      ativo: u.ativo, 
       escoposAtuais: u.ycUsuariosEmpresasEscopos.map(ue => ue.escopoId.toString()),
-      // Mapeia permissões extras: { "ID_PERMISSAO": true/false }
       permissoesExtras: u.ycUsuariosEmpresasPermissoes.reduce((acc, curr) => {
         acc[curr.permissaoId.toString()] = curr.permitido
         return acc
@@ -114,9 +113,16 @@ export async function saveUser(
   const tenantId = BigInt(tenantIdStr)
   const adminId = BigInt(session.user.id)
 
+  // CHECAGEM DINÂMICA DE PERMISSÃO
+  const cracha = await getUserAccessProfile(adminId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+  const requiredPermission = usuarioEmpresaId ? 'USUARIOS_EDITAR' : 'USUARIOS_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
+
   const rawEscopos = formData.getAll("escopos") as string[]
-  
-  // Captura permissões granulares do form
   const rawPermissions: { id: string, action: boolean }[] = []
   
   for (const [key, value] of formData.entries()) {
@@ -124,11 +130,9 @@ export async function saveUser(
        const permId = key.replace("perm_", "")
        if (value === "ALLOW") rawPermissions.push({ id: permId, action: true })
        if (value === "DENY") rawPermissions.push({ id: permId, action: false })
-       // Se for "INHERIT" (Padrão), ignoramos (não salvamos na tabela de exceção)
     }
   }
   
-  // [CORREÇÃO] Tratamento de campos nulos para o Zod
   const passwordRaw = formData.get("password")
   const confirmPasswordRaw = formData.get("confirmPassword")
 
@@ -152,6 +156,14 @@ export async function saveUser(
   const { nome, email, password, cargoId, escopos } = validatedFields.data
 
   try {
+    // BLINDAGEM: Verifica se o usuário a editar pertence ao tenant atual
+    if (usuarioEmpresaId) {
+      const checkExists = await prisma.ycUsuariosEmpresas.findFirst({
+        where: { id: BigInt(usuarioEmpresaId), sysTenantId: tenantId }
+      })
+      if (!checkExists) throw new Error("Usuário não encontrado ou acesso negado.")
+    }
+
     await prisma.$transaction(async (tx) => {
       let targetUsuarioEmpresaId: bigint
 
@@ -165,13 +177,11 @@ export async function saveUser(
           where: { id: targetUsuarioEmpresaId }
         })
 
-        // [CORREÇÃO] Tipagem explícita em vez de 'any'
         const updateData: { nome: string; sysUpdatedAt: Date; passwordHash?: string } = { 
             nome, 
             sysUpdatedAt: new Date() 
         }
 
-        // Só atualiza senha se foi fornecida
         if (password && password.length >= 6) {
             updateData.passwordHash = await bcrypt.hash(password, 10)
         }
@@ -242,13 +252,11 @@ export async function saveUser(
         })
       }
 
-      // --- PERMISSÕES GRANULARES (NOVO) ---
-      // 1. Limpa permissões antigas
+      // --- PERMISSÕES GRANULARES ---
       await tx.ycUsuariosEmpresasPermissoes.deleteMany({
         where: { usuarioEmpresaId: targetUsuarioEmpresaId }
       })
 
-      // 2. Insere as novas exceções
       if (rawPermissions.length > 0) {
         await tx.ycUsuariosEmpresasPermissoes.createMany({
             data: rawPermissions.map(p => ({
@@ -262,10 +270,8 @@ export async function saveUser(
       }
     })
 
-  } catch (error) { // [CORREÇÃO] Removido ': any'
+  } catch (error) { 
     console.error("Erro ao salvar usuário:", error)
-    
-    // Verificação segura
     const msg = (error instanceof Error) ? error.message : "Erro interno ao salvar."
     return { success: false, message: msg }
   }
@@ -274,13 +280,32 @@ export async function saveUser(
   return { success: true, message: "Usuário salvo com sucesso!" }
 }
 
-// Remover Usuário (Mantido igual, apenas para garantir integridade do arquivo)
+// --- EXCLUIR ---
 export async function removeUser(usuarioEmpresaId: string) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado." }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
+
+    const tenantId = BigInt(tenantIdStr)
+    const adminId = BigInt(session.user.id)
+
+    // CHECAGEM DE PERMISSÃO
+    const cracha = await getUserAccessProfile(adminId, tenantId)
+    if (!cracha || !cracha.permissoes.includes('USUARIOS_EXCLUIR')) {
+        return { success: false, message: "Você não tem permissão para excluir usuários." }
+    }
 
     try {
         const id = BigInt(usuarioEmpresaId)
+
+        // BLINDAGEM: Garante que o vínculo apagado pertence a esta empresa
+        const userExists = await prisma.ycUsuariosEmpresas.findFirst({
+            where: { id, sysTenantId: tenantId }
+        })
+        if (!userExists) return { success: false, message: "Usuário não encontrado ou acesso negado." }
+
         await prisma.$transaction(async (tx) => {
             await tx.ycUsuariosEmpresasEscopos.deleteMany({ where: { usuarioEmpresaId: id } })
             await tx.ycUsuariosEmpresasPermissoes.deleteMany({ where: { usuarioEmpresaId: id } })

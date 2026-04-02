@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 // Schema de Validação
 const roleSchema = z.object({
@@ -26,19 +28,25 @@ export type RoleFormState = {
 // --- LISTAGEM ---
 export async function getRoles() {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO (Apenas leitura)
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('CARGOS_VER')) return []
+
   try {
     const roles = await prisma.ycCargos.findMany({
       where: {
-        sysTenantId: BigInt(tenantIdStr),
+        sysTenantId: tenantId,
         ativo: true // Vamos listar apenas os ativos por enquanto
       },
       orderBy: { nome: 'asc' },
-      // Trazemos a contagem de usuários vinculados para evitar excluir cargos em uso
       include: {
         _count: {
           select: { ycUsuariosEmpresas: true }
@@ -59,14 +67,22 @@ export async function saveRole(
   formData: FormData
 ): Promise<RoleFormState> {
   const session = await auth()
-  // [CORREÇÃO] Garantir que temos o ID do usuário
   if (!session?.user?.id) return { success: false, message: "Não autorizado." }
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
   
   const tenantId = BigInt(tenantIdStr)
-  const userId = BigInt(session.user.id) // [NOVO] ID do usuário logado
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DINÂMICA DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+  const requiredPermission = roleId ? 'CARGOS_EDITAR' : 'CARGOS_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
 
   const rawPermissions = formData.getAll("permissions") as string[]
 
@@ -100,7 +116,6 @@ export async function saveRole(
             nome, 
             descricao, 
             sysUpdatedAt: new Date() 
-            // [NOTA] Não atualizamos sysUserId aqui, preservando o criador original
           }
         })
 
@@ -115,7 +130,7 @@ export async function saveRole(
             nome,
             descricao,
             sysTenantId: tenantId,
-            sysUserId: userId, // [CORREÇÃO] Inserindo o autor do registro
+            sysUserId: userId, 
             interno: true,
             ativo: true,
           }
@@ -126,7 +141,7 @@ export async function saveRole(
       if (permissions.length > 0) {
         const permissionInserts = permissions.map(permId => ({
           sysTenantId: tenantId,
-          sysUserId: userId, // [OPCIONAL] Se quiser rastrear quem deu a permissão também
+          sysUserId: userId, 
           cargoId: targetId,
           permissaoId: BigInt(permId)
         }))
@@ -149,14 +164,26 @@ export async function saveRole(
 // --- EXCLUIR ---
 export async function deleteRole(roleId: string) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado." }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
+
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('CARGOS_EXCLUIR')) {
+    return { success: false, message: "Você não tem permissão para excluir cargos." }
+  }
 
   try {
     const id = BigInt(roleId)
 
     // Verifica se tem usuários vinculados
     const usage = await prisma.ycUsuariosEmpresas.count({
-      where: { cargoId: id, ativo: true }
+      where: { cargoId: id, sysTenantId: tenantId, ativo: true }
     })
 
     if (usage > 0) {
@@ -164,14 +191,12 @@ export async function deleteRole(roleId: string) {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1. Remove permissões vinculadas (Obrigatório pois onDelete: NoAction)
       await tx.ycCargosPermissoes.deleteMany({
         where: { cargoId: id }
       })
 
-      // 2. Remove o cargo (Soft Delete ou Hard Delete? Vamos de Hard Delete por enquanto se não tiver uso)
       await tx.ycCargos.delete({
-        where: { id: id }
+        where: { id: id, sysTenantId: tenantId } // Garante que apaga apenas no tenant certo
       })
     })
 
@@ -187,17 +212,23 @@ export async function deleteRole(roleId: string) {
 // --- NOVO: BUSCAR POR ID ---
 export async function getRoleById(roleId: string) {
   const session = await auth()
-  if (!session) return null
+  if (!session?.user?.id) return null
 
-  // Usando o helper centralizado
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return null
+
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  // CHECAGEM DE PERMISSÃO
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('CARGOS_VER')) return null
 
   try {
     const role = await prisma.ycCargos.findUnique({
       where: { 
         id: BigInt(roleId),
-        sysTenantId: BigInt(tenantIdStr) // Garante segurança multitenant
+        sysTenantId: tenantId
       },
       include: {
         ycCargosPermissoes: true
@@ -210,7 +241,6 @@ export async function getRoleById(roleId: string) {
       id: role.id.toString(),
       nome: role.nome,
       descricao: role.descricao,
-      // Mapeia apenas os IDs das permissões para o formulário
       permissoesAtuais: role.ycCargosPermissoes.map(cp => cp.permissaoId.toString())
     }
   } catch (error) {

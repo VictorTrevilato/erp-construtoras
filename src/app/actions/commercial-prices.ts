@@ -5,13 +5,15 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 interface PriceItemInput {
   unidadeId: string
   valorMetroQuadrado: number
   fatorAndar: number
   fatorDiretoria: number
-  fatorCorrecao: number // [NOVO]
+  fatorCorrecao: number 
 }
 
 interface FlowInput {
@@ -47,21 +49,29 @@ const priceItemSchema = z.object({
   valorMetroQuadrado: z.coerce.number(),
   fatorAndar: z.coerce.number(),
   fatorDiretoria: z.coerce.number(),
-  fatorCorrecao: z.coerce.number(), // [NOVO]
+  fatorCorrecao: z.coerce.number(), 
 })
 
 // --- ACTIONS ---
 
 export async function getProjectsForTables() {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  // CHECAGEM DE PERMISSÃO E ESCOPO
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_VER')) return []
+
   try {
     const projects = await prisma.ycProjetos.findMany({
-      where: { sysTenantId: BigInt(tenantIdStr), ycUnidades: { some: {} } },
+      where: { 
+        sysTenantId: BigInt(tenantIdStr), 
+        escopoId: { in: cracha.escoposPermitidos }, // Proteção de Escopo
+        ycUnidades: { some: {} } 
+      },
       include: {
         _count: { 
           select: { 
@@ -91,9 +101,22 @@ export async function getProjectsForTables() {
 }
 
 export async function getCampaigns(projetoId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_VER')) return []
+
   try {
     const campaigns = await prisma.ycTabelasPreco.findMany({
-      where: { projetoId: BigInt(projetoId) },
+      where: { 
+        projetoId: BigInt(projetoId),
+        sysTenantId: BigInt(tenantIdStr),
+        escopoId: { in: cracha.escoposPermitidos } // Proteção de Escopo
+      },
       orderBy: { sysCreatedAt: 'desc' }
     })
     return campaigns.map(c => ({
@@ -110,11 +133,12 @@ export async function getCampaigns(projetoId: string) {
   }
 }
 
-// Helper para verificar colisão de datas
-async function checkDateOverlap(projetoId: string, start: Date, end: Date, excludeTableId?: string) {
+// Helper para verificar colisão de datas (Agora blindado por Tenant)
+async function checkDateOverlap(projetoId: string, tenantId: bigint, start: Date, end: Date, excludeTableId?: string) {
   const overlap = await prisma.ycTabelasPreco.findFirst({
     where: {
       projetoId: BigInt(projetoId),
+      sysTenantId: tenantId,
       id: excludeTableId ? { not: BigInt(excludeTableId) } : undefined,
       OR: [
         { AND: [{ vigenciaInicial: { lte: start } }, { vigenciaFinal: { gte: start } }] },
@@ -128,8 +152,21 @@ async function checkDateOverlap(projetoId: string, start: Date, end: Date, exclu
 
 export async function upsertCampaign(projetoId: string, tabelaId: string | null, formData: FormData) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado" }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+
+  const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+
+  const requiredPermission = tabelaId ? 'TABELAS_PRECO_EDITAR' : 'TABELAS_PRECO_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
 
   const raw = Object.fromEntries(formData.entries())
   const valid = campaignSchema.safeParse(raw)
@@ -142,16 +179,23 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
   if (start > end) return { success: false, message: "A data final deve ser posterior à inicial." }
 
   try {
-    const overlap = await checkDateOverlap(projetoId, start, end, tabelaId || undefined)
+    const project = await prisma.ycProjetos.findFirst({ 
+      where: { 
+        id: BigInt(projetoId),
+        sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos }
+      } 
+    })
+    
+    if (!project) return { success: false, message: "Projeto não encontrado ou acesso negado." }
+
+    const overlap = await checkDateOverlap(projetoId, tenantId, start, end, tabelaId || undefined)
     if (overlap) {
       return { 
         success: false, 
         message: `Conflito de datas! Já existe a tabela "${overlap.nome}" vigente neste período.` 
       }
     }
-
-    const project = await prisma.ycProjetos.findUnique({ where: { id: BigInt(projetoId) } })
-    if (!project) return { success: false, message: "Projeto não encontrado" }
 
     if (tabelaId) {
       await prisma.ycTabelasPreco.update({
@@ -192,8 +236,18 @@ export async function upsertCampaign(projetoId: string, tabelaId: string | null,
 
 export async function duplicateCampaign(projetoId: string, sourceTabelaId: string, formData: FormData) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado" }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+
+    const tenantId = BigInt(tenantIdStr)
     const userId = BigInt(session.user.id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_CRIAR')) {
+        return { success: false, message: "Você não tem permissão para duplicar tabelas." }
+    }
 
     const raw = Object.fromEntries(formData.entries())
     const valid = campaignSchema.safeParse(raw)
@@ -206,12 +260,16 @@ export async function duplicateCampaign(projetoId: string, sourceTabelaId: strin
     if (start > end) return { success: false, message: "A data final deve ser posterior à inicial." }
 
     try {
-        const original = await prisma.ycTabelasPreco.findUnique({
-            where: { id: BigInt(sourceTabelaId) }
+        const original = await prisma.ycTabelasPreco.findFirst({
+            where: { 
+                id: BigInt(sourceTabelaId),
+                sysTenantId: tenantId,
+                escopoId: { in: cracha.escoposPermitidos } 
+            }
         })
-        if (!original) return { success: false, message: "Tabela de origem não encontrada." }
+        if (!original) return { success: false, message: "Tabela de origem não encontrada ou acesso negado." }
 
-        const overlap = await checkDateOverlap(projetoId, start, end)
+        const overlap = await checkDateOverlap(projetoId, tenantId, start, end)
         if (overlap) {
             return { 
                 success: false, 
@@ -250,7 +308,7 @@ export async function duplicateCampaign(projetoId: string, sourceTabelaId: strin
                         valorMetroQuadrado: item.valorMetroQuadrado,
                         fatorAndar: item.fatorAndar,
                         fatorDiretoria: item.fatorDiretoria,
-                        fatorCorrecao: item.fatorCorrecao // Copia o fator de correção
+                        fatorCorrecao: item.fatorCorrecao
                     }))
                 })
             }
@@ -286,15 +344,31 @@ export async function duplicateCampaign(projetoId: string, sourceTabelaId: strin
 }
 
 export async function getPriceTableData(tabelaId: string, projetoId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_VER')) return []
+
   try {
     const units = await prisma.ycUnidades.findMany({
-      where: { projetoId: BigInt(projetoId) },
+      where: { 
+        projetoId: BigInt(projetoId),
+        sysTenantId: BigInt(tenantIdStr),
+        escopoId: { in: cracha.escoposPermitidos }
+      },
       include: { ycBlocos: { select: { nome: true } } },
       orderBy: [{ ycBlocos: { nome: 'asc' } }, { unidade: 'asc' }]
     })
 
     const priceItems = await prisma.ycTabelasPrecoItens.findMany({
-      where: { tabelaPrecoId: BigInt(tabelaId) }
+      where: { 
+        tabelaPrecoId: BigInt(tabelaId),
+        sysTenantId: BigInt(tenantIdStr)
+      }
     })
 
     return units.map(u => {
@@ -309,7 +383,7 @@ export async function getPriceTableData(tabelaId: string, projetoId: string) {
         valorMetroQuadrado: price ? Number(price.valorMetroQuadrado) : 0,
         fatorAndar: price ? Number(price.fatorAndar) : 0,
         fatorDiretoria: price ? Number(price.fatorDiretoria) : 0,
-        fatorCorrecao: price ? Number(price.fatorCorrecao) : 1, // [NOVO] Default 1
+        fatorCorrecao: price ? Number(price.fatorCorrecao) : 1,
       }
     })
   } catch {
@@ -319,12 +393,29 @@ export async function getPriceTableData(tabelaId: string, projetoId: string) {
 
 export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInput[]) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado" }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+
+  const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
 
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_EDITAR')) {
+    return { success: false, message: "Você não tem permissão para editar preços." }
+  }
+
   try {
-    const header = await prisma.ycTabelasPreco.findUnique({ where: { id: BigInt(tabelaId) } })
-    if (!header) return { success: false, message: "Tabela não encontrada" }
+    const header = await prisma.ycTabelasPreco.findFirst({ 
+        where: { 
+            id: BigInt(tabelaId),
+            sysTenantId: tenantId,
+            escopoId: { in: cracha.escoposPermitidos }
+        } 
+    })
+
+    if (!header) return { success: false, message: "Tabela não encontrada ou acesso negado." }
 
     const validItems = []
     for (const item of items) {
@@ -345,7 +436,7 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
             valorMetroQuadrado: item.valorMetroQuadrado,
             fatorAndar: item.fatorAndar,
             fatorDiretoria: item.fatorDiretoria,
-            fatorCorrecao: item.fatorCorrecao, // [NOVO]
+            fatorCorrecao: item.fatorCorrecao,
             sysUpdatedAt: new Date()
           },
           create: {
@@ -357,7 +448,7 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
             valorMetroQuadrado: item.valorMetroQuadrado,
             fatorAndar: item.fatorAndar,
             fatorDiretoria: item.fatorDiretoria,
-            fatorCorrecao: item.fatorCorrecao // [NOVO]
+            fatorCorrecao: item.fatorCorrecao
           }
         })
       )
@@ -372,9 +463,22 @@ export async function savePriceItemsBatch(tabelaId: string, items: PriceItemInpu
 }
 
 export async function getFlows(tabelaId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_VER')) return []
+
   try {
     const flows = await prisma.ycFluxosPadrao.findMany({
-      where: { tabelaPrecoId: BigInt(tabelaId) },
+      where: { 
+        tabelaPrecoId: BigInt(tabelaId),
+        sysTenantId: BigInt(tenantIdStr),
+        escopoId: { in: cracha.escoposPermitidos }
+      },
       orderBy: { dataPrimeiroVencimento: 'asc' }
     })
     return flows.map(f => ({
@@ -392,12 +496,29 @@ export async function getFlows(tabelaId: string) {
 
 export async function saveFlows(tabelaId: string, flows: FlowInput[]) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado" }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+
+  const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
 
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_EDITAR')) {
+    return { success: false, message: "Sem permissão de edição." }
+  }
+
   try {
-    const header = await prisma.ycTabelasPreco.findUnique({ where: { id: BigInt(tabelaId) } })
-    if (!header) return { success: false, message: "Tabela não encontrada" }
+    const header = await prisma.ycTabelasPreco.findFirst({ 
+        where: { 
+            id: BigInt(tabelaId),
+            sysTenantId: tenantId,
+            escopoId: { in: cracha.escoposPermitidos }
+        } 
+    })
+
+    if (!header) return { success: false, message: "Tabela não encontrada ou acesso negado." }
 
     await prisma.$transaction([
       prisma.ycFluxosPadrao.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } }),
@@ -426,9 +547,27 @@ export async function saveFlows(tabelaId: string, flows: FlowInput[]) {
 
 export async function deleteCampaign(tabelaId: string) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado" }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('TABELAS_PRECO_EXCLUIR')) {
+    return { success: false, message: "Sem permissão para exclusão." }
+  }
 
   try {
+    const tableExists = await prisma.ycTabelasPreco.findFirst({
+        where: {
+            id: BigInt(tabelaId),
+            sysTenantId: BigInt(tenantIdStr),
+            escopoId: { in: cracha.escoposPermitidos }
+        }
+    })
+
+    if (!tableExists) return { success: false, message: "Tabela não encontrada ou acesso negado." }
+
     await prisma.$transaction(async (tx) => {
       await tx.ycTabelasPrecoItens.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } })
       await tx.ycFluxosPadrao.deleteMany({ where: { tabelaPrecoId: BigInt(tabelaId) } })
