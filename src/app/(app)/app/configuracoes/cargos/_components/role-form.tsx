@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { useActionState, useEffect } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { saveRole, RoleFormState } from "@/app/actions/roles"
 import { toast } from "sonner"
 import { Loader2, Save, ArrowLeft, CheckSquare, Lock } from "lucide-react"
@@ -39,6 +39,20 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
   const saveRoleWithId = saveRole.bind(null, initialData?.id || null)
   const [state, formAction, isPending] = useActionState(saveRoleWithId, initialState)
 
+  // 1. ESTADO PARA CONTROLAR AS MARCAÇÕES EM TEMPO REAL
+  const [selectedPerms, setSelectedPerms] = useState<string[]>(
+    initialData?.permissoesAtuais || []
+  )
+
+  // 2. FUNÇÃO QUE ATUALIZA O ESTADO AO CLICAR NO CHECKBOX
+  const handleCheckChange = (permId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPerms((prev) => [...prev, permId]) // Adiciona à lista
+    } else {
+      setSelectedPerms((prev) => prev.filter((id) => id !== permId)) // Remove da lista
+    }
+  }
+
   useEffect(() => {
     if (state.message && !state.success) {
       toast.error(state.message)
@@ -46,11 +60,15 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
   }, [state])
 
   // Agrupamento de Permissões por Categoria
-  const groupedPermissions = allPermissions.reduce((acc, perm) => {
-    if (!acc[perm.categoria]) acc[perm.categoria] = []
-    acc[perm.categoria].push(perm)
-    return acc
-  }, {} as Record<string, Permission[]>)
+  const groupedPermissions = [...allPermissions]
+    // 1. Primeiro, ordenamos todas as permissões alfabeticamente pelo código
+    .sort((a, b) => a.codigo.localeCompare(b.codigo)) 
+    // 2. Depois, agrupamos elas nas categorias
+    .reduce((acc, perm) => {
+      if (!acc[perm.categoria]) acc[perm.categoria] = []
+      acc[perm.categoria].push(perm)
+      return acc
+    }, {} as Record<string, Permission[]>)
 
   // Ordenar categorias alfabeticamente
   const sortedCategories = Object.keys(groupedPermissions).sort()
@@ -121,7 +139,7 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição (Opcional)</Label>
+              <Label htmlFor="descricao">Descrição</Label>
               <Input 
                 id="descricao" 
                 name="descricao" 
@@ -141,50 +159,62 @@ export function RoleForm({ initialData, allPermissions, readOnly = false }: Role
           </h3>
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
-            {sortedCategories.map((category) => (
-              <Card key={category} className="flex flex-col overflow-hidden">
-                <CardHeader className="pb-3 bg-muted/50 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-medium">{category}</CardTitle>
-                    <Badge className="text-xs">
-                      {groupedPermissions[category].length}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                {/* [AJUSTE DE UI] CardContent sem padding + Div interna com scroll e altura máxima */}
-                <CardContent className="p-0 bg-background">
-                  <div className="h-[320px] overflow-y-auto p-4 space-y-4 pr-2">
-                    {/* Adicionei 'pr-2' para dar um respiro pro scrollbar não colar no texto */}
-                    
-                    {groupedPermissions[category].map((perm) => (
-                      <div key={perm.id} className="flex items-start space-x-3">
-                        <div className="flex items-center h-5">
-                            <Checkbox 
-                                id={`perm-${perm.id}`} 
-                                name="permissions" 
-                                value={perm.id} 
-                                defaultChecked={initialData?.permissoesAtuais.includes(perm.id)}
-                                disabled={readOnly}
-                            />
+            {sortedCategories.map((category) => {
+              // Calcula quantas permissões desta categoria estão selecionadas no momento
+              const categoryPerms = groupedPermissions[category]
+              const selectedCount = categoryPerms.filter((perm) => 
+                selectedPerms.includes(perm.id)
+              ).length
+
+              return (
+                <Card key={category} className="flex flex-col overflow-hidden">
+                  <CardHeader className="pb-3 bg-muted/50 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-medium">{category}</CardTitle>
+                      
+                      {/* Badge dinâmico: Muda de cor se tiver algo selecionado */}
+                      <Badge 
+                        className="text-xs" 
+                        variant={selectedCount > 0 ? "default" : "secondary"}
+                      >
+                        {selectedCount} / {categoryPerms.length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="p-0 bg-background">
+                    <div className="h-[320px] overflow-y-auto p-4 space-y-4 pr-2">
+                      {categoryPerms.map((perm) => (
+                        <div key={perm.id} className="flex items-start space-x-3">
+                          <div className="flex items-center h-5">
+                              {/* Checkbox agora é controlado pelo nosso Estado */}
+                              <Checkbox 
+                                  id={`perm-${perm.id}`} 
+                                  name="permissions" 
+                                  value={perm.id} 
+                                  checked={selectedPerms.includes(perm.id)}
+                                  onCheckedChange={(checked) => handleCheckChange(perm.id, checked as boolean)}
+                                  disabled={readOnly}
+                              />
+                          </div>
+                          <div className="grid gap-1.5 leading-none">
+                            <Label 
+                              htmlFor={`perm-${perm.id}`} 
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {perm.descricao}
+                            </Label>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                              {perm.codigo}
+                            </p>
+                          </div>
                         </div>
-                        <div className="grid gap-1.5 leading-none">
-                          <Label 
-                            htmlFor={`perm-${perm.id}`} 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            {perm.descricao.replace("Visualizar Menu - ", "").replace("Visualizar Módulo - ", "")}
-                          </Label>
-                          <p className="text-[11px] text-muted-foreground font-mono">
-                            {perm.codigo}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </div>
       </div>
