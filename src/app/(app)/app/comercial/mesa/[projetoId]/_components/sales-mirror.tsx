@@ -55,13 +55,17 @@ export function SalesMirror({ units, projetoNome, tabelaCodigo, logoUrl }: { uni
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'DISPONIVEL': 
-        return 'bg-success/10 ring-1 ring-success/30 text-success hover:bg-success/20 hover:ring-success/50 hover:shadow-md cursor-pointer'
+        return 'bg-success text-white ring-2 ring-success/80 shadow-md hover:brightness-110 transition-all cursor-pointer'
+  
       case 'RESERVADO': 
-        return 'bg-warning/10 ring-1 ring-warning/30 text-warning cursor-not-allowed opacity-90'
+        return 'bg-warning text-white ring-2 ring-warning/80 shadow-md cursor-not-allowed'
+  
       case 'EM_ANALISE': 
-        return 'bg-info/10 ring-1 ring-info/30 text-info cursor-not-allowed opacity-90'
+        return 'bg-info text-white ring-2 ring-info/80 shadow-md cursor-not-allowed'
+  
       case 'VENDIDO': 
-        return 'bg-destructive/10 ring-1 ring-destructive/30 text-destructive cursor-not-allowed opacity-60 grayscale-[0.5]'
+        return 'bg-destructive text-white ring-2 ring-destructive/80 shadow-md cursor-not-allowed'
+  
       default: 
         return 'bg-muted text-muted-foreground'
     }
@@ -109,7 +113,7 @@ export function SalesMirror({ units, projetoNome, tabelaCodigo, logoUrl }: { uni
 
             <ExportPdfSalesMirrorButton units={units} projetoNome={projetoNome} tabelaCodigo={tabelaCodigo} logoUrl={logoUrl} />
         </div>
-        
+
         {/* --- SEÇÃO 1: KPIs GLOBAIS --- */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="p-3 flex items-center gap-3 border-l-4 border-l-muted-foreground shadow-sm">
