@@ -5,28 +5,23 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 // --- TYPES ---
-
-// [ATUALIZADO] Agora inclui dados estruturais do projeto
 export type ApprovalProjectSummary = {
   id: string
   nome: string
   cidade: string
   uf: string
   img?: string | null
-  
-  // Novos campos para paridade com a Mesa
   tipo: string
   status: string
   totalBlocos: number
   totalUnidades: number
-  
-  // O nosso KPI principal
   totalPendentes: number
 }
 
-// Tipagem para o Detalhe (Mantida igual)
 export type ApprovalDetail = {
   id: string
   projetoId: string
@@ -77,16 +72,23 @@ export type ApprovalDetail = {
 // --- 1. LISTAR PROJETOS COM PENDÊNCIAS (HUB) ---
 export async function getApprovalProjects(): Promise<ApprovalProjectSummary[]> {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
 
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
   const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  
+  // BLINDAGEM DUPLA: Tem que ter permissão E OBRIGATORIAMENTE ser usuário interno (Diretoria/Backoffice)
+  if (!cracha || !cracha.isInterno || !cracha.permissoes.includes('APROVACOES_VER')) return []
 
   try {
     const projects = await prisma.ycProjetos.findMany({
       where: {
         sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos }, 
         ycUnidades: { some: {} }
       },
       select: {
@@ -97,20 +99,13 @@ export async function getApprovalProjects(): Promise<ApprovalProjectSummary[]> {
         logo: true,
         tipo: true,
         status: true,
-        
-        // Contagens Estruturais
         _count: {
-            select: { 
-                ycUnidades: true,
-                ycBlocos: true 
-            }
+            select: { ycUnidades: true, ycBlocos: true }
         },
-
-        // Busca profunda para contar pendências
         ycUnidades: {
           select: {
             ycPropostas: {
-              where: { status: 'EM_ANALISE' },
+              where: { status: 'EM_ANALISE' }, // Como é interno, vê todas em análise do escopo
               select: { id: true }
             }
           }
@@ -119,9 +114,7 @@ export async function getApprovalProjects(): Promise<ApprovalProjectSummary[]> {
       orderBy: { nome: 'asc' }
     })
 
-    // Processamento em memória
     return projects.map(p => {
-      // Soma todas as propostas em análise de todas as unidades
       const pendingCount = p.ycUnidades.reduce((acc, u) => acc + u.ycPropostas.length, 0)
       
       return {
@@ -130,20 +123,15 @@ export async function getApprovalProjects(): Promise<ApprovalProjectSummary[]> {
         cidade: p.cidade || '',
         uf: p.estado || '',
         img: p.logo,
-        
         tipo: p.tipo,
         status: p.status,
         totalBlocos: p._count.ycBlocos,
         totalUnidades: p._count.ycUnidades,
-        
         totalPendentes: pendingCount
       }
     })
-    // Ordena: Quem tem pendência aparece primeiro. Critério de desempate: Nome.
     .sort((a, b) => {
-        if (b.totalPendentes !== a.totalPendentes) {
-            return b.totalPendentes - a.totalPendentes
-        }
+        if (b.totalPendentes !== a.totalPendentes) return b.totalPendentes - a.totalPendentes
         return a.nome.localeCompare(b.nome)
     })
 
@@ -154,31 +142,38 @@ export async function getApprovalProjects(): Promise<ApprovalProjectSummary[]> {
 }
 
 // --- 2. BUSCAR PROPOSTAS DO PROJETO (OUTLOOK) ---
-// (MANTIDO IGUAL AO ANTERIOR, SEM ALTERAÇÕES NESSA PARTE)
 export async function getProposals(projetoId: string): Promise<ApprovalDetail[]> {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  
+  // BLINDAGEM DUPLA
+  if (!cracha || !cracha.isInterno || !cracha.permissoes.includes('APROVACOES_VER')) return []
 
   try {
     const proposals = await prisma.ycPropostas.findMany({
       where: {
+        sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos },
         ycUnidades: { projetoId: BigInt(projetoId) },
         status: 'EM_ANALISE'
       },
       include: {
         ycLeads: true,
         ycUsuarios: true,
-        ycUnidades: {
-            include: { ycBlocos: true }
-        },
+        ycUnidades: { include: { ycBlocos: true } },
         ycPropostasCondicoes: true,
         ycPropostasHistorico: {
             include: { ycUsuarios: true },
             orderBy: { sysCreatedAt: 'desc' }
         },
-        ycTabelasPreco: {
-            include: { ycFluxosPadrao: true }
-        }
+        ycTabelasPreco: { include: { ycFluxosPadrao: true } }
       },
       orderBy: { dataProposta: 'desc' }
     })
@@ -238,13 +233,24 @@ export async function getProposals(projetoId: string): Promise<ApprovalDetail[]>
 // --- 3. AÇÃO: APROVAR PROPOSTA ---
 const approveSchema = z.object({
     id: z.string(),
-    // [CORREÇÃO ITEM 3] Aceita string vazia, undefined ou null
     observacao: z.string().optional().or(z.literal(''))
 })
 
 export async function approveProposal(formData: FormData) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado" }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    
+    // BLINDAGEM DUPLA
+    if (!cracha || !cracha.isInterno || !cracha.permissoes.includes('APROVACOES_ANALISAR')) {
+        return { success: false, message: "Você não tem permissão para aprovar propostas." }
+    }
 
     const rawData = {
         id: formData.get("id"),
@@ -259,19 +265,24 @@ export async function approveProposal(formData: FormData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const current = await tx.ycPropostas.findUniqueOrThrow({ 
-                where: { id: BigInt(id) } 
+            const current = await tx.ycPropostas.findFirst({ 
+                where: { 
+                    id: BigInt(id),
+                    sysTenantId: tenantId,
+                    escopoId: { in: cracha.escoposPermitidos } 
+                } 
             })
 
-            // [CORREÇÃO ITEM 2] Limpar campos de rejeição anterior
+            if (!current) throw new Error("Proposta não encontrada ou acesso negado.")
+
             await tx.ycPropostas.update({
                 where: { id: BigInt(id) },
                 data: {
                     status: 'APROVADO',
                     dataDecisao: now,
-                    usuarioDecisaoId: BigInt(session.user.id),
-                    observacaoDecisao: observacao || null, // Salva a nova obs ou null
-                    motivoRejeicao: null, // Limpa o motivo antigo
+                    usuarioDecisaoId: userId,
+                    observacaoDecisao: observacao || null, 
+                    motivoRejeicao: null, 
                     sysUpdatedAt: now
                 }
             })
@@ -279,7 +290,7 @@ export async function approveProposal(formData: FormData) {
             await tx.ycPropostasHistorico.create({
                 data: {
                     sysTenantId: current.sysTenantId,
-                    sysUserId: BigInt(session.user.id),
+                    sysUserId: userId,
                     escopoId: current.escopoId,
                     propostaId: BigInt(id),
                     statusAnterior: current.status,
@@ -295,7 +306,8 @@ export async function approveProposal(formData: FormData) {
 
     } catch (error) {
         console.error(error)
-        return { success: false, message: "Erro ao aprovar proposta" }
+        const msg = (error instanceof Error) ? error.message : "Erro ao aprovar proposta."
+        return { success: false, message: msg }
     }
 }
 
@@ -308,7 +320,19 @@ const rejectSchema = z.object({
 
 export async function rejectProposal(formData: FormData) {
     const session = await auth()
-    if (!session) return { success: false, message: "Não autorizado" }
+    if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Sessão expirada." }
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    
+    // BLINDAGEM DUPLA
+    if (!cracha || !cracha.isInterno || !cracha.permissoes.includes('APROVACOES_ANALISAR')) {
+        return { success: false, message: "Você não tem permissão para reprovar propostas." }
+    }
 
     const rawData = {
         id: formData.get("id"),
@@ -324,16 +348,22 @@ export async function rejectProposal(formData: FormData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const current = await tx.ycPropostas.findUniqueOrThrow({ 
-                where: { id: BigInt(id) } 
+            const current = await tx.ycPropostas.findFirst({ 
+                where: { 
+                    id: BigInt(id),
+                    sysTenantId: tenantId,
+                    escopoId: { in: cracha.escoposPermitidos }
+                } 
             })
+
+            if (!current) throw new Error("Proposta não encontrada ou acesso negado.")
 
             await tx.ycPropostas.update({
                 where: { id: BigInt(id) },
                 data: {
                     status: 'REPROVADO',
                     dataDecisao: now,
-                    usuarioDecisaoId: BigInt(session.user.id),
+                    usuarioDecisaoId: userId,
                     motivoRejeicao: motivo,
                     observacaoDecisao: observacao,
                     sysUpdatedAt: now
@@ -343,7 +373,7 @@ export async function rejectProposal(formData: FormData) {
             await tx.ycPropostasHistorico.create({
                 data: {
                     sysTenantId: current.sysTenantId,
-                    sysUserId: BigInt(session.user.id),
+                    sysUserId: userId,
                     escopoId: current.escopoId,
                     propostaId: BigInt(id),
                     statusAnterior: current.status,
@@ -366,6 +396,7 @@ export async function rejectProposal(formData: FormData) {
 
     } catch (error) {
         console.error(error)
-        return { success: false, message: "Erro ao reprovar proposta" }
+        const msg = (error instanceof Error) ? error.message : "Erro ao reprovar proposta."
+        return { success: false, message: msg }
     }
 }

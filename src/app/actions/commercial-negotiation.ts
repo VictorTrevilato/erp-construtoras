@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { getFileDownloadUrl } from "@/lib/azure-storage"
+// 1. IMPORTAÇÃO DO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control"
 
 // --- TYPES ---
 export type NegotiationUnit = {
@@ -45,7 +47,7 @@ export type ProposalPayload = {
     condicoes: ProposalConditionInput[]
 }
 
-// --- FUNÇÃO INTERNA: GATILHO DE CANCELAMENTO AUTOMÁTICO (LAZY CHECK) ---
+// --- FUNÇÃO INTERNA: GATILHO DE CANCELAMENTO AUTOMÁTICO ---
 async function autoCancelExpiredProposals(tenantIdStr: string, userIdStr: string) {
     const now = new Date()
     const expired = await prisma.ycPropostas.findMany({
@@ -88,27 +90,28 @@ async function autoCancelExpiredProposals(tenantIdStr: string, userIdStr: string
 // --- 1. LISTAGEM DE PROJETOS (Mesa) ---
 export async function getProjectsForNegotiation() {
   const session = await auth()
-  if (!session) return []
+  if (!session?.user?.id) return []
   
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
-  // ---> RODA O GATILHO SILENCIOSO AQUI <---
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('MESA_VER')) return []
+
   await autoCancelExpiredProposals(tenantIdStr, session.user.id)
 
   try {
     const projects = await prisma.ycProjetos.findMany({
       where: { 
-        sysTenantId: BigInt(tenantIdStr),
+        sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos }, // BLINDAGEM: Apenas obras do seu escopo
         ycUnidades: { some: {} } 
       },
       include: {
-        _count: { 
-          select: { 
-            ycUnidades: true,
-            ycBlocos: true 
-          } 
-        },
+        _count: { select: { ycUnidades: true, ycBlocos: true } },
         ycUnidades: {
           where: { statusComercial: 'DISPONIVEL' },
           select: { id: true }
@@ -134,17 +137,28 @@ export async function getProjectsForNegotiation() {
   }
 }
 
-// --- 2. DADOS DO CABEÇALHO (TAG DA TABELA) ---
+// --- 2. DADOS DO CABEÇALHO ---
 export async function getNegotiationHeader(projetoId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return null
+  
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('MESA_VER')) return null
+
   try {
-    const project = await prisma.ycProjetos.findUnique({
-      where: { id: BigInt(projetoId) },
-      select: {
-        id: true,
-        nome: true,
-        cidade: true,
-        estado: true
-      }
+    const project = await prisma.ycProjetos.findFirst({
+      where: { 
+          id: BigInt(projetoId),
+          sysTenantId: tenantId,
+          escopoId: { in: cracha.escoposPermitidos } // BLINDAGEM: Impede espiar obra alheia
+      },
+      select: { id: true, nome: true, cidade: true, estado: true }
     })
 
     if (!project) return null
@@ -155,6 +169,7 @@ export async function getNegotiationHeader(projetoId: string) {
     const activeTable = await prisma.ycTabelasPreco.findFirst({
       where: { 
         projetoId: BigInt(projetoId),
+        sysTenantId: tenantId,
         vigenciaInicial: { lte: dataReferencia },
         vigenciaFinal: { gte: dataReferencia }   
       },
@@ -175,19 +190,30 @@ export async function getNegotiationHeader(projetoId: string) {
 
 // --- 3. ESPELHO DE VENDAS (PREÇOS) ---
 export async function getSalesMirrorData(projetoId: string) {
-  try {
-    // ---> RODA O GATILHO SILENCIOSO AQUI <---
-    const session = await auth()
-    const tenantIdStr = await getCurrentTenantId()
-    if (session && tenantIdStr) {
-        await autoCancelExpiredProposals(tenantIdStr, session.user.id)
-    }
+  const session = await auth()
+  if (!session?.user?.id) return []
 
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+  
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('MESA_VER')) return []
+
+  await autoCancelExpiredProposals(tenantIdStr, session.user.id)
+
+  try {
     const today = new Date()
     const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
 
     const units = await prisma.ycUnidades.findMany({
-      where: { projetoId: BigInt(projetoId) },
+      where: { 
+          projetoId: BigInt(projetoId),
+          sysTenantId: tenantId,
+          escopoId: { in: cracha.escoposPermitidos } // BLINDAGEM DO ESPELHO
+      },
       include: {
         ycBlocos: { select: { nome: true } },
         ycTabelasPrecoItens: {
@@ -236,12 +262,26 @@ export async function getSalesMirrorData(projetoId: string) {
 
 // --- 4. FLUXOS DA TABELA VIGENTE ---
 export async function getProjectActiveFlows(projetoId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return []
+    
+    const tenantId = BigInt(tenantIdStr)
+    const userId = BigInt(session.user.id)
+
+    const cracha = await getUserAccessProfile(userId, tenantId)
+    if (!cracha || !cracha.permissoes.includes('MESA_VER')) return []
+
     const today = new Date()
     const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
     
     const activeTable = await prisma.ycTabelasPreco.findFirst({
         where: { 
             projetoId: BigInt(projetoId),
+            sysTenantId: tenantId,
+            escopoId: { in: cracha.escoposPermitidos },
             vigenciaInicial: { lte: dataReferencia },
             vigenciaFinal: { gte: dataReferencia }
         },
@@ -252,7 +292,7 @@ export async function getProjectActiveFlows(projetoId: string) {
     if (!activeTable) return []
 
     const flows = await prisma.ycFluxosPadrao.findMany({
-        where: { tabelaPrecoId: activeTable.id },
+        where: { tabelaPrecoId: activeTable.id, sysTenantId: tenantId },
         orderBy: { dataPrimeiroVencimento: 'asc' }
     })
 
@@ -267,11 +307,28 @@ export async function getProjectActiveFlows(projetoId: string) {
 
 // --- 5. CALCULAR FLUXO PADRÃO ---
 export async function calculateStandardFlow(unidadeId: string, valorFechamento: number) {
-    const today = new Date()
-    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+  const session = await auth()
+  if (!session?.user?.id) return []
 
-  const unit = await prisma.ycUnidades.findUnique({
-    where: { id: BigInt(unidadeId) },
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return []
+  
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('MESA_VER')) return []
+
+  const today = new Date()
+  const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+
+  // BLINDAGEM DA UNIDADE: Verifica Tenant e Escopo antes de calcular
+  const unit = await prisma.ycUnidades.findFirst({
+    where: { 
+        id: BigInt(unidadeId),
+        sysTenantId: tenantId,
+        escopoId: { in: cracha.escoposPermitidos }
+    },
     include: { 
         ycTabelasPrecoItens: { 
             where: {
@@ -291,16 +348,14 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
   const tabelaId = unit.ycTabelasPrecoItens[0].tabelaPrecoId
 
   const fluxosPadrao = await prisma.ycFluxosPadrao.findMany({
-    where: { tabelaPrecoId: tabelaId },
+    where: { tabelaPrecoId: tabelaId, sysTenantId: tenantId },
     orderBy: { dataPrimeiroVencimento: 'asc' }
   })
 
   let sumReal = 0
 
-  // 1. Gera o fluxo calculando o valor de cada parcela com precisão de 2 casas (Moeda)
   const result = fluxosPadrao.map(f => {
     const totalCondicao = valorFechamento * (Number(f.percentual) / 100)
-    // Arredonda a parcela para 2 casas, simulando o que o sistema financeiro faz
     const valorParcela = Number((totalCondicao / f.qtdeParcelas).toFixed(2))
     const valorTotalReal = valorParcela * f.qtdeParcelas
     
@@ -319,16 +374,13 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
     } as StandardFlow
   })
 
-  // 2. OPÇÃO B: Absorvendo a divergência de centavos na Entrada
   const diff = Number((valorFechamento - sumReal).toFixed(2))
 
   if (Math.abs(diff) > 0 && result.length > 0) {
-      // Procura a parcela de ENTRADA (desde que seja parcela única para não quebrar a divisão)
       let target = result.find(f => f.tipo === 'ENTRADA' && f.qtdeParcelas === 1)
       if (!target) target = result.find(f => f.qtdeParcelas === 1)
       if (!target) target = result[0]
 
-      // Ajusta o centavo na parcela alvo
       if (target.qtdeParcelas === 1) {
           target.valorParcela = Number((target.valorParcela + diff).toFixed(2))
           target.valorTotal = target.valorParcela
@@ -341,15 +393,31 @@ export async function calculateStandardFlow(unidadeId: string, valorFechamento: 
 // --- 6. SALVAR PROPOSTA ---
 export async function saveProposal(data: ProposalPayload) {
   const session = await auth()
-  if (!session) return { success: false, message: "Não autorizado" }
+  if (!session?.user?.id) return { success: false, message: "Não autorizado" }
+
+  const tenantIdStr = await getCurrentTenantId()
+  if (!tenantIdStr) return { success: false, message: "Sessão Expirada." }
+  
+  const tenantId = BigInt(tenantIdStr)
+  const userId = BigInt(session.user.id)
+
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha || !cracha.permissoes.includes('MESA_OPERAR')) {
+      return { success: false, message: "Você não tem permissão para realizar vendas." }
+  }
 
   const { lead, unidadeId, valorProposta, condicoes } = data
-    const today = new Date()
-    const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+  const today = new Date()
+  const dataReferencia = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
 
   try {
-    const contextUnit = await prisma.ycUnidades.findUnique({
-        where: { id: BigInt(unidadeId) },
+    // BLINDAGEM TOTAL NA GERAÇÃO DA PROPOSTA
+    const contextUnit = await prisma.ycUnidades.findFirst({
+        where: { 
+            id: BigInt(unidadeId),
+            sysTenantId: tenantId,
+            escopoId: { in: cracha.escoposPermitidos }
+        },
         include: {
             ycProjetos: true,
             ycTabelasPrecoItens: {
@@ -359,27 +427,22 @@ export async function saveProposal(data: ProposalPayload) {
                         vigenciaFinal: { gte: dataReferencia }
                     }
                 },
-                include: {
-                    ycTabelasPreco: true
-                },
+                include: { ycTabelasPreco: true },
                 take: 1
             }
         }
     })
     
-    if (!contextUnit) return { success: false, message: "Unidade inválida" }
+    if (!contextUnit) return { success: false, message: "Unidade inválida ou acesso negado." }
 
     const priceItem = contextUnit.ycTabelasPrecoItens[0]
-    if (!priceItem) return { success: false, message: "Unidade sem tabela de preço vigente vinculada" }
+    if (!priceItem) return { success: false, message: "Unidade sem tabela de preço vigente vinculada." }
 
-    // Recalcula valor tabela original
     const base = Number(contextUnit.areaPrivativaTotal || contextUnit.areaPrivativaPrincipal || 0) * Number(priceItem.valorMetroQuadrado)
     const comFatorCorrecao = base * Number(priceItem.fatorCorrecao || 1)
     const comFatorAndar = comFatorCorrecao * Number(priceItem.fatorAndar || 1)
     const valorTabelaOriginal = comFatorAndar * Number(priceItem.fatorDiretoria || 1)
 
-    // --- CÁLCULO DE COMISSÃO (Regra de Herança) ---
-    // 1. Tabela de Preços > 2. Projeto > 3. Fallback (4%)
     const percTabela = priceItem.ycTabelasPreco.percComissaoPadrao
     const percProjeto = contextUnit.ycProjetos.percComissaoPadrao
     const percComissaoFinal = Number(percTabela ?? percProjeto ?? 4.0)
@@ -389,13 +452,11 @@ export async function saveProposal(data: ProposalPayload) {
     validade.setDate(validade.getDate() + 7)
 
     const result = await prisma.$transaction(async (tx) => {
-      // --- A. LEADS ---
-      // Forçamos a criação de um novo registro de Lead independente do e-mail ou telefone
-      // para evitar que corretores usando o próprio contato sobrescrevam leads uns dos outros.
+      // Cria o lead garantindo a autoria do corretor (sysUserId: userId)
       const newLead = await tx.ycLeads.create({
         data: {
           sysTenantId: contextUnit.sysTenantId,
-          sysUserId: BigInt(session.user.id),
+          sysUserId: userId,
           escopoId: contextUnit.escopoId,
           projetoId: contextUnit.projetoId,
           nome: lead.nome.toUpperCase(),
@@ -408,11 +469,10 @@ export async function saveProposal(data: ProposalPayload) {
       })
       const leadId = newLead.id
 
-      // --- B. PROPOSTAS ---
       const newProposal = await tx.ycPropostas.create({
         data: {
           sysTenantId: contextUnit.sysTenantId,
-          sysUserId: BigInt(session.user.id),
+          sysUserId: userId, // A proposta agora pertence ao corretor que a criou!
           escopoId: contextUnit.escopoId,
           
           unidadeId: BigInt(unidadeId),
@@ -428,23 +488,14 @@ export async function saveProposal(data: ProposalPayload) {
 
           dataProposta: new Date(),
           validade: validade,
-          status: "RASCUNHO" // <-- Nasce como Rascunho
+          status: "RASCUNHO" 
         }
       })
 
-      // --- C. CONDIÇÕES & PARCELAS ---
       if (condicoes && condicoes.length > 0) {
-        
         type ParcelaTemp = {
-            _indexCondicaoOrigem: number
-            sysTenantId: bigint
-            sysUserId: bigint
-            escopoId: bigint
-            propostaId: bigint
-            tipo: string
-            parcela: number
-            vencimento: Date
-            valor: number
+            _indexCondicaoOrigem: number, sysTenantId: bigint, sysUserId: bigint, escopoId: bigint
+            propostaId: bigint, tipo: string, parcela: number, vencimento: Date, valor: number
         }
 
         const todasParcelasTemp: ParcelaTemp[] = []
@@ -460,7 +511,6 @@ export async function saveProposal(data: ProposalPayload) {
             'ANUAL': 'A', 'CHAVES': 'C', 'FINANCIAMENTO': 'F'
         }
 
-        // 1. Expande o Fluxo Fino (Com um rastreador de qual condição gerou ela)
         condicoes.forEach((c, indexCondicao) => {
             const numMeses = periodMap[c.periodicidade?.toUpperCase()] || 1
             const baseDate = new Date(c.vencimento + "T12:00:00Z")
@@ -471,9 +521,9 @@ export async function saveProposal(data: ProposalPayload) {
                 venc.setMonth(venc.getMonth() + (i * numMeses))
 
                 todasParcelasTemp.push({
-                    _indexCondicaoOrigem: indexCondicao, // Rastreador temporário
+                    _indexCondicaoOrigem: indexCondicao,
                     sysTenantId: contextUnit.sysTenantId,
-                    sysUserId: BigInt(session.user.id),
+                    sysUserId: userId,
                     escopoId: contextUnit.escopoId,
                     propostaId: newProposal.id,
                     tipo: tipoParcela,
@@ -484,20 +534,15 @@ export async function saveProposal(data: ProposalPayload) {
             }
         })
 
-        // 2. Verifica e Ajusta a Divergência de Centavos na Parcela de Entrada
         const somaParcelas = todasParcelasTemp.reduce((acc, p) => acc + p.valor, 0)
         const diff = valorProposta - somaParcelas
 
         if (Math.abs(diff) > 0.001 && todasParcelasTemp.length > 0) {
-            // Acha a Entrada ('E'). Se não tiver (muito raro), pega a primeira parcela de todas.
             let targetIndex = todasParcelasTemp.findIndex(p => p.tipo === 'E')
             if (targetIndex === -1) targetIndex = 0
-
-            // Se diff é positivo (faltou dinheiro), soma. Se for negativo (passou do valor), subtrai.
             todasParcelasTemp[targetIndex].valor = Number((todasParcelasTemp[targetIndex].valor + diff).toFixed(2))
         }
 
-        // 3. Monta as Condições Corrigidas lendo das parcelas que já foram ajustadas
         const condicoesParaSalvar = condicoes.map((c, idx) => {
             const parcelasDestaCondicao = todasParcelasTemp.filter(p => p._indexCondicaoOrigem === idx)
             const valorTotalCorrigido = parcelasDestaCondicao.reduce((acc, p) => acc + p.valor, 0)
@@ -505,46 +550,35 @@ export async function saveProposal(data: ProposalPayload) {
 
             return {
                 sysTenantId: contextUnit.sysTenantId,
-                sysUserId: BigInt(session.user.id),
+                sysUserId: userId,
                 escopoId: contextUnit.escopoId,
                 propostaId: newProposal.id,
                 tipo: c.tipo,
                 dataVencimento: new Date(c.vencimento + "T12:00:00Z"), 
-                valorParcela: valorParcelaBase, // Reflete a correção caso a entrada tenha mudado
+                valorParcela: valorParcelaBase, 
                 qtdeParcelas: Number(c.qtdeParcelas),
-                valorTotal: Number(valorTotalCorrigido.toFixed(2)) // O Valor Total agora é matematicamente exato
+                valorTotal: Number(valorTotalCorrigido.toFixed(2)) 
             }
         })
 
-        // 4. Limpa o rastreador e Ordena Cronologicamente
         const parcelasParaSalvar = todasParcelasTemp
             .map(p => ({
-                sysTenantId: p.sysTenantId,
-                sysUserId: p.sysUserId,
-                escopoId: p.escopoId,
-                propostaId: p.propostaId,
-                tipo: p.tipo,
-                parcela: p.parcela,
-                vencimento: p.vencimento,
-                valor: p.valor
+                sysTenantId: p.sysTenantId, sysUserId: p.sysUserId, escopoId: p.escopoId,
+                propostaId: p.propostaId, tipo: p.tipo, parcela: p.parcela, vencimento: p.vencimento, valor: p.valor
             }))
             .sort((a, b) => {
                 const dateA = new Date(a.vencimento).getTime()
                 const dateB = new Date(b.vencimento).getTime()
                 if (dateA !== dateB) return dateA - dateB
-                // Desempate por Tipo (Ordem alfabética: A ganha de M)
                 return a.tipo.localeCompare(b.tipo)
             })
 
-        // Reconstrói a numeração após ordenar
         parcelasParaSalvar.forEach((p, idx) => { p.parcela = idx + 1 })
 
-        // 5. Salva no banco de dados com amarração perfeita!
         await tx.ycPropostasCondicoes.createMany({ data: condicoesParaSalvar })
         await tx.ycPropostasParcelas.createMany({ data: parcelasParaSalvar })
       }
 
-      // --- D. ATUALIZAR UNIDADE ---
       await tx.ycUnidades.update({
         where: { id: BigInt(unidadeId) },
         data: { statusComercial: "RESERVADO" }
@@ -563,13 +597,23 @@ export async function saveProposal(data: ProposalPayload) {
 }
 
 // ==========================================
-// MÓDULO DE DOCUMENTOS (MESA DE NEGOCIAÇÃO)
+// MÓDULO DE DOCUMENTOS PÚBLICOS
 // ==========================================
 
 export async function getPublicProjectDocuments(projetoId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return []
+
     try {
         const anexos = await prisma.ycProjetosAnexos.findMany({
-            where: { projetoId: BigInt(projetoId), isPublico: true },
+            where: { 
+                projetoId: BigInt(projetoId), 
+                sysTenantId: BigInt(tenantIdStr),
+                isPublico: true 
+            },
             orderBy: { sysCreatedAt: 'asc' }
         })
         return anexos.map(a => ({
@@ -585,9 +629,19 @@ export async function getPublicProjectDocuments(projetoId: string) {
 }
 
 export async function getPublicUnitDocuments(unidadeId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return []
+
     try {
         const anexos = await prisma.ycUnidadesAnexos.findMany({
-            where: { unidadeId: BigInt(unidadeId), isPublico: true },
+            where: { 
+                unidadeId: BigInt(unidadeId), 
+                sysTenantId: BigInt(tenantIdStr),
+                isPublico: true 
+            },
             orderBy: { sysCreatedAt: 'asc' }
         })
         return anexos.map(a => ({
