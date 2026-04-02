@@ -33,7 +33,6 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Cadastros", 
     icon: FolderOpen, 
-    permission: "CADASTROS_VER", 
     children: [
       { label: "Pessoas Físicas", href: "/app/cadastros/pessoas-fisicas", permission: "PESSOAS_FISICAS_VER" }, 
       { label: "Pessoas Jurídicas", href: "/app/cadastros/pessoas-juridicas", permission: "PESSOAS_JURIDICAS_VER" }
@@ -42,7 +41,6 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Engenharia", 
     icon: HardHat, 
-    permission: "ENGENHARIA_VER", 
     children: [
       { label: "Projetos", href: "/app/engenharia/projetos", permission: "PROJETOS_VER" }, 
       { label: "Orçamentos", href: "/app/engenharia/orcamentos", permission: "ORCAMENTOS_VER" }, 
@@ -54,7 +52,6 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Suprimentos", 
     icon: ShoppingCart, 
-    permission: "SUPRIMENTOS_VER", 
     children: [
       { label: "Insumos", href: "/app/suprimentos/insumos", permission: "INSUMOS_VER" }, 
       { label: "Compras", href: "/app/suprimentos/compras", permission: "COMPRAS_VER" }, 
@@ -66,7 +63,6 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Financeiro", 
     icon: DollarSign, 
-    permission: "FINANCEIRO_VER", 
     children: [
       { label: "Contas a Receber", href: "/app/financeiro/receber", permission: "CONTAS_RECEBER_VER" }, 
       { label: "Contas a Pagar", href: "/app/financeiro/pagar", permission: "CONTAS_PAGAR_VER" }, 
@@ -77,7 +73,6 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Contabilidade", 
     icon: Calculator, 
-    permission: "CONTABILIDADE_VER", 
     children: [
       { label: "Dashboard Fiscal", href: "/app/contabilidade/dashboard", permission: "FISCAL_VER" }, 
       { label: "Custo Orçado e Incorrido", href: "/app/contabilidade/custos", permission: "CUSTOS_VER" }, 
@@ -88,20 +83,18 @@ const ERP_MENU_ITEMS: MenuItem[] = [
   { 
     label: "Comercial", 
     icon: Briefcase, 
-    permission: "COMERCIAL_VER", 
     children: [
       { label: "Gestão de Unidades", href: "/app/comercial/unidades", permission: "UNIDADES_VER" }, 
-      { label: "Preços e Fluxos", href: "/app/comercial/tabelas", permission: "PRECOS_VER" }, 
+      { label: "Preços e Fluxos", href: "/app/comercial/tabelas", permission: "TABELAS_PRECO_VER" }, 
       { label: "Mesa de Negociação", href: "/app/comercial/mesa", permission: "MESA_VER" }, 
-      { label: "Propostas Comerciais", href: "/app/comercial/propostas", permission: "CONTRATOS_VER" }, 
-      { label: "Aprovações de Propostas", href: "/app/comercial/aprovacoes", permission: "PRECOS_VER" }, 
+      { label: "Propostas Comerciais", href: "/app/comercial/propostas", permission: "PROPOSTAS_VER" }, 
+      { label: "Aprovações de Propostas", href: "/app/comercial/aprovacoes", permission: "APROVACOES_VER" }, 
       { label: "Relatórios", href: "/app/comercial/relatorios", permission: "RELATORIOS_COMERCIAL" }
     ] 
   },
   { 
     label: "Configurações", 
     icon: Settings, 
-    permission: "CONFIG_VER", 
     children: [
       { label: "Dados da Empresa", href: "/app/configuracoes/empresa", permission: "EMPRESA_VER" }, 
       { label: "Usuários e Acessos", href: "/app/configuracoes/usuarios", permission: "USUARIOS_VER" }, 

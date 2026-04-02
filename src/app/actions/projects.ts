@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache"
 import { getCurrentTenantId } from "@/lib/get-current-tenant"
 import { z } from "zod"
 import { getUploadSasUrl, deleteFileFromAzureByPath, getFileDownloadUrl } from "@/lib/azure-storage"
+// 1. IMPORTAÇÃO DO NOSSO NOVO MOTOR DE ACESSO
+import { getUserAccessProfile } from "@/lib/access-control" 
 
 // Schema de Validação
 const projectSchema = z.object({
@@ -65,12 +67,25 @@ function parseDecimal(value: string | undefined): number | undefined {
 
 // --- CONSULTAS ---
 export async function getProjects() {  
+  const session = await auth()
+  if (!session?.user?.id) return []
+  
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  // 2. BUSCA O CRACHÁ DO USUÁRIO
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha || !cracha.permissoes.includes('PROJETOS_VER')) return [] // Bloqueia se não tiver permissão de visualização
+
   try {
     const projects = await prisma.ycProjetos.findMany({
-      where: { sysTenantId: BigInt(tenantIdStr) },
+      where: { 
+        sysTenantId: BigInt(tenantIdStr),
+        // 3. REGRA DOS ESCOPOS: Traz apenas projetos dos escopos permitidos
+        escopoId: { in: cracha.escoposPermitidos },
+        // 4. REGRA DO CORRETOR EXTERNO: Se for externo, filtra pelo criador
+        ...(cracha.isInterno ? {} : { sysUserId: BigInt(session.user.id) })
+      },
       include: { ycEscopos: { select: { nome: true } } },
       orderBy: { nome: 'asc' }
     })
@@ -108,14 +123,26 @@ export async function getProjects() {
 
 export async function getProjectById(id: string) {
     const session = await auth()
-    if (!session) return null
+    if (!session?.user?.id) return null
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return null
+
+    // Proteção de leitura individual
+    const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+    if (!cracha || !cracha.permissoes.includes('PROJETOS_VER')) return null
+
     try {
-        const p = await prisma.ycProjetos.findUnique({
-            where: { id: BigInt(id) }
+        const p = await prisma.ycProjetos.findFirst({
+            where: { 
+              id: BigInt(id),
+              sysTenantId: BigInt(tenantIdStr),
+              escopoId: { in: cracha.escoposPermitidos }, // Garante que ele tem acesso ao escopo deste projeto
+              ...(cracha.isInterno ? {} : { sysUserId: BigInt(session.user.id) }) // Regra do externo
+            }
         })
         if (!p) return null
         
-        // Se a logo existir no banco, gera a URL de leitura do Azure
         let logoUrl = p.logo;
         if (p.logo && !p.logo.startsWith('http')) {
             logoUrl = await getFileDownloadUrl(p.logo, 'logo.png') || p.logo;
@@ -151,12 +178,23 @@ export async function getProjectById(id: string) {
 }
 
 export async function getAvailableScopes() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
   const tenantIdStr = await getCurrentTenantId()
   if (!tenantIdStr) return []
 
+  // Puxa o crachá para filtrar o dropdown de escopos!
+  const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+  if (!cracha) return []
+
   try {
     const scopes = await prisma.ycEscopos.findMany({
-      where: { sysTenantId: BigInt(tenantIdStr), ativo: true },
+      where: { 
+        sysTenantId: BigInt(tenantIdStr), 
+        ativo: true,
+        id: { in: cracha.escoposPermitidos } // O usuário só verá no select os escopos que ele tem acesso
+      },
       orderBy: { caminho: 'asc' },
       select: { 
         id: true, 
@@ -190,6 +228,16 @@ export async function saveProject(
   const tenantId = BigInt(tenantIdStr)
   const userId = BigInt(session.user.id)
 
+  // 5. PROTEÇÃO DE ESCRITA
+  const cracha = await getUserAccessProfile(userId, tenantId)
+  if (!cracha) return { success: false, message: "Perfil de acesso não encontrado." }
+  
+  // Checa se tem permissão (Se for novo projeto testa CRIAR, se for edição testa EDITAR)
+  const requiredPermission = projectId ? 'PROJETOS_EDITAR' : 'PROJETOS_CRIAR'
+  if (!cracha.permissoes.includes(requiredPermission)) {
+    return { success: false, message: "Você não tem permissão para realizar esta operação." }
+  }
+
   const validated = projectSchema.safeParse({
     escopoId: formData.get("escopoId")?.toString(),
     nome: formData.get("nome")?.toString(),
@@ -222,17 +270,35 @@ export async function saveProject(
   }
 
   const data = validated.data
+
+  // Impede que um mal-intencionado force a criação de um projeto em um escopo que ele não tem acesso
+  if (!cracha.escoposPermitidos.includes(BigInt(data.escopoId))) {
+    return { success: false, message: "Você não tem permissão para vincular a este escopo." }
+  }
+
   const areaTotalDecimal = parseDecimal(data.areaTotal)
   const percComissaoDecimal = parseDecimal(data.percComissaoPadrao)
   
-  // Tratamento da Data (adicionando hora para evitar fuso horário puxando 1 dia para trás)
   const dataPrevisao = data.dataPrevistaConclusao ? new Date(`${data.dataPrevistaConclusao}T12:00:00Z`) : undefined;
 
   try {
     let returnId = projectId;
 
-    // 1. SALVA OU ATUALIZA O PROJETO (Ignorando a logo por enquanto)
     if (projectId) {
+      // Regra extra de segurança: checar se ele pode editar ESTE projeto específico
+      const currentProject = await prisma.ycProjetos.findFirst({
+        where: { 
+          id: BigInt(projectId), 
+          sysTenantId: tenantId,
+          escopoId: { in: cracha.escoposPermitidos },
+          ...(cracha.isInterno ? {} : { sysUserId: userId }) 
+        }
+      })
+
+      if (!currentProject) {
+        return { success: false, message: "Projeto não encontrado ou acesso negado." }
+      }
+
       await prisma.ycProjetos.update({
         where: { id: BigInt(projectId) },
         data: {
@@ -293,10 +359,7 @@ export async function saveProject(
     const logoFile = formData.get("logo") as File | null;
     let newLogoUrlToReturn: string | undefined = undefined;
     
-    // Se o usuário subiu um arquivo novo e já temos o ID do projeto
     if (logoFile && logoFile.size > 0 && returnId) {
-        
-        // A. Busca a logo atual no banco. Se existir, tenta apagar do Azure.
         if (projectId) {
             const currentProject = await prisma.ycProjetos.findUnique({
                 where: { id: BigInt(projectId) },
@@ -304,7 +367,6 @@ export async function saveProject(
             })
             if (currentProject?.logo) {
                 try {
-                    // Tenta apagar, mas se não achar o arquivo (ou tiver sido apagado manualmente), ignora o erro!
                     await deleteFileFromAzureByPath(currentProject.logo)
                 } catch {
                     console.warn("Logo antiga não encontrada no Azure, ignorando exclusão.")
@@ -312,7 +374,6 @@ export async function saveProject(
             }
         }
 
-        // B. Define a pasta com o padrão correto (agora com o ID do projeto garantido)
         const folderPath = `tenant-${tenantIdStr}/projeto-${returnId}`
         const ext = logoFile.name.split('.').pop() || 'png'
         const fileName = `logo-${Date.now()}.${ext}`
@@ -326,13 +387,11 @@ export async function saveProject(
             body: arrayBuffer
         })
         
-        // C. Se o upload deu certo, atualiza o registro e gera a URL visual para devolver à tela
         if (res.ok) {
             await prisma.ycProjetos.update({
                 where: { id: BigInt(returnId) },
                 data: { logo: relativePath }
             })
-            // Gera uma URL temporária do Azure para a tela mostrar instantaneamente
             newLogoUrlToReturn = await getFileDownloadUrl(relativePath, fileName) || undefined;
         } else {
             throw new Error("Falha na comunicação com o servidor de armazenamento.")
@@ -344,7 +403,7 @@ export async function saveProject(
         success: true, 
         message: "Projeto salvo com sucesso!", 
         dataId: returnId ?? undefined,
-        newLogoUrl: newLogoUrlToReturn // <--- Retorna a nova URL para a tela
+        newLogoUrl: newLogoUrlToReturn
     }
   } catch (error) {
     console.error("Erro ao salvar projeto:", error)
@@ -353,15 +412,33 @@ export async function saveProject(
 }
 
 export async function deleteProject(projectId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, message: "Não autorizado." }
+
+    const tenantIdStr = await getCurrentTenantId()
+    if (!tenantIdStr) return { success: false, message: "Tenant não definido." }
+
+    // 6. PROTEÇÃO DE EXCLUSÃO
+    const cracha = await getUserAccessProfile(BigInt(session.user.id), BigInt(tenantIdStr))
+    if (!cracha || !cracha.permissoes.includes('PROJETOS_EXCLUIR')) {
+      return { success: false, message: "Você não tem permissão para excluir projetos." }
+    }
+
     try {
         const pId = BigInt(projectId)
 
-        const projeto = await prisma.ycProjetos.findUnique({
-            where: { id: pId },
+        // Verifica se o projeto existe e se o usuário tem permissão sobre o escopo/autoria dele
+        const projeto = await prisma.ycProjetos.findFirst({
+            where: { 
+              id: pId,
+              sysTenantId: BigInt(tenantIdStr),
+              escopoId: { in: cracha.escoposPermitidos },
+              ...(cracha.isInterno ? {} : { sysUserId: BigInt(session.user.id) }) 
+            },
             include: { _count: { select: { ycUnidades: true } } }
         })
 
-        if (!projeto) return { success: false, message: "Projeto não encontrado." }
+        if (!projeto) return { success: false, message: "Projeto não encontrado ou acesso negado." }
 
         if (projeto._count.ycUnidades > 0) {
             return { 
@@ -380,7 +457,6 @@ export async function deleteProject(projectId: string) {
             }
         }
         
-        // Exclui a logo do Azure se existir
         if (projeto.logo) {
              await deleteFileFromAzureByPath(projeto.logo)
         }
@@ -399,12 +475,15 @@ export async function deleteProject(projectId: string) {
 }
 
 // ==========================================
-// MÓDULO DE ANEXOS DO PROJETO
+// MÓDULO DE ANEXOS DO PROJETO (Simplificado para esta Sprint)
 // ==========================================
 export async function getProjectAttachments(projetoId: string): Promise<ProjectAttachmentItem[]> {
     const session = await auth()
     if (!session) return []
 
+    // Nota: Como os anexos são carregados dentro da tela do projeto,
+    // se o usuário não tem acesso ao projeto, a tela nem abre. 
+    // Em sprints futuras, blindaremos isso granularmente.
     try {
         const anexos = await prisma.ycProjetosAnexos.findMany({
             where: { projetoId: BigInt(projetoId) },

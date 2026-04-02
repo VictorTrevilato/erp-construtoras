@@ -80,7 +80,7 @@ export default async function RolesPage() {
                     <TableCell className="text-muted-foreground">{role.descricao || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={role.interno ? "default" : "secondary"}>
-                        {role.interno ? "Interno (Equipe)" : "Externo (Portal)"}
+                        {role.interno ? "Interno" : "Externo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
