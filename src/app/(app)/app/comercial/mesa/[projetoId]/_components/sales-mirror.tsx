@@ -56,16 +56,12 @@ export function SalesMirror({ units, projetoNome, tabelaCodigo, logoUrl }: { uni
     switch (status) {
       case 'DISPONIVEL': 
         return 'bg-success text-white ring-2 ring-success/80 shadow-md hover:brightness-110 transition-all cursor-pointer'
-  
       case 'RESERVADO': 
         return 'bg-warning text-white ring-2 ring-warning/80 shadow-md cursor-not-allowed'
-  
       case 'EM_ANALISE': 
         return 'bg-info text-white ring-2 ring-info/80 shadow-md cursor-not-allowed'
-  
       case 'VENDIDO': 
         return 'bg-destructive text-white ring-2 ring-destructive/80 shadow-md cursor-not-allowed'
-  
       default: 
         return 'bg-muted text-muted-foreground'
     }
